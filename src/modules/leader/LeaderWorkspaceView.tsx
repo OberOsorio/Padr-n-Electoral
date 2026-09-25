@@ -136,6 +136,13 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
     setCedula(clean);
     setFormError(null);
 
+    // Si los nombres previos provinieron de autocompletado, limpiarlos al cambiar la cédula
+    if (isAutofilledFromCenso) {
+      setNombres('');
+      setApellidos('');
+      setIsAutofilledFromCenso(false);
+    }
+
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
     }
@@ -143,7 +150,6 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
     if (clean.length < 5) {
       setCollisionResult(null);
       setIsCheckingCedula(false);
-      setIsAutofilledFromCenso(false);
       return;
     }
 
@@ -171,6 +177,8 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
           }
           setIsAutofilledFromCenso(true);
         } else {
+          setNombres('');
+          setApellidos('');
           setIsAutofilledFromCenso(false);
         }
       } else {

@@ -163,10 +163,14 @@ export const RegisterElectorView = ({
           }
           setIsAutofilledFromCenso(true);
         } else {
+          setNombres('');
+          setApellidos('');
           setIsAutofilledFromCenso(false);
         }
       } catch (e) {
         console.error('Error al autocompletar desde censo maestro:', e);
+        setNombres('');
+        setApellidos('');
         setIsAutofilledFromCenso(false);
       }
     };
@@ -308,6 +312,13 @@ export const RegisterElectorView = ({
     setCedula(val);
     setServerError(null);
 
+    // Si los nombres previos fueron cargados por autocompletado, limpiarlos al modificar la cédula
+    if (isAutofilledFromCenso) {
+      setNombres('');
+      setApellidos('');
+      setIsAutofilledFromCenso(false);
+    }
+
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
     }
@@ -315,7 +326,6 @@ export const RegisterElectorView = ({
     if (!val || val.length < 5) {
       setCollisionResult(null);
       setIsCheckingCedula(false);
-      setIsAutofilledFromCenso(false);
       return;
     }
 

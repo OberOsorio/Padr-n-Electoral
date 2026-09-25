@@ -3,6 +3,38 @@
  * Handles API routes like /api/dnp-lookup and delegates static assets to env.ASSETS
  */
 
+let cachedCookies = '';
+let cookieExpiry = 0;
+
+async function getDnpCookies() {
+  const now = Date.now();
+  if (cachedCookies && now < cookieExpiry) {
+    return cachedCookies;
+  }
+  try {
+    const res = await fetch('https://ventanillasocial.dnp.gov.co/', {
+      headers: {
+        'user-agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+      },
+    });
+    let cookies = '';
+    if (res.headers.getSetCookie) {
+      cookies = res.headers.getSetCookie().map((c) => c.split(';')[0]).join('; ');
+    } else {
+      cookies = res.headers.get('set-cookie') || '';
+    }
+    if (cookies) {
+      cachedCookies = cookies;
+      cookieExpiry = now + 5 * 60 * 1000;
+      return cookies;
+    }
+  } catch (e) {
+    // fallback
+  }
+  return '__CsrfToken=2351a61a39744da9a76107a723acfb55; KEMP_STICKY=4064890549.1.0.200321338';
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -53,6 +85,8 @@ export default {
         formData.append('pNumDoc', cedula);
         formData.append('pTipDoc', tipoDoc);
 
+        const cookies = await getDnpCookies();
+
         const dnpRes = await fetch('https://ventanillasocial.dnp.gov.co/Home/ObtenerDatosRUI', {
           method: 'POST',
           headers: {
@@ -63,7 +97,7 @@ export default {
             'referer': 'https://ventanillasocial.dnp.gov.co/',
             'user-agent':
               'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-            'cookie': '__CsrfToken=2351a61a39744da9a76107a723acfb55; KEMP_STICKY=4064890549.1.0.200321338',
+            'cookie': cookies,
           },
           body: formData.toString(),
         });

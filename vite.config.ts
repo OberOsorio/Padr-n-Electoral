@@ -23,15 +23,28 @@ function dnpLookupDevPlugin(): Plugin {
                 return;
               }
 
-              const cookie = '__CsrfToken=2351a61a39744da9a76107a723acfb55; KEMP_STICKY=4064890549.1.0.200321338';
+              let cookie = '__CsrfToken=2351a61a39744da9a76107a723acfb55; KEMP_STICKY=4064890549.1.0.200321338';
+              try {
+                const homeRes = await fetch('https://ventanillasocial.dnp.gov.co/', {
+                  headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+                });
+                if (homeRes.headers.getSetCookie) {
+                  cookie = homeRes.headers.getSetCookie().map((c) => c.split(';')[0]).join('; ');
+                } else if (homeRes.headers.get('set-cookie')) {
+                  cookie = homeRes.headers.get('set-cookie')!;
+                }
+              } catch (e) {
+                // use fallback
+              }
+
               const commonHeaders: Record<string, string> = {
                 'Accept': '*/*',
-                'Accept-Language': 'es-CO,es-ES;q=0.9,es;q=0.8,en;q=0.7,en-GB;q=0.6,en-US;q=0.5,es-MX;q=0.4',
+                'Accept-Language': 'es-CO,es-ES;q=0.9,es;q=0.8,en;q=0.7',
                 'Content-Type': 'application/x-www-form-urlencoded',
                 'Cookie': cookie,
                 'Origin': 'https://ventanillasocial.dnp.gov.co',
                 'Referer': 'https://ventanillasocial.dnp.gov.co/',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36 Edg/151.0.0.0',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
               };
 
               const payload = `pNumDoc=${encodeURIComponent(cedula)}&pTipDoc=${encodeURIComponent(tipDoc)}`;
