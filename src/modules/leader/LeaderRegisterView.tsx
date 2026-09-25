@@ -95,7 +95,7 @@ export const LeaderRegisterView: React.FC<LeaderRegisterViewProps> = ({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
       transition={{ duration: 0.2 }}
-      className="space-y-4"
+      className="space-y-4 w-full max-w-full overflow-x-hidden"
     >
       {/* Alerta de Registro Exitoso */}
       {lastRegistered && (
@@ -165,7 +165,7 @@ export const LeaderRegisterView: React.FC<LeaderRegisterViewProps> = ({
                 onChange={(e) => onCedulaChange(e.target.value)}
                 onBlur={onCedulaBlur}
                 placeholder="Ej. 1088492019"
-                className={`w-full pl-4 pr-11 py-3 bg-slate-50 dark:bg-slate-950/80 border rounded-xl text-sm font-mono text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none transition-all ${
+                className={`w-full pl-4 pr-11 py-3 bg-slate-50 dark:bg-slate-950/80 border rounded-xl text-base sm:text-sm font-mono text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none transition-all ${
                   isFormLocked
                     ? 'border-rose-300 dark:border-rose-500/50 focus:ring-1 focus:ring-rose-500/30'
                     : 'border-slate-300 dark:border-slate-700/60 focus:bg-white dark:focus:bg-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10'
@@ -313,8 +313,8 @@ export const LeaderRegisterView: React.FC<LeaderRegisterViewProps> = ({
               )}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
-              <div className="sm:col-span-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
                 <label className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1 block">
                   Nombres *
                 </label>
@@ -325,10 +325,10 @@ export const LeaderRegisterView: React.FC<LeaderRegisterViewProps> = ({
                   value={nombres}
                   onChange={(e) => setNombres(e.target.value)}
                   placeholder="Ej. Juan Carlos"
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-slate-700/60 focus:bg-white dark:focus:bg-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10 rounded-xl text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-slate-700/60 focus:bg-white dark:focus:bg-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10 rounded-xl text-base sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
-              <div className="sm:col-span-2">
+              <div>
                 <label className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1 block">
                   Apellidos *
                 </label>
@@ -339,47 +339,50 @@ export const LeaderRegisterView: React.FC<LeaderRegisterViewProps> = ({
                   value={apellidos}
                   onChange={(e) => setApellidos(e.target.value)}
                   placeholder="Ej. Osorio Morales"
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-slate-700/60 focus:bg-white dark:focus:bg-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10 rounded-xl text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                />
-              </div>
-              <div className="sm:col-span-1">
-                <label className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1 flex items-center justify-between">
-                  <span>Edad</span>
-                  {edad !== '' && (
-                    <span className="text-[10px] text-blue-600 dark:text-blue-400 font-mono font-bold">
-                      {edad}a
-                    </span>
-                  )}
-                </label>
-                <input
-                  type="number"
-                  min="16"
-                  max="125"
-                  disabled={submitting || isFormLocked}
-                  value={edad}
-                  onChange={(e) => setEdad(e.target.value ? Number(e.target.value) : '')}
-                  placeholder="Ej. 28"
-                  className="w-full px-3 py-3 bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-slate-700/60 focus:bg-white dark:focus:bg-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10 rounded-xl text-sm font-mono text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-slate-700/60 focus:bg-white dark:focus:bg-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10 rounded-xl text-base sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
             </div>
           </div>
 
-          {/* Teléfono Celular (WhatsApp) */}
-          <div>
-            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5 block">
-              Teléfono Móvil (WhatsApp)
-            </label>
-            <div className="relative">
-              <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-slate-500 pointer-events-none" />
+          {/* Teléfono Celular (WhatsApp) y Edad */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="sm:col-span-2">
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5 block">
+                Teléfono Móvil (WhatsApp)
+              </label>
+              <div className="relative">
+                <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-slate-500 pointer-events-none" />
+                <input
+                  type="tel"
+                  inputMode="tel"
+                  disabled={submitting || isFormLocked}
+                  value={telefono}
+                  onChange={(e) => setTelefono(e.target.value.replace(/\D/g, ''))}
+                  placeholder="Ej. 3124567890"
+                  className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-slate-700/60 focus:bg-white dark:focus:bg-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10 rounded-xl text-base sm:text-sm font-mono text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                />
+              </div>
+            </div>
+
+            <div className="sm:col-span-1">
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                <span>Edad</span>
+                {edad !== '' && (
+                  <span className="text-[10px] text-blue-600 dark:text-blue-400 font-mono font-bold">
+                    {edad}a
+                  </span>
+                )}
+              </label>
               <input
-                type="tel"
-                inputMode="tel"
+                type="number"
+                min="16"
+                max="125"
                 disabled={submitting || isFormLocked}
-                value={telefono}
-                onChange={(e) => setTelefono(e.target.value.replace(/\D/g, ''))}
-                placeholder="Ej. 3124567890"
-                className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-slate-700/60 focus:bg-white dark:focus:bg-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10 rounded-xl text-sm font-mono text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                value={edad}
+                onChange={(e) => setEdad(e.target.value ? Number(e.target.value) : '')}
+                placeholder="Ej. 28"
+                className="w-full px-3 py-3 bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-slate-700/60 focus:bg-white dark:focus:bg-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10 rounded-xl text-base sm:text-sm font-mono text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               />
             </div>
           </div>
@@ -397,7 +400,7 @@ export const LeaderRegisterView: React.FC<LeaderRegisterViewProps> = ({
                   setPuestoVotacion(e.target.value);
                   setMesa(1);
                 }}
-                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-slate-700/60 focus:bg-white dark:focus:bg-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-slate-700/60 focus:bg-white dark:focus:bg-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10 rounded-xl text-base sm:text-xs text-slate-900 dark:text-white focus:outline-none transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {PREDEFINED_POLLING_PLACES.map((p) => (
                   <option key={p.id} value={p.name}>
@@ -415,7 +418,7 @@ export const LeaderRegisterView: React.FC<LeaderRegisterViewProps> = ({
                 disabled={submitting || isFormLocked}
                 value={mesa}
                 onChange={(e) => setMesa(Number(e.target.value))}
-                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-slate-700/60 focus:bg-white dark:focus:bg-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10 rounded-xl text-xs font-mono text-slate-900 dark:text-white focus:outline-none transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-slate-700/60 focus:bg-white dark:focus:bg-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10 rounded-xl text-base sm:text-xs font-mono text-slate-900 dark:text-white focus:outline-none transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {Array.from({ length: currentPollingPlace.totalMesas }, (_, i) => i + 1).map((m) => (
                   <option key={m} value={m}>
@@ -437,7 +440,7 @@ export const LeaderRegisterView: React.FC<LeaderRegisterViewProps> = ({
               value={notas}
               onChange={(e) => setNotas(e.target.value)}
               placeholder="Ej. Líder comunal, requiere transporte, vota a primera hora..."
-              className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-slate-700/60 focus:bg-white dark:focus:bg-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10 rounded-xl text-xs text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none resize-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-slate-700/60 focus:bg-white dark:focus:bg-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10 rounded-xl text-base sm:text-xs text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none resize-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             />
           </div>
 

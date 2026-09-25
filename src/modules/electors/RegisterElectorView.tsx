@@ -548,7 +548,7 @@ export const RegisterElectorView = ({
   }, [toastMessage]);
 
   return (
-    <div className="relative min-h-[calc(100vh-2rem)] p-4 sm:p-6 lg:p-10 max-w-[1100px] mx-auto pb-24 md:pb-10 animate-in fade-in duration-300">
+    <div className="relative min-h-[calc(100vh-2rem)] p-4 sm:p-6 lg:p-10 max-w-[1100px] mx-auto pb-24 md:pb-10 animate-in fade-in duration-300 w-full max-w-full overflow-x-hidden">
       
       {/* Toast Flotante Glassmorphic de Éxito Animado */}
       <AnimatePresence>
@@ -695,7 +695,7 @@ export const RegisterElectorView = ({
                 onKeyDown={(e) => handleKeyDown(e, nombresInputRef)}
                 placeholder="Ej. 1047892341 (solo números)"
                 disabled={saving}
-                className={`w-full h-11 pl-4 pr-11 bg-slate-50 dark:bg-slate-900/90 border rounded-xl text-sm font-mono text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:outline-none transition-all ${
+                className={`w-full h-11 pl-4 pr-11 bg-slate-50 dark:bg-slate-900/90 border rounded-xl text-base sm:text-sm font-mono text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:outline-none transition-all ${
                   collisionResult?.exists
                     ? 'border-amber-500 focus:ring-1 focus:ring-amber-500/50'
                     : 'border-slate-200 dark:border-slate-700/60 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/40'
@@ -851,8 +851,8 @@ export const RegisterElectorView = ({
               )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-              <div className="md:col-span-2 space-y-1.5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
                 <label
                   htmlFor="nombres"
                   className="block text-[11px] font-medium uppercase tracking-wider text-slate-700 dark:text-slate-300 font-mono"
@@ -871,12 +871,12 @@ export const RegisterElectorView = ({
                     onKeyDown={(e) => handleKeyDown(e, apellidosInputRef)}
                     placeholder="Ej. Juan Carlos"
                     disabled={saving || collisionResult?.exists}
-                    className="w-full h-10.5 pl-10 pr-3.5 bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/60 rounded-xl text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/40 transition-all disabled:opacity-50"
+                    className="w-full h-10.5 pl-10 pr-3.5 bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/60 rounded-xl text-base sm:text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/40 transition-all disabled:opacity-50"
                   />
                 </div>
               </div>
 
-              <div className="md:col-span-2 space-y-1.5">
+              <div className="space-y-1.5">
                 <label
                   htmlFor="apellidos"
                   className="block text-[11px] font-medium uppercase tracking-wider text-slate-700 dark:text-slate-300 font-mono"
@@ -892,15 +892,42 @@ export const RegisterElectorView = ({
                     required
                     value={apellidos}
                     onChange={(e) => setApellidos(e.target.value)}
-                    onKeyDown={(e) => handleKeyDown(e, edadInputRef)}
+                    onKeyDown={(e) => handleKeyDown(e, telefonoInputRef)}
                     placeholder="Ej. Rodríguez Martínez"
                     disabled={saving || collisionResult?.exists}
-                    className="w-full h-10.5 pl-10 pr-3.5 bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/60 rounded-xl text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/40 transition-all disabled:opacity-50"
+                    className="w-full h-10.5 pl-10 pr-3.5 bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/60 rounded-xl text-base sm:text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/40 transition-all disabled:opacity-50"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Fila: Teléfono de Contacto y Edad */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="sm:col-span-2 space-y-1.5">
+                <label
+                  htmlFor="telefono"
+                  className="block text-[11px] font-medium uppercase tracking-wider text-slate-700 dark:text-slate-300 font-mono"
+                >
+                  Teléfono de Contacto (Opcional)
+                </label>
+                <div className="relative">
+                  <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500 pointer-events-none" />
+                  <input
+                    ref={telefonoInputRef}
+                    id="telefono"
+                    type="tel"
+                    inputMode="numeric"
+                    value={telefono}
+                    onChange={(e) => setTelefono(e.target.value.replace(/\D/g, ''))}
+                    onKeyDown={(e) => handleKeyDown(e, edadInputRef)}
+                    placeholder="Ej. 3124567890"
+                    disabled={saving || collisionResult?.exists}
+                    className="w-full h-10.5 pl-10 pr-3.5 bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/60 rounded-xl text-base sm:text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/40 transition-all disabled:opacity-50 font-mono"
                   />
                 </div>
               </div>
 
-              <div className="md:col-span-1 space-y-1.5">
+              <div className="sm:col-span-1 space-y-1.5">
                 <label
                   htmlFor="edad"
                   className="block text-[11px] font-medium uppercase tracking-wider text-slate-700 dark:text-slate-300 font-mono"
@@ -916,38 +943,13 @@ export const RegisterElectorView = ({
                     max="125"
                     value={edad}
                     onChange={(e) => setEdad(e.target.value ? Number(e.target.value) : '')}
-                    onKeyDown={(e) => handleKeyDown(e, telefonoInputRef)}
+                    onKeyDown={(e) => handleKeyDown(e, mesaInputRef)}
                     placeholder="Ej. 28"
                     disabled={saving || collisionResult?.exists}
-                    className="w-full h-10.5 px-3 bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/60 rounded-xl text-sm font-mono text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/40 transition-all disabled:opacity-50"
+                    className="w-full h-10.5 px-3 bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/60 rounded-xl text-base sm:text-sm font-mono text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/40 transition-all disabled:opacity-50"
                   />
                 </div>
               </div>
-            </div>
-          </div>
-
-          {/* Teléfono de contacto */}
-          <div className="space-y-1.5">
-            <label
-              htmlFor="telefono"
-              className="block text-[11px] font-medium uppercase tracking-wider text-slate-700 dark:text-slate-300 font-mono"
-            >
-              Teléfono de Contacto (Opcional)
-            </label>
-            <div className="relative">
-              <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500 pointer-events-none" />
-              <input
-                ref={telefonoInputRef}
-                id="telefono"
-                type="tel"
-                inputMode="numeric"
-                value={telefono}
-                onChange={(e) => setTelefono(e.target.value.replace(/\D/g, ''))}
-                onKeyDown={(e) => handleKeyDown(e, mesaInputRef)}
-                placeholder="Ej. 3124567890"
-                disabled={saving || collisionResult?.exists}
-                className="w-full h-10.5 pl-10 pr-3.5 bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/60 rounded-xl text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/40 transition-all disabled:opacity-50 font-mono"
-              />
             </div>
           </div>
 
