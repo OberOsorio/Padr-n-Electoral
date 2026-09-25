@@ -11,9 +11,16 @@ import { AnimatePresence, motion } from 'framer-motion';
 interface MasterPlatformLayoutProps {
   onSignOut?: () => void;
   onOpenGateway?: () => void;
+  userName?: string;
+  userEmail?: string;
 }
 
-export const MasterPlatformLayout: React.FC<MasterPlatformLayoutProps> = ({ onSignOut, onOpenGateway }) => {
+export const MasterPlatformLayout: React.FC<MasterPlatformLayoutProps> = ({
+  onSignOut,
+  onOpenGateway,
+  userName = 'Ober Osorio',
+  userEmail = 'oberosorio1@gmail.com',
+}) => {
   const [activeTab, setActiveTab] = useState<MasterTab>('overview');
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
@@ -27,6 +34,8 @@ export const MasterPlatformLayout: React.FC<MasterPlatformLayoutProps> = ({ onSi
         onOpenGateway={onOpenGateway}
         isMobileOpen={isMobileOpen}
         onCloseMobile={() => setIsMobileOpen(false)}
+        userName={userName}
+        userEmail={userEmail}
       />
 
       {/* Main Content Area */}

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { LogOut, Mail, Shield } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
+import { SignOutModal } from '../common/SignOutModal';
 
 export interface UserProfileCardProps {
   userName?: string;
@@ -22,6 +23,7 @@ export const UserProfileCard = ({
 }: UserProfileCardProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [showSignOutModal, setShowSignOutModal] = useState(false);
   const popoverRef = useRef<HTMLDivElement>(null);
 
   // Obtener iniciales del usuario (máximo 2 caracteres)
@@ -143,16 +145,28 @@ export const UserProfileCard = ({
               {/* Botón de acción: Cerrar Sesión */}
               <button
                 type="button"
-                onClick={handleSignOut}
-                disabled={isSigningOut}
-                className="w-full mt-1 px-3 py-2 rounded-xl text-xs font-medium text-rose-600 dark:text-rose-400 bg-rose-50/80 dark:bg-rose-950/30 hover:bg-rose-100 dark:hover:bg-rose-900/40 border border-rose-200/80 dark:border-rose-800/40 flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-[0.98]"
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  setShowSignOutModal(true);
+                }}
+                className="w-full mt-1 px-3 py-2 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-50/80 dark:bg-rose-950/30 hover:bg-rose-100 dark:hover:bg-rose-900/40 border border-rose-200/80 dark:border-rose-800/40 flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-[0.98]"
               >
                 <LogOut className="w-4 h-4 shrink-0" />
-                <span>{isSigningOut ? 'Cerrando sesión...' : 'Cerrar Sesión'}</span>
+                <span>Cerrar Sesión</span>
               </button>
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Modal Profesional de Confirmación de Cierre */}
+        <SignOutModal
+          isOpen={showSignOutModal}
+          onClose={() => setShowSignOutModal(false)}
+          onConfirm={handleSignOut}
+          userName={userName}
+          userEmail={userEmail}
+          userRole={userRole}
+        />
       </div>
     );
   }
@@ -214,17 +228,27 @@ export const UserProfileCard = ({
         </div>
       </div>
 
-      {/* 3. Botón de Acción: Cerrar Sesión */}
+      {/* 3. Botón de Acción Profesional: Cerrar Sesión */}
       <button
         type="button"
-        onClick={handleSignOut}
-        disabled={isSigningOut}
-        className="h-8 w-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 active:scale-95 transition-all cursor-pointer shrink-0 focus:outline-hidden focus:ring-2 focus:ring-red-500/40"
-        title="Cerrar sesión"
+        onClick={() => setShowSignOutModal(true)}
+        className="h-8.5 px-2.5 rounded-xl flex items-center gap-1.5 text-slate-500 hover:text-red-500 dark:text-slate-400 dark:hover:text-red-400 bg-slate-100/70 hover:bg-red-50 dark:bg-slate-800/80 dark:hover:bg-red-950/30 border border-slate-200/80 hover:border-red-300 dark:border-slate-700/60 dark:hover:border-red-500/40 active:scale-95 transition-all duration-150 cursor-pointer text-xs font-semibold shrink-0"
+        title="Cerrar sesión de forma segura"
         aria-label="Cerrar sesión"
       >
-        <LogOut className="w-4 h-4" />
+        <LogOut className="w-3.5 h-3.5" />
+        <span className="hidden sm:inline text-[11px]">Salir</span>
       </button>
+
+      {/* Modal Profesional de Confirmación de Cierre */}
+      <SignOutModal
+        isOpen={showSignOutModal}
+        onClose={() => setShowSignOutModal(false)}
+        onConfirm={handleSignOut}
+        userName={userName}
+        userEmail={userEmail}
+        userRole={userRole}
+      />
     </div>
   );
 };

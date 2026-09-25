@@ -84,6 +84,8 @@ export const AppRouter: React.FC<AppRouterProps> = ({ session, onSignOut }) => {
     // Por defecto en modo 'master'
     return (
       <MasterPlatformLayout
+        userName={session.userName}
+        userEmail={session.email}
         onSignOut={() => {
           sessionStorage.removeItem('electoral_superadmin_mode');
           onSignOut();

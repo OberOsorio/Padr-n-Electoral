@@ -22,6 +22,8 @@ interface MasterSidebarProps {
   onOpenGateway?: () => void;
   isMobileOpen?: boolean;
   onCloseMobile?: () => void;
+  userName?: string;
+  userEmail?: string;
 }
 
 export const MasterSidebar: React.FC<MasterSidebarProps> = ({
@@ -31,6 +33,8 @@ export const MasterSidebar: React.FC<MasterSidebarProps> = ({
   onOpenGateway,
   isMobileOpen = false,
   onCloseMobile,
+  userName = 'Ober Osorio',
+  userEmail = 'oberosorio1@gmail.com',
 }) => {
   const handleSignOut = async () => {
     if (onSignOut) {
@@ -207,7 +211,12 @@ export const MasterSidebar: React.FC<MasterSidebarProps> = ({
 
       {/* Footer SuperAdmin Profile Card */}
       <div className="p-3 sm:p-3.5 border-t border-slate-200 dark:border-purple-900/20 bg-slate-50/50 dark:bg-slate-950/40">
-        <MasterUserCard onSignOut={handleSignOut} />
+        <MasterUserCard
+          name={userName}
+          email={userEmail}
+          roleLabel="MASTER"
+          onSignOut={handleSignOut}
+        />
       </div>
     </div>
   );
