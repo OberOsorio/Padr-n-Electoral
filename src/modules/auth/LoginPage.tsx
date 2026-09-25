@@ -61,6 +61,11 @@ export const LoginPage = ({ onSuccess, onBackToLanding }: LoginPageProps) => {
           setErrorMessage('Credenciales inválidas. Compruebe el correo y la contraseña.');
         } else if (authError.message.includes('Email not confirmed')) {
           setErrorMessage('La dirección de correo no ha sido confirmada.');
+        } else if (
+          authError.message.includes('Failed to fetch') ||
+          authError.message.includes('Load failed')
+        ) {
+          setErrorMessage('Error de red al conectar con Supabase. Compruebe su conexión a internet.');
         } else {
           setErrorMessage(authError.message);
         }
@@ -122,9 +127,12 @@ export const LoginPage = ({ onSuccess, onBackToLanding }: LoginPageProps) => {
       onSuccess?.(sessionData);
     } catch (err: unknown) {
       console.error('Error durante autenticación:', err);
-      setErrorMessage(
-        err instanceof Error ? err.message : 'Error inesperado durante la autenticación.'
-      );
+      const rawMsg = err instanceof Error ? err.message : String(err);
+      if (rawMsg.includes('Load failed') || rawMsg.includes('Failed to fetch')) {
+        setErrorMessage('Error de red al conectar con Supabase. Compruebe su conexión a internet.');
+      } else {
+        setErrorMessage(rawMsg || 'Error inesperado durante la autenticación.');
+      }
     } finally {
       setLoading(false);
     }
