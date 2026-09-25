@@ -283,6 +283,7 @@ export const useLeaderWorkspace = (userId: string, tenantId: string | null) => {
     cedula: string;
     nombres: string;
     apellidos: string;
+    edad?: number | null;
     telefono?: string;
     puesto_votacion: string;
     mesa: number;
@@ -304,6 +305,7 @@ export const useLeaderWorkspace = (userId: string, tenantId: string | null) => {
       cedula: cleanCedula,
       nombres: newElectorData.nombres.trim(),
       apellidos: newElectorData.apellidos.trim(),
+      edad: newElectorData.edad ?? null,
       telefono: newElectorData.telefono?.trim() || null,
       puesto_votacion: newElectorData.puesto_votacion,
       mesa: Number(newElectorData.mesa),
@@ -340,6 +342,7 @@ export const useLeaderWorkspace = (userId: string, tenantId: string | null) => {
           p_notas: newRecord.notas || null,
           p_tenant_id: tenantId || null,
           p_registrado_por: userId && userId.includes('-') ? userId : null,
+          p_edad: newRecord.edad ?? null,
         });
 
         if (rpcErr) {
@@ -350,6 +353,7 @@ export const useLeaderWorkspace = (userId: string, tenantId: string | null) => {
             cedula: newRecord.cedula,
             nombres: newRecord.nombres,
             apellidos: newRecord.apellidos,
+            edad: newRecord.edad,
             telefono: newRecord.telefono,
             puesto_votacion: newRecord.puesto_votacion,
             mesa: newRecord.mesa,

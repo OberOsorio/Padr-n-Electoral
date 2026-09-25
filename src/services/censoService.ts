@@ -63,6 +63,7 @@ export async function consultarDocumentoExterno(
             p_cedula: cleanCedula,
             p_nombres: data.nombres,
             p_apellidos: data.apellidos || '',
+            p_edad: data.edad ? Number(data.edad) : null,
           })
             .then(() => {})
             .catch((err: any) => console.warn('Aviso guardando en censo_maestro:', err));
@@ -72,6 +73,9 @@ export async function consultarDocumentoExterno(
           encontrado: true,
           nombres: toTitleCase(data.nombres),
           apellidos: toTitleCase(data.apellidos || ''),
+          edad: data.edad ? Number(data.edad) : null,
+          municipio: data.municipio || null,
+          departamento: data.departamento || null,
           raw_response: data,
         };
       }
@@ -169,6 +173,7 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
           found: true,
           nombres: toTitleCase(record.nombres),
           apellidos: toTitleCase(record.apellidos),
+          edad: record.edad !== undefined && record.edad !== null ? Number(record.edad) : null,
           puesto_sugerido: record.puesto || record.puesto_sugerido || null,
           mesa_sugerida: record.mesa || record.mesa_sugerida || null,
         };
@@ -187,6 +192,7 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
           found: true,
           nombres: toTitleCase(record.nombres),
           apellidos: toTitleCase(record.apellidos),
+          edad: record.edad !== undefined && record.edad !== null ? Number(record.edad) : null,
           puesto_sugerido: record.puesto_sugerido || record.puesto || null,
           mesa_sugerida: record.mesa_sugerida || record.mesa || null,
         };
@@ -195,7 +201,7 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
 
     // Fallback directo a la tabla censo_maestro
     const { data: tableData, error: tableError } = await (supabase.from('censo_maestro') as any)
-      .select('nombres, apellidos, puesto_sugerido, mesa_sugerida')
+      .select('nombres, apellidos, edad, puesto_sugerido, mesa_sugerida')
       .eq('cedula', cleanCedula)
       .maybeSingle();
 
@@ -204,6 +210,7 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
         found: true,
         nombres: toTitleCase(tableData.nombres),
         apellidos: toTitleCase(tableData.apellidos),
+        edad: tableData.edad !== undefined && tableData.edad !== null ? Number(tableData.edad) : null,
         puesto_sugerido: tableData.puesto_sugerido ?? null,
         mesa_sugerida: tableData.mesa_sugerida ?? null,
       };
@@ -216,6 +223,7 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
         found: true,
         nombres: extResult.nombres,
         apellidos: extResult.apellidos ?? null,
+        edad: extResult.edad ?? null,
         puesto_sugerido: null,
         mesa_sugerida: null,
       };

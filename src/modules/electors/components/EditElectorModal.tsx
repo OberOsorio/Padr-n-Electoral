@@ -29,6 +29,7 @@ export const EditElectorModal = ({
 }: EditElectorModalProps) => {
   const [nombres, setNombres] = useState('');
   const [apellidos, setApellidos] = useState('');
+  const [edad, setEdad] = useState<number | ''>('');
   const [telefono, setTelefono] = useState('');
   const [puestoVotacion, setPuestoVotacion] = useState(PREDEFINED_POLLING_PLACES[0].name);
   const [mesa, setMesa] = useState<number>(1);
@@ -40,6 +41,7 @@ export const EditElectorModal = ({
     if (elector) {
       setNombres(elector.nombres);
       setApellidos(elector.apellidos);
+      setEdad(elector.edad !== undefined && elector.edad !== null ? Number(elector.edad) : '');
       setTelefono(elector.telefono || '');
       setPuestoVotacion(elector.puesto_votacion);
       setMesa(elector.mesa || 1);
@@ -65,9 +67,11 @@ export const EditElectorModal = ({
     setError(null);
 
     try {
+      const numEdad = typeof edad === 'number' ? edad : (edad ? parseInt(String(edad), 10) : null);
       const success = await onSave(elector.id, {
         nombres: nombres.trim(),
         apellidos: apellidos.trim(),
+        edad: numEdad,
         telefono: telefono.trim() || null,
         puesto_votacion: puestoVotacion,
         mesa: Number(mesa),
@@ -141,9 +145,9 @@ export const EditElectorModal = ({
             </div>
           </div>
 
-          {/* Nombres y Apellidos */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1">
+          {/* Nombres, Apellidos y Edad */}
+          <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
+            <div className="sm:col-span-2 space-y-1">
               <label className="block text-[11px] font-mono uppercase text-slate-600 dark:text-slate-400">
                 Nombres
               </label>
@@ -159,7 +163,7 @@ export const EditElectorModal = ({
               </div>
             </div>
 
-            <div className="space-y-1">
+            <div className="sm:col-span-2 space-y-1">
               <label className="block text-[11px] font-mono uppercase text-slate-600 dark:text-slate-400">
                 Apellidos
               </label>
@@ -173,6 +177,21 @@ export const EditElectorModal = ({
                   className="w-full h-9.5 pl-9 pr-3 bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/60 rounded-xl text-xs text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:border-blue-500"
                 />
               </div>
+            </div>
+
+            <div className="sm:col-span-1 space-y-1">
+              <label className="block text-[11px] font-mono uppercase text-slate-600 dark:text-slate-400">
+                Edad
+              </label>
+              <input
+                type="number"
+                min="16"
+                max="125"
+                value={edad}
+                onChange={(e) => setEdad(e.target.value ? Number(e.target.value) : '')}
+                placeholder="Ej. 28"
+                className="w-full h-9.5 px-3 bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/60 rounded-xl text-xs font-mono text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:border-blue-500"
+              />
             </div>
           </div>
 

@@ -70,6 +70,7 @@ function dnpLookupDevPlugin(): Plugin {
                     encontrado: true,
                     nombres,
                     apellidos,
+                    edad: ruiData.edad ? Number(ruiData.edad) : null,
                     municipio: ruiData.municipio || null,
                     departamento: ruiData.departamento || null,
                     raw: ruiData

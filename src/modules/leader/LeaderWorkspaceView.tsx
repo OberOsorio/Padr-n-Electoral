@@ -58,6 +58,7 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
   const [cedula, setCedula] = useState('');
   const [nombres, setNombres] = useState('');
   const [apellidos, setApellidos] = useState('');
+  const [edad, setEdad] = useState<number | ''>('');
   const [telefono, setTelefono] = useState('');
   const [puestoVotacion, setPuestoVotacion] = useState(PREDEFINED_POLLING_PLACES[0].name);
   const [mesa, setMesa] = useState<number>(1);
@@ -73,6 +74,7 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
   const [formError, setFormError] = useState<string | null>(null);
   const [lastRegistered, setLastRegistered] = useState<{
     nombres: string;
+    edad?: number | null;
     telefono?: string;
     puesto: string;
     mesa: number;
@@ -145,6 +147,7 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
     if (!clean) {
       setNombres('');
       setApellidos('');
+      setEdad('');
       setCollisionResult(null);
       setIsCheckingCedula(false);
       setIsAutofilledFromCenso(false);
@@ -176,6 +179,9 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
         if (censo.found && censo.nombres) {
           setNombres(censo.nombres);
           if (censo.apellidos) setApellidos(censo.apellidos);
+          if (censo.edad !== undefined && censo.edad !== null) {
+            setEdad(censo.edad);
+          }
           if (censo.puesto_sugerido && PREDEFINED_POLLING_PLACES.some((p) => p.name === censo.puesto_sugerido)) {
             setPuestoVotacion(censo.puesto_sugerido);
           }
@@ -211,10 +217,12 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
     setSubmitting(true);
 
     try {
+      const numEdad = typeof edad === 'number' ? edad : (edad ? parseInt(String(edad), 10) : null);
       const res = await registerElector({
         cedula,
         nombres,
         apellidos,
+        edad: numEdad,
         telefono: telefono.trim() || undefined,
         puesto_votacion: puestoVotacion,
         mesa: Number(mesa),
@@ -226,6 +234,7 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
       } else {
         setLastRegistered({
           nombres: `${nombres} ${apellidos}`,
+          edad: numEdad,
           telefono: telefono.trim(),
           puesto: puestoVotacion,
           mesa: Number(mesa),
@@ -235,6 +244,7 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
         setCedula('');
         setNombres('');
         setApellidos('');
+        setEdad('');
         setTelefono('');
         setNotas('');
         setCollisionResult(null);
@@ -384,6 +394,7 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
               cedula={cedula}
               nombres={nombres}
               apellidos={apellidos}
+              edad={edad}
               telefono={telefono}
               puestoVotacion={puestoVotacion}
               mesa={mesa}
@@ -397,6 +408,7 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
               onCedulaChange={handleCedulaChange}
               setNombres={setNombres}
               setApellidos={setApellidos}
+              setEdad={setEdad}
               setTelefono={setTelefono}
               setPuestoVotacion={setPuestoVotacion}
               setMesa={setMesa}

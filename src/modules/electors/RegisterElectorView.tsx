@@ -40,6 +40,7 @@ export const RegisterElectorView = ({
   const cedulaInputRef = useRef<HTMLInputElement>(null);
   const nombresInputRef = useRef<HTMLInputElement>(null);
   const apellidosInputRef = useRef<HTMLInputElement>(null);
+  const edadInputRef = useRef<HTMLInputElement>(null);
   const telefonoInputRef = useRef<HTMLInputElement>(null);
   const mesaInputRef = useRef<HTMLSelectElement>(null);
   const debounceTimerRef = useRef<any>(null);
@@ -48,6 +49,7 @@ export const RegisterElectorView = ({
   const [cedula, setCedula] = useState('');
   const [nombres, setNombres] = useState('');
   const [apellidos, setApellidos] = useState('');
+  const [edad, setEdad] = useState<number | ''>('');
   const [telefono, setTelefono] = useState('');
   const [puestoVotacion, setPuestoVotacion] = useState(PREDEFINED_POLLING_PLACES[0].name);
   const [mesa, setMesa] = useState<number>(1);
@@ -161,6 +163,9 @@ export const RegisterElectorView = ({
         if (censo.found && censo.nombres) {
           setNombres(censo.nombres);
           if (censo.apellidos) setApellidos(censo.apellidos);
+          if (censo.edad !== undefined && censo.edad !== null) {
+            setEdad(censo.edad);
+          }
           if (censo.puesto_sugerido && PREDEFINED_POLLING_PLACES.some((p) => p.name === censo.puesto_sugerido)) {
             setPuestoVotacion(censo.puesto_sugerido);
           }
@@ -204,6 +209,7 @@ export const RegisterElectorView = ({
               cedula: found.cedula,
               nombres: found.nombres,
               apellidos: found.apellidos,
+              edad: found.edad ?? null,
               telefono: found.telefono,
               puesto_votacion: found.puesto_votacion,
               mesa: found.mesa,
@@ -237,6 +243,7 @@ export const RegisterElectorView = ({
                 cedula: item.cedula,
                 nombres: item.nombres,
                 apellidos: item.apellidos,
+                edad: item.edad ?? null,
                 telefono: item.telefono,
                 puesto_votacion: item.puesto_votacion,
                 mesa: item.mesa,
@@ -260,6 +267,7 @@ export const RegisterElectorView = ({
           cedula,
           nombres,
           apellidos,
+          edad,
           telefono,
           puesto_votacion,
           mesa,
@@ -288,6 +296,7 @@ export const RegisterElectorView = ({
             cedula: item.cedula,
             nombres: item.nombres,
             apellidos: item.apellidos,
+            edad: item.edad ?? null,
             telefono: item.telefono,
             puesto_votacion: item.puesto_votacion,
             mesa: item.mesa,
@@ -322,6 +331,7 @@ export const RegisterElectorView = ({
     if (!val) {
       setNombres('');
       setApellidos('');
+      setEdad('');
       setCollisionResult(null);
       setIsCheckingCedula(false);
       setIsAutofilledFromCenso(false);
@@ -357,6 +367,7 @@ export const RegisterElectorView = ({
     const cleanCedula = cedula.trim().replace(/\D/g, '');
     const cleanNombres = nombres.trim();
     const cleanApellidos = apellidos.trim();
+    const numEdad = typeof edad === 'number' ? edad : (edad ? parseInt(String(edad), 10) : null);
 
     if (!cleanCedula || cleanCedula.length < 5) {
       setServerError('Ingrese un número de cédula válido (mínimo 5 dígitos).');
@@ -399,6 +410,7 @@ export const RegisterElectorView = ({
           cedula: cleanCedula,
           nombres: cleanNombres,
           apellidos: cleanApellidos,
+          edad: numEdad,
           telefono: telefono.trim() || null,
           puesto_votacion: puestoVotacion,
           mesa: Number(mesa),
@@ -430,6 +442,7 @@ export const RegisterElectorView = ({
             p_mesa: Number(mesa),
             p_notas: notas.trim() || null,
             p_tenant_id: currentTenantId || null,
+            p_edad: numEdad,
           });
 
           if (!rpcErr && rpcRes && rpcRes.success === true) {
@@ -448,6 +461,7 @@ export const RegisterElectorView = ({
             cedula: cleanCedula,
             nombres: cleanNombres,
             apellidos: cleanApellidos,
+            edad: numEdad,
             telefono: telefono.trim() || null,
             puesto_votacion: puestoVotacion,
             mesa: Number(mesa),
@@ -480,13 +494,14 @@ export const RegisterElectorView = ({
       // Toast de confirmación con datos del elector
       setToastMessage({
         title: 'Elector Registrado con Éxito',
-        description: `${cleanNombres} ${cleanApellidos} · ${puestoVotacion} (Mesa ${mesa})`,
+        description: `${cleanNombres} ${cleanApellidos}${numEdad ? ` (${numEdad} años)` : ''} · ${puestoVotacion} (Mesa ${mesa})`,
       });
 
       // Limpiar campos personales preservando puesto y mesa si aplica
       setCedula('');
       setNombres('');
       setApellidos('');
+      setEdad('');
       setTelefono('');
       setNotas('');
       setCollisionResult(null);
@@ -741,8 +756,13 @@ export const RegisterElectorView = ({
                         <p className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
                           {collisionResult.elector.nombres} {collisionResult.elector.apellidos}
                         </p>
-                        <p className="text-xs font-mono text-slate-500 dark:text-slate-400 mt-0.5">
-                          Documento: <strong className="text-slate-800 dark:text-slate-200">C.C. {collisionResult.elector.cedula}</strong>
+                        <p className="text-xs font-mono text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                          <span>Documento: <strong className="text-slate-800 dark:text-slate-200">C.C. {collisionResult.elector.cedula}</strong></span>
+                          {collisionResult.elector.edad && (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] bg-slate-100 dark:bg-slate-800 font-bold text-slate-700 dark:text-slate-300 font-mono">
+                              {collisionResult.elector.edad} años
+                            </span>
+                          )}
                         </p>
                       </div>
 
@@ -831,55 +851,79 @@ export const RegisterElectorView = ({
               )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-              <label
-                htmlFor="nombres"
-                className="block text-[11px] font-medium uppercase tracking-wider text-slate-700 dark:text-slate-300 font-mono"
-              >
-                Nombres <span className="text-blue-500 dark:text-blue-400">*</span>
-              </label>
-              <div className="relative">
-                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500 pointer-events-none" />
-                <input
-                  ref={nombresInputRef}
-                  id="nombres"
-                  type="text"
-                  required
-                  value={nombres}
-                  onChange={(e) => setNombres(e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(e, apellidosInputRef)}
-                  placeholder="Ej. Juan Carlos"
-                  disabled={saving || collisionResult?.exists}
-                  className="w-full h-10.5 pl-10 pr-3.5 bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/60 rounded-xl text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/40 transition-all disabled:opacity-50"
-                />
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+              <div className="md:col-span-2 space-y-1.5">
+                <label
+                  htmlFor="nombres"
+                  className="block text-[11px] font-medium uppercase tracking-wider text-slate-700 dark:text-slate-300 font-mono"
+                >
+                  Nombres <span className="text-blue-500 dark:text-blue-400">*</span>
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500 pointer-events-none" />
+                  <input
+                    ref={nombresInputRef}
+                    id="nombres"
+                    type="text"
+                    required
+                    value={nombres}
+                    onChange={(e) => setNombres(e.target.value)}
+                    onKeyDown={(e) => handleKeyDown(e, apellidosInputRef)}
+                    placeholder="Ej. Juan Carlos"
+                    disabled={saving || collisionResult?.exists}
+                    className="w-full h-10.5 pl-10 pr-3.5 bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/60 rounded-xl text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/40 transition-all disabled:opacity-50"
+                  />
+                </div>
               </div>
-            </div>
 
-            <div className="space-y-1.5">
-              <label
-                htmlFor="apellidos"
-                className="block text-[11px] font-medium uppercase tracking-wider text-slate-700 dark:text-slate-300 font-mono"
-              >
-                Apellidos <span className="text-blue-500 dark:text-blue-400">*</span>
-              </label>
-              <div className="relative">
-                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500 pointer-events-none" />
-                <input
-                  ref={apellidosInputRef}
-                  id="apellidos"
-                  type="text"
-                  required
-                  value={apellidos}
-                  onChange={(e) => setApellidos(e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(e, telefonoInputRef)}
-                  placeholder="Ej. Rodríguez Martínez"
-                  disabled={saving || collisionResult?.exists}
-                  className="w-full h-10.5 pl-10 pr-3.5 bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/60 rounded-xl text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/40 transition-all disabled:opacity-50"
-                />
+              <div className="md:col-span-2 space-y-1.5">
+                <label
+                  htmlFor="apellidos"
+                  className="block text-[11px] font-medium uppercase tracking-wider text-slate-700 dark:text-slate-300 font-mono"
+                >
+                  Apellidos <span className="text-blue-500 dark:text-blue-400">*</span>
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500 pointer-events-none" />
+                  <input
+                    ref={apellidosInputRef}
+                    id="apellidos"
+                    type="text"
+                    required
+                    value={apellidos}
+                    onChange={(e) => setApellidos(e.target.value)}
+                    onKeyDown={(e) => handleKeyDown(e, edadInputRef)}
+                    placeholder="Ej. Rodríguez Martínez"
+                    disabled={saving || collisionResult?.exists}
+                    className="w-full h-10.5 pl-10 pr-3.5 bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/60 rounded-xl text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/40 transition-all disabled:opacity-50"
+                  />
+                </div>
+              </div>
+
+              <div className="md:col-span-1 space-y-1.5">
+                <label
+                  htmlFor="edad"
+                  className="block text-[11px] font-medium uppercase tracking-wider text-slate-700 dark:text-slate-300 font-mono"
+                >
+                  Edad {edad !== '' && <span className="text-blue-600 dark:text-blue-400 font-bold font-mono">({edad}a)</span>}
+                </label>
+                <div className="relative">
+                  <input
+                    ref={edadInputRef}
+                    id="edad"
+                    type="number"
+                    min="16"
+                    max="125"
+                    value={edad}
+                    onChange={(e) => setEdad(e.target.value ? Number(e.target.value) : '')}
+                    onKeyDown={(e) => handleKeyDown(e, telefonoInputRef)}
+                    placeholder="Ej. 28"
+                    disabled={saving || collisionResult?.exists}
+                    className="w-full h-10.5 px-3 bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/60 rounded-xl text-sm font-mono text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/40 transition-all disabled:opacity-50"
+                  />
+                </div>
               </div>
             </div>
-          </div>
           </div>
 
           {/* Teléfono de contacto */}

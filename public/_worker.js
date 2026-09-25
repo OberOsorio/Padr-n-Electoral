@@ -184,6 +184,7 @@ export default {
             encontrado: true,
             nombres: toTitleCase(nombres),
             apellidos: toTitleCase(apellidos),
+            edad: json?.edad ? Number(json.edad) : null,
             nombre_completo: rawNombre,
             departamento: json?.departamento || json?.Departamento || null,
             municipio: json?.municipio || json?.Municipio || null,

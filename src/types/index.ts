@@ -66,6 +66,7 @@ export interface Elector {
   cedula: string;
   nombres: string;
   apellidos: string;
+  edad?: number | null;
   telefono?: string | null;
   puesto_votacion: string;
   mesa: number;
@@ -89,6 +90,7 @@ export interface CollisionCheckResult {
     cedula: string;
     nombres: string;
     apellidos: string;
+    edad?: number | null;
     telefono?: string | null;
     puesto_votacion: string;
     mesa: number;
@@ -102,6 +104,7 @@ export interface CensoLookupResult {
   found: boolean;
   nombres?: string | null;
   apellidos?: string | null;
+  edad?: number | null;
   puesto_sugerido?: string | null;
   mesa_sugerida?: number | null;
 }
@@ -110,6 +113,9 @@ export interface ConsultarDocumentoExternoResult {
   encontrado: boolean;
   nombres?: string | null;
   apellidos?: string | null;
+  edad?: number | null;
+  municipio?: string | null;
+  departamento?: string | null;
   raw_response?: any;
 }
 

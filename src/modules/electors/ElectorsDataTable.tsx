@@ -160,14 +160,21 @@ export const ElectorsDataTable: React.FC<ElectorsDataTableProps> = ({
                       {elector.cedula}
                     </td>
 
-                    {/* NOMBRE COMPLETO + NOTA */}
+                    {/* NOMBRE COMPLETO + EDAD + NOTA */}
                     <td className="px-3 py-3">
-                      <span
-                        className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white tracking-tight block truncate max-w-[160px] sm:max-w-[200px] lg:max-w-none"
-                        title={fullName}
-                      >
-                        {fullName}
-                      </span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span
+                          className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white tracking-tight block truncate max-w-[160px] sm:max-w-[200px] lg:max-w-none"
+                          title={fullName}
+                        >
+                          {fullName}
+                        </span>
+                        {elector.edad && (
+                          <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-semibold bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60">
+                            {elector.edad} años
+                          </span>
+                        )}
+                      </div>
                       {elector.notas && (
                         <span
                           className="text-[11px] text-slate-500 dark:text-slate-400 font-normal italic truncate max-w-[160px] sm:max-w-[200px] lg:max-w-none block mt-0.5"

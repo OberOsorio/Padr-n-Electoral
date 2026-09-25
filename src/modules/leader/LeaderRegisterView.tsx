@@ -21,6 +21,7 @@ export interface LeaderRegisterViewProps {
   cedula: string;
   nombres: string;
   apellidos: string;
+  edad: number | '';
   telefono: string;
   puestoVotacion: string;
   mesa: number;
@@ -32,6 +33,7 @@ export interface LeaderRegisterViewProps {
   formError: string | null;
   lastRegistered: {
     nombres: string;
+    edad?: number | null;
     telefono?: string;
     puesto: string;
     mesa: number;
@@ -40,6 +42,7 @@ export interface LeaderRegisterViewProps {
   onCedulaBlur?: () => void;
   setNombres: (val: string) => void;
   setApellidos: (val: string) => void;
+  setEdad: (val: number | '') => void;
   setTelefono: (val: string) => void;
   setPuestoVotacion: (val: string) => void;
   setMesa: (val: number) => void;
@@ -54,6 +57,7 @@ export const LeaderRegisterView: React.FC<LeaderRegisterViewProps> = ({
   cedula,
   nombres,
   apellidos,
+  edad,
   telefono,
   puestoVotacion,
   mesa,
@@ -68,6 +72,7 @@ export const LeaderRegisterView: React.FC<LeaderRegisterViewProps> = ({
   onCedulaBlur,
   setNombres,
   setApellidos,
+  setEdad,
   setTelefono,
   setPuestoVotacion,
   setMesa,
@@ -217,8 +222,13 @@ export const LeaderRegisterView: React.FC<LeaderRegisterViewProps> = ({
                         <p className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
                           {collisionResult.elector.nombres} {collisionResult.elector.apellidos}
                         </p>
-                        <p className="text-xs font-mono text-slate-500 dark:text-slate-400 mt-0.5">
-                          Documento: <strong className="text-slate-800 dark:text-slate-200">C.C. {collisionResult.elector.cedula}</strong>
+                        <p className="text-xs font-mono text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                          <span>Documento: <strong className="text-slate-800 dark:text-slate-200">C.C. {collisionResult.elector.cedula}</strong></span>
+                          {collisionResult.elector.edad && (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] bg-slate-100 dark:bg-slate-700/80 font-bold text-slate-700 dark:text-slate-200 font-mono">
+                              {collisionResult.elector.edad} años
+                            </span>
+                          )}
                         </p>
                       </div>
 
@@ -303,8 +313,8 @@ export const LeaderRegisterView: React.FC<LeaderRegisterViewProps> = ({
               )}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
+            <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
+              <div className="sm:col-span-2">
                 <label className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1 block">
                   Nombres *
                 </label>
@@ -318,7 +328,7 @@ export const LeaderRegisterView: React.FC<LeaderRegisterViewProps> = ({
                   className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-slate-700/60 focus:bg-white dark:focus:bg-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10 rounded-xl text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
-              <div>
+              <div className="sm:col-span-2">
                 <label className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1 block">
                   Apellidos *
                 </label>
@@ -330,6 +340,26 @@ export const LeaderRegisterView: React.FC<LeaderRegisterViewProps> = ({
                   onChange={(e) => setApellidos(e.target.value)}
                   placeholder="Ej. Osorio Morales"
                   className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-slate-700/60 focus:bg-white dark:focus:bg-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10 rounded-xl text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                />
+              </div>
+              <div className="sm:col-span-1">
+                <label className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1 flex items-center justify-between">
+                  <span>Edad</span>
+                  {edad !== '' && (
+                    <span className="text-[10px] text-blue-600 dark:text-blue-400 font-mono font-bold">
+                      {edad}a
+                    </span>
+                  )}
+                </label>
+                <input
+                  type="number"
+                  min="16"
+                  max="125"
+                  disabled={submitting || isFormLocked}
+                  value={edad}
+                  onChange={(e) => setEdad(e.target.value ? Number(e.target.value) : '')}
+                  placeholder="Ej. 28"
+                  className="w-full px-3 py-3 bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-slate-700/60 focus:bg-white dark:focus:bg-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10 rounded-xl text-sm font-mono text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
             </div>
