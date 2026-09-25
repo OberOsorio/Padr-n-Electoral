@@ -63,8 +63,9 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
   const [mesa, setMesa] = useState<number>(1);
   const [notas, setNotas] = useState('');
 
-  // Collision check state
+  // Collision and Censo check state
   const [isCheckingCedula, setIsCheckingCedula] = useState(false);
+  const [isAutofilledFromCenso, setIsAutofilledFromCenso] = useState(false);
   const [collisionResult, setCollisionResult] = useState<CollisionCheckResult | null>(null);
 
   // Form submit state
@@ -142,6 +143,7 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
     if (clean.length < 5) {
       setCollisionResult(null);
       setIsCheckingCedula(false);
+      setIsAutofilledFromCenso(false);
       return;
     }
 
@@ -161,13 +163,19 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
             if (censo.mesa_sugerida) {
               setMesa(censo.mesa_sugerida);
             }
+            setIsAutofilledFromCenso(true);
+          } else {
+            setIsAutofilledFromCenso(false);
           }
         } catch (e) {
           console.error('Error al autocompletar desde censo maestro:', e);
+          setIsAutofilledFromCenso(false);
         }
+      } else {
+        setIsAutofilledFromCenso(false);
       }
       setIsCheckingCedula(false);
-    }, 400);
+    }, 250);
   };
 
   // Submit registration
@@ -366,6 +374,7 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
               mesa={mesa}
               notas={notas}
               isCheckingCedula={isCheckingCedula}
+              isAutofilledFromCenso={isAutofilledFromCenso}
               collisionResult={collisionResult}
               submitting={submitting}
               formError={formError}

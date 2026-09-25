@@ -110,21 +110,39 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
     return { found: false };
   }
 
-  // 2. Consulta en Supabase: Primero en Censo Maestro Local (<5ms)
+  // 2. Consulta en Supabase: RPC buscar_elector_por_cedula (<5ms, indexado con B-Tree)
   try {
-    const { data, error } = await (supabase.rpc as any)('buscar_ciudadano_censo', {
+    const { data: rpcData, error: rpcError } = await (supabase.rpc as any)('buscar_elector_por_cedula', {
       p_cedula: cleanCedula,
     });
 
-    if (!error && data) {
-      const record = Array.isArray(data) ? data[0] : data;
-      if (record && record.found) {
+    if (!rpcError && rpcData) {
+      const record = Array.isArray(rpcData) ? rpcData[0] : rpcData;
+      if (record && (record.encontrado === true || record.found === true)) {
         return {
           found: true,
           nombres: record.nombres,
           apellidos: record.apellidos,
-          puesto_sugerido: record.puesto_sugerido ?? null,
-          mesa_sugerida: record.mesa_sugerida ?? null,
+          puesto_sugerido: record.puesto || record.puesto_sugerido || null,
+          mesa_sugerida: record.mesa || record.mesa_sugerida || null,
+        };
+      }
+    }
+
+    // Fallback secundario a RPC buscar_ciudadano_censo
+    const { data: legacyData, error: legacyError } = await (supabase.rpc as any)('buscar_ciudadano_censo', {
+      p_cedula: cleanCedula,
+    });
+
+    if (!legacyError && legacyData) {
+      const record = Array.isArray(legacyData) ? legacyData[0] : legacyData;
+      if (record && (record.found === true || record.encontrado === true)) {
+        return {
+          found: true,
+          nombres: record.nombres,
+          apellidos: record.apellidos,
+          puesto_sugerido: record.puesto_sugerido || record.puesto || null,
+          mesa_sugerida: record.mesa_sugerida || record.mesa || null,
         };
       }
     }
@@ -172,3 +190,8 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
 
   return { found: false };
 }
+
+/**
+ * Alias explícito para la función RPC buscar_elector_por_cedula
+ */
+export const buscarElectorPorCedula = buscarCiudadanoEnCenso;

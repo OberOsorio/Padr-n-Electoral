@@ -11,6 +11,7 @@ import {
   Save,
   Lock,
   Clock,
+  Sparkles,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PREDEFINED_POLLING_PLACES } from '../electors/constants';
@@ -25,6 +26,7 @@ export interface LeaderRegisterViewProps {
   mesa: number;
   notas: string;
   isCheckingCedula: boolean;
+  isAutofilledFromCenso?: boolean;
   collisionResult: CollisionCheckResult | null;
   submitting: boolean;
   formError: string | null;
@@ -56,6 +58,7 @@ export const LeaderRegisterView: React.FC<LeaderRegisterViewProps> = ({
   mesa,
   notas,
   isCheckingCedula,
+  isAutofilledFromCenso = false,
   collisionResult,
   submitting,
   formError,
@@ -284,34 +287,48 @@ export const LeaderRegisterView: React.FC<LeaderRegisterViewProps> = ({
           </div>
 
           {/* Nombres y Apellidos */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5 block">
-                Nombres *
-              </label>
-              <input
-                type="text"
-                required
-                disabled={submitting || isFormLocked}
-                value={nombres}
-                onChange={(e) => setNombres(e.target.value)}
-                placeholder="Ej. Juan Carlos"
-                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-slate-700/60 focus:bg-white dark:focus:bg-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10 rounded-xl text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              />
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                Datos de Identidad del Elector *
+              </span>
+              {isAutofilledFromCenso && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shadow-2xs animate-in fade-in">
+                  <Sparkles className="w-3 h-3 text-emerald-500" />
+                  <span>Autocompletado desde Censo Maestro</span>
+                </span>
+              )}
             </div>
-            <div>
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5 block">
-                Apellidos *
-              </label>
-              <input
-                type="text"
-                required
-                disabled={submitting || isFormLocked}
-                value={apellidos}
-                onChange={(e) => setApellidos(e.target.value)}
-                placeholder="Ej. Osorio Morales"
-                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-slate-700/60 focus:bg-white dark:focus:bg-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10 rounded-xl text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              />
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1 block">
+                  Nombres *
+                </label>
+                <input
+                  type="text"
+                  required
+                  disabled={submitting || isFormLocked}
+                  value={nombres}
+                  onChange={(e) => setNombres(e.target.value)}
+                  placeholder="Ej. Juan Carlos"
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-slate-700/60 focus:bg-white dark:focus:bg-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10 rounded-xl text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                />
+              </div>
+              <div>
+                <label className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1 block">
+                  Apellidos *
+                </label>
+                <input
+                  type="text"
+                  required
+                  disabled={submitting || isFormLocked}
+                  value={apellidos}
+                  onChange={(e) => setApellidos(e.target.value)}
+                  placeholder="Ej. Osorio Morales"
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-slate-700/60 focus:bg-white dark:focus:bg-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10 rounded-xl text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                />
+              </div>
             </div>
           </div>
 

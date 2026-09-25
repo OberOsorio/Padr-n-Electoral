@@ -319,7 +319,7 @@ export const RegisterElectorView = ({
     setIsCheckingCedula(true);
     debounceTimerRef.current = setTimeout(() => {
       checkCedulaCollision(val);
-    }, 400);
+    }, 250);
   };
 
   // Manejar cambio de puesto en cascada
