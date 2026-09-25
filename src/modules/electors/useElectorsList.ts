@@ -9,139 +9,8 @@ export interface CoordinatorOption {
   name: string;
 }
 
-// Semilla de datos demostrativos en caso de entorno local sin Supabase configurado
-const INITIAL_DEMO_ELECTORS: ElectorWithRegistrant[] = [
-  {
-    id: 'el-001',
-    cedula: '1047892341',
-    nombres: 'Carlos Eduardo',
-    apellidos: 'Mendoza Torres',
-    telefono: '3124567890',
-    puesto_votacion: 'I.E. Santander Central',
-    mesa: 4,
-    notas: 'Líder comunal barrio El Bosque',
-    registrado_por: 'cdor-1',
-    created_at: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-    registrador: { full_name: 'Cdor. Javier Rivas', role: 'coordinador' },
-  },
-  {
-    id: 'el-002',
-    cedula: '1098341902',
-    nombres: 'Laura Sofía',
-    apellidos: 'Herrera Morales',
-    telefono: '3187654321',
-    puesto_votacion: 'Coliseo Municipal de Deportes',
-    mesa: 2,
-    notas: 'Requiere verificación de transporte',
-    registrado_por: 'cdor-2',
-    created_at: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-    registrador: { full_name: 'Cdra. Patricia Gómez', role: 'coordinador' },
-  },
-  {
-    id: 'el-003',
-    cedula: '73542189',
-    nombres: 'Miguel Ángel',
-    apellidos: 'Morales Torres',
-    telefono: '3001239874',
-    puesto_votacion: 'Colegio Mayor Departamental',
-    mesa: 7,
-    notas: null,
-    registrado_por: 'cdor-1',
-    created_at: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
-    registrador: { full_name: 'Cdor. Javier Rivas', role: 'coordinador' },
-  },
-  {
-    id: 'el-004',
-    cedula: '1143670554',
-    nombres: 'Valentina',
-    apellidos: 'Restrepo Castro',
-    telefono: '3159871234',
-    puesto_votacion: 'I.E. Técnico San Juan Bautista',
-    mesa: 1,
-    notas: 'Familia extendida en la misma mesa',
-    registrado_por: 'cdor-3',
-    created_at: new Date(Date.now() - 1000 * 60 * 240).toISOString(),
-    registrador: { full_name: 'Cdor. Manuel Rojas', role: 'coordinador' },
-  },
-  {
-    id: 'el-005',
-    cedula: '1052884112',
-    nombres: 'Andrés Felipe',
-    apellidos: 'Gómez Ortiz',
-    telefono: null,
-    puesto_votacion: 'Escuela Mixta El Prado',
-    mesa: 3,
-    notas: null,
-    registrado_por: 'cdor-2',
-    created_at: new Date(Date.now() - 1000 * 60 * 360).toISOString(),
-    registrador: { full_name: 'Cdra. Patricia Gómez', role: 'coordinador' },
-  },
-  {
-    id: 'el-006',
-    cedula: '32890451',
-    nombres: 'María Elena',
-    apellidos: 'Duarte Salcedo',
-    telefono: '3116549870',
-    puesto_votacion: 'I.E. Santander Central',
-    mesa: 8,
-    notas: 'Coordinadora de mesa voluntaria',
-    registrado_por: 'cdor-1',
-    created_at: new Date(Date.now() - 1000 * 60 * 480).toISOString(),
-    registrador: { full_name: 'Cdor. Javier Rivas', role: 'coordinador' },
-  },
-  {
-    id: 'el-007',
-    cedula: '1088451239',
-    nombres: 'Jorge Luis',
-    apellidos: 'Peña Villalobos',
-    telefono: '3142233445',
-    puesto_votacion: 'Universidad del Valle - Sede Norte',
-    mesa: 5,
-    notas: null,
-    registrado_por: 'cdor-3',
-    created_at: new Date(Date.now() - 1000 * 60 * 600).toISOString(),
-    registrador: { full_name: 'Cdor. Manuel Rojas', role: 'coordinador' },
-  },
-  {
-    id: 'el-008',
-    cedula: '45781290',
-    nombres: 'Claudia Patricia',
-    apellidos: 'Caicedo Ramos',
-    telefono: '3208899001',
-    puesto_votacion: 'Institución Educativa Normal Superior',
-    mesa: 3,
-    notas: null,
-    registrado_por: 'cdor-2',
-    created_at: new Date(Date.now() - 1000 * 60 * 720).toISOString(),
-    registrador: { full_name: 'Cdra. Patricia Gómez', role: 'coordinador' },
-  },
-  {
-    id: 'el-009',
-    cedula: '1045990112',
-    nombres: 'Héctor Fabio',
-    apellidos: 'Vargas Londoño',
-    telefono: '3167788990',
-    puesto_votacion: 'I.E. Santander Central',
-    mesa: 11,
-    notas: null,
-    registrado_por: 'cdor-1',
-    created_at: new Date(Date.now() - 1000 * 60 * 840).toISOString(),
-    registrador: { full_name: 'Cdor. Javier Rivas', role: 'coordinador' },
-  },
-  {
-    id: 'el-010',
-    cedula: '1130678901',
-    nombres: 'Daniela',
-    apellidos: 'Bermúdez Cifuentes',
-    telefono: '3174455667',
-    puesto_votacion: 'Coliseo Municipal de Deportes',
-    mesa: 9,
-    notas: 'Votante primerizo',
-    registrado_por: 'cdor-2',
-    created_at: new Date(Date.now() - 1000 * 60 * 960).toISOString(),
-    registrador: { full_name: 'Cdra. Patricia Gómez', role: 'coordinador' },
-  },
-];
+const INITIAL_DEMO_ELECTORS: ElectorWithRegistrant[] = [];
+
 
 export const useElectorsList = (
   searchQuery: string,
@@ -203,57 +72,11 @@ export const useElectorsList = (
     setLoading(true);
     setError(null);
 
-    // Modo Demostración Local con Aislamiento de Tenant
+    // Si no está configurado Supabase, retornar vacío
     if (!isSupabaseConfigured) {
-      const stored = localStorage.getItem('electoral_local_electors');
-      let dataset: ElectorWithRegistrant[] = stored
-        ? JSON.parse(stored)
-        : INITIAL_DEMO_ELECTORS;
-
-      // Asegurar que si el localStorage está vacío se inicialice con la semilla
-      if (dataset.length === 0) {
-        dataset = INITIAL_DEMO_ELECTORS;
-        localStorage.setItem('electoral_local_electors', JSON.stringify(dataset));
-      }
-
-      // Aislamiento por Tenant
-      const scopedByTenant = dataset.filter(
-        (e) =>
-          !currentTenantId ||
-          e.tenant_id === currentTenantId ||
-          (!e.tenant_id && currentTenantId === 'ten_alcaldia_2027')
-      );
-
-      // Filtrado local
-      let filtered = [...scopedByTenant];
-
-      if (puestoFilter && puestoFilter !== 'all') {
-        filtered = filtered.filter((e) => e.puesto_votacion === puestoFilter);
-      }
-
-      if (coordinadorFilter && coordinadorFilter !== 'all') {
-        filtered = filtered.filter((e) => e.registrado_por === coordinadorFilter);
-      }
-
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim();
-        filtered = filtered.filter(
-          (e) =>
-            e.cedula.toLowerCase().includes(q) ||
-            e.nombres.toLowerCase().includes(q) ||
-            e.apellidos.toLowerCase().includes(q) ||
-            `${e.nombres} ${e.apellidos}`.toLowerCase().includes(q)
-        );
-      }
-
-      const total = filtered.length;
-      const from = (page - 1) * pageSize;
-      const to = from + pageSize;
-      const paginated = filtered.slice(from, to);
-
       if (isMountedRef.current) {
-        setElectors(paginated);
-        setTotalCount(total);
+        setElectors([]);
+        setTotalCount(0);
         setLoading(false);
       }
       return;

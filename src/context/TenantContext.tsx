@@ -2,60 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { Tenant, TenantPlan } from '../types';
 
-export const DEFAULT_TENANTS: Tenant[] = [
-  {
-    id: 'ten_alcaldia_2027',
-    name: 'Campaña Alcaldía 2027',
-    slug: 'alcaldia-2027',
-    plan: 'pro',
-    max_electors: 25000,
-    is_active: true,
-    created_at: new Date('2026-01-15T00:00:00Z').toISOString(),
-    admin_name: 'Dr. Alejandro Morales',
-    admin_email: 'admin@alcaldia2027.gov',
-    totalElectores: 18450,
-    totalUsers: 8,
-  },
-  {
-    id: 'ten_partido_progresista',
-    name: 'Partido Progresista Central',
-    slug: 'partido-progresista',
-    plan: 'enterprise',
-    max_electors: 100000,
-    is_active: true,
-    created_at: new Date('2026-02-01T00:00:00Z').toISOString(),
-    admin_name: 'Ing. Sofía Carvajal',
-    admin_email: 'sofia.carvajal@partidoprogresista.org',
-    totalElectores: 64200,
-    totalUsers: 24,
-  },
-  {
-    id: 'ten_alianza_regional',
-    name: 'Movimiento Alianza Regional',
-    slug: 'alianza-regional',
-    plan: 'standard',
-    max_electors: 10000,
-    is_active: true,
-    created_at: new Date('2026-03-10T00:00:00Z').toISOString(),
-    admin_name: 'Lic. Fernando Quintero',
-    admin_email: 'fernando.quintero@alianzaregional.co',
-    totalElectores: 7850,
-    totalUsers: 5,
-  },
-  {
-    id: 'ten_cauca_unido',
-    name: 'Cauca Unido 2026',
-    slug: 'cauca-unido',
-    plan: 'standard',
-    max_electors: 8000,
-    is_active: false,
-    created_at: new Date('2026-02-14T00:00:00Z').toISOString(),
-    admin_name: 'Rodrigo Benítez',
-    admin_email: 'admin@caucaunido.org',
-    totalElectores: 3200,
-    totalUsers: 2,
-  },
-];
+export const DEFAULT_TENANTS: Tenant[] = [];
 
 const LOCAL_STORAGE_TENANTS_KEY = 'electoral_saas_tenants';
 const LOCAL_STORAGE_ACTIVE_TENANT_KEY = 'electoral_active_tenant_id';
@@ -110,22 +57,9 @@ export const TenantProvider: React.FC<{ children: React.ReactNode; userRole?: st
     setLoading(true);
 
     if (!isSupabaseConfigured) {
-      try {
-        const stored = localStorage.getItem(LOCAL_STORAGE_TENANTS_KEY);
-        const list: Tenant[] = stored ? JSON.parse(stored) : DEFAULT_TENANTS;
-        setTenants(list);
-
-        // Seleccionar tenant activo inicial
-        const savedTenantId = localStorage.getItem(LOCAL_STORAGE_ACTIVE_TENANT_KEY);
-        const initialTenantId = userTenantId || savedTenantId || list[0]?.id || null;
-        setCurrentTenantIdState(initialTenantId);
-      } catch (err) {
-        console.error('Error al cargar tenants locales:', err);
-        setTenants(DEFAULT_TENANTS);
-        setCurrentTenantIdState(DEFAULT_TENANTS[0].id);
-      } finally {
-        setLoading(false);
-      }
+      setTenants([]);
+      setCurrentTenantIdState(null);
+      setLoading(false);
       return;
     }
 
@@ -139,9 +73,10 @@ export const TenantProvider: React.FC<{ children: React.ReactNode; userRole?: st
       const loadedTenants: Tenant[] = data || [];
 
       if (loadedTenants.length === 0) {
-        // Sembrar tenants por defecto si la base está vacía
-        setTenants(DEFAULT_TENANTS);
-        setCurrentTenantIdState(userTenantId || DEFAULT_TENANTS[0].id);
+        setTenants([]);
+        setCurrentTenantIdState(null);
+        localStorage.removeItem(LOCAL_STORAGE_ACTIVE_TENANT_KEY);
+        localStorage.removeItem(LOCAL_STORAGE_TENANTS_KEY);
       } else {
         setTenants(loadedTenants);
         const savedTenantId = localStorage.getItem(LOCAL_STORAGE_ACTIVE_TENANT_KEY);
@@ -149,11 +84,9 @@ export const TenantProvider: React.FC<{ children: React.ReactNode; userRole?: st
         setCurrentTenantIdState(activeId);
       }
     } catch (err) {
-      console.warn('Error al consultar tenants de Supabase (usando respaldo local):', err);
-      const stored = localStorage.getItem(LOCAL_STORAGE_TENANTS_KEY);
-      const list: Tenant[] = stored ? JSON.parse(stored) : DEFAULT_TENANTS;
-      setTenants(list);
-      setCurrentTenantIdState(userTenantId || list[0]?.id || null);
+      console.warn('Error al consultar tenants de Supabase:', err);
+      setTenants([]);
+      setCurrentTenantIdState(null);
     } finally {
       setLoading(false);
     }

@@ -2,58 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import type { TeamMember, AppRole } from '../../types';
 
-const INITIAL_DEMO_TEAM: TeamMember[] = [
-  {
-    id: 'cdor-1',
-    full_name: 'Javier Rivas Caicedo',
-    email: 'javier.rivas@electoral.gov',
-    role: 'coordinador',
-    is_active: true,
-    created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 14).toISOString(),
-    totalElectores: 742,
-    lastActivity: new Date(Date.now() - 1000 * 60 * 18).toISOString(),
-  },
-  {
-    id: 'cdor-2',
-    full_name: 'Patricia Gómez Herrera',
-    email: 'patricia.gomez@electoral.gov',
-    role: 'coordinador',
-    is_active: true,
-    created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 12).toISOString(),
-    totalElectores: 618,
-    lastActivity: new Date(Date.now() - 1000 * 60 * 42).toISOString(),
-  },
-  {
-    id: 'cdor-3',
-    full_name: 'Manuel Antonio Rojas',
-    email: 'manuel.rojas@electoral.gov',
-    role: 'coordinador',
-    is_active: true,
-    created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 8).toISOString(),
-    totalElectores: 435,
-    lastActivity: new Date(Date.now() - 1000 * 60 * 125).toISOString(),
-  },
-  {
-    id: 'usr_admin_001_master',
-    full_name: 'Administrador General',
-    email: 'admin@electoral.gov',
-    role: 'admin',
-    is_active: true,
-    created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 30).toISOString(),
-    totalElectores: 1625,
-    lastActivity: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
-  },
-  {
-    id: 'cdor-4',
-    full_name: 'Carlos Alberto Vega',
-    email: 'carlos.vega@electoral.gov',
-    role: 'coordinador',
-    is_active: false,
-    created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 20).toISOString(),
-    totalElectores: 0,
-    lastActivity: null,
-  },
-];
+const INITIAL_DEMO_TEAM: TeamMember[] = [];
 
 export const useTeamManagement = () => {
   const [team, setTeam] = useState<TeamMember[]>([]);
@@ -68,14 +17,8 @@ export const useTeamManagement = () => {
 
     // Modo Demostración Local
     if (!isSupabaseConfigured) {
-      const stored = localStorage.getItem('electoral_local_team');
-      const list: TeamMember[] = stored ? JSON.parse(stored) : INITIAL_DEMO_TEAM;
-      if (!stored) {
-        localStorage.setItem('electoral_local_team', JSON.stringify(INITIAL_DEMO_TEAM));
-      }
-
       if (isMountedRef.current) {
-        setTeam(list);
+        setTeam([]);
         setLoading(false);
       }
       return;
