@@ -8,6 +8,7 @@ import {
   AlertTriangle,
   Power,
   Loader2,
+  Trash2,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTenant } from '../../context/TenantContext';
@@ -15,13 +16,19 @@ import { useAccessAuditLogs } from './useAccessAuditLogs';
 import type { Tenant, TenantPlan } from '../../types';
 
 export const TenantsManagementView: React.FC = () => {
-  const { tenants, toggleTenantStatus, createCampaignWithAdmin, refetchTenants } = useTenant();
+  const { tenants, toggleTenantStatus, createCampaignWithAdmin, deleteTenantPermanently, refetchTenants } = useTenant();
   const { recordAccessEvent } = useAccessAuditLogs();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'suspended'>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+
+  // Estado para Modal de Eliminación Definitiva (Security-First UX)
+  const [tenantToDelete, setTenantToDelete] = useState<Tenant | null>(null);
+  const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // Formulario de nueva campaña
   const [name, setName] = useState('');
@@ -34,6 +41,44 @@ export const TenantsManagementView: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Manejador de Eliminación Crítica Definitiva
+  const handleDeleteTenant = async () => {
+    if (!tenantToDelete) return;
+    if (deleteConfirmationText.trim() !== 'ELIMINAR MI CAMPAÑA') return;
+
+    setIsDeleting(true);
+    setDeleteError(null);
+
+    try {
+      const res = await deleteTenantPermanently(tenantToDelete.id);
+      if (!res.success) {
+        setDeleteError(res.error || 'Ocurrió un error al intentar eliminar la campaña.');
+        setIsDeleting(false);
+        return;
+      }
+
+      recordAccessEvent({
+        user_email: 'oberosorio1@gmail.com',
+        user_name: 'Ober Osorio (SuperAdmin)',
+        user_role: 'superadmin',
+        tenant_name: tenantToDelete.name,
+        tenant_id: tenantToDelete.id,
+        event_type: 'campaign_suspended',
+        description: `Campaña "${tenantToDelete.name}" ELIMINADA DEFINITIVAMENTE por el SuperAdmin`,
+      });
+
+      setToastMessage(`Campaña "${tenantToDelete.name}" y todos sus datos fueron eliminados de forma definitiva.`);
+      setTimeout(() => setToastMessage(null), 5000);
+      setTenantToDelete(null);
+      setDeleteConfirmationText('');
+    } catch (err: any) {
+      console.error('Error al eliminar campaña:', err);
+      setDeleteError(err.message || 'Error de conexión al eliminar');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   // Auto-generación de slug
   const handleNameChange = (val: string) => {
@@ -338,26 +383,53 @@ export const TenantsManagementView: React.FC = () => {
                         )}
                       </td>
 
-                      {/* Switch Directo de Suspensión */}
+                      {/* Acciones: Suspensión y Eliminación Definitiva */}
                       <td className="py-3.5 px-4 text-right">
-                        <button
-                          type="button"
-                          onClick={() => handleToggleStatus(t)}
-                          disabled={togglingId === t.id}
-                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-mono font-semibold transition-all cursor-pointer ${
-                            t.is_active
-                              ? 'bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/50'
-                              : 'bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50'
-                          } disabled:opacity-50`}
-                          title={t.is_active ? 'Suspender acceso a campaña' : 'Reactivar acceso a campaña'}
-                        >
-                          {togglingId === t.id ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
-                            <Power className="w-3.5 h-3.5" />
-                          )}
-                          <span>{t.is_active ? 'Suspender' : 'Reactivar'}</span>
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleToggleStatus(t)}
+                            disabled={togglingId === t.id}
+                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-mono font-semibold transition-all cursor-pointer ${
+                              t.is_active
+                                ? 'bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/50'
+                                : 'bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50'
+                            } disabled:opacity-50`}
+                            title={t.is_active ? 'Suspender acceso a campaña' : 'Reactivar acceso a campaña'}
+                          >
+                            {togglingId === t.id ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Power className="w-3.5 h-3.5" />
+                            )}
+                            <span>{t.is_active ? 'Suspender' : 'Reactivar'}</span>
+                          </button>
+
+                          {/* Botón Eliminar Definitivamente (Habilitado solo si la campaña está suspendida) */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!t.is_active) {
+                                setTenantToDelete(t);
+                                setDeleteConfirmationText('');
+                                setDeleteError(null);
+                              }
+                            }}
+                            disabled={t.is_active}
+                            className={`p-1.5 rounded-xl border transition-all ${
+                              t.is_active
+                                ? 'opacity-30 border-transparent text-slate-400 dark:text-slate-600 cursor-not-allowed'
+                                : 'border-slate-200 dark:border-slate-800 text-slate-400 hover:text-red-500 hover:bg-red-500/10 hover:border-red-500/30 cursor-pointer'
+                            }`}
+                            title={
+                              t.is_active
+                                ? 'Debe suspender la campaña antes de poder eliminarla'
+                                : 'Eliminar campaña definitivamente'
+                            }
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -562,6 +634,135 @@ export const TenantsManagementView: React.FC = () => {
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL: Eliminación Definitiva de Campaña (Security-First Destructive Flow) */}
+      <AnimatePresence>
+        {tenantToDelete && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="w-full max-w-lg rounded-2xl bg-slate-900 border border-red-500/30 shadow-2xl shadow-red-950/50 p-6 sm:p-7 relative overflow-hidden my-auto"
+            >
+              {/* Resplandor decorativo carmesí */}
+              <div className="absolute top-0 right-0 -mt-12 -mr-12 w-48 h-48 bg-red-600/10 rounded-full blur-3xl pointer-events-none" />
+
+              {/* A. Cabecera del Modal (Alerta Crítica) */}
+              <div className="flex flex-col items-start gap-2 mb-4">
+                <div className="inline-flex items-center justify-center p-3.5 rounded-2xl bg-red-500/10 text-red-400 border border-red-500/20 shadow-lg shadow-red-500/10 mb-1">
+                  <AlertTriangle className="w-7 h-7 text-red-500 animate-pulse" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-bold text-white tracking-tight">
+                      Confirmación de Seguridad Definitiva
+                    </h3>
+                    <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-semibold uppercase bg-red-500/20 text-red-400 border border-red-500/30">
+                      Acción Crítica Irreversible
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* B. Texto de Advertencia e Impacto */}
+              <div className="space-y-3 mb-5 text-sm">
+                <p className="text-slate-300 leading-relaxed">
+                  <span className="font-bold text-red-400">¡ATENCIÓN!</span> Está a punto de{' '}
+                  <span className="font-semibold text-white">ELIMINAR COMPLETAMENTE</span> la campaña{' '}
+                  <span className="font-mono font-bold text-red-300 bg-red-950/40 px-1.5 py-0.5 rounded border border-red-900/50">
+                    "{tenantToDelete.name}"
+                  </span>{' '}
+                  y todos sus datos asociados.
+                </p>
+
+                <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800/80 space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 font-mono">
+                    Recursos que serán destruidos permanentemente:
+                  </p>
+                  <ul className="text-xs text-slate-300 space-y-1.5 list-disc list-inside">
+                    <li>Todos los electores registrados en el censo de esta campaña</li>
+                    <li>Todos los usuarios y perfiles vinculados (excepto SuperAdmin)</li>
+                    <li>Todos los registros de auditoría de acceso, logs de exportación y métricas</li>
+                  </ul>
+                </div>
+
+                <div className="p-2.5 rounded-lg bg-red-950/30 border border-red-500/30 text-xs font-semibold text-red-300 flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-ping shrink-0" />
+                  <span>Esta acción NO se puede deshacer. Los datos se perderán para siempre.</span>
+                </div>
+              </div>
+
+              {/* C. Validación de Seguridad por Texto */}
+              <div className="space-y-2 mb-6">
+                <label className="block text-xs font-medium text-slate-300">
+                  Para confirmar, escriba exactamente{' '}
+                  <span className="font-mono font-bold text-red-400 select-all bg-red-950/50 px-1.5 py-0.5 rounded border border-red-900/60">
+                    ELIMINAR MI CAMPAÑA
+                  </span>{' '}
+                  a continuación:
+                </label>
+                <input
+                  type="text"
+                  value={deleteConfirmationText}
+                  onChange={(e) => setDeleteConfirmationText(e.target.value)}
+                  placeholder='Escriba "ELIMINAR MI CAMPAÑA" para confirmar.'
+                  disabled={isDeleting}
+                  className="w-full bg-slate-950/80 border border-slate-700 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 font-mono tracking-wide transition-all outline-none"
+                  autoFocus
+                />
+
+                {deleteError && (
+                  <div className="p-3 rounded-lg bg-red-950/40 border border-red-500/50 text-red-400 text-xs">
+                    {deleteError}
+                  </div>
+                )}
+              </div>
+
+              {/* D. Botones de Acción (Footer) */}
+              <div className="pt-4 border-t border-slate-800 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!isDeleting) {
+                      setTenantToDelete(null);
+                      setDeleteConfirmationText('');
+                      setDeleteError(null);
+                    }
+                  }}
+                  disabled={isDeleting}
+                  className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-750 border border-slate-700/60 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  CANCELAR OPERACIÓN
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleDeleteTenant}
+                  disabled={deleteConfirmationText.trim() !== 'ELIMINAR MI CAMPAÑA' || isDeleting}
+                  className={`px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer shadow-lg ${
+                    deleteConfirmationText.trim() === 'ELIMINAR MI CAMPAÑA' && !isDeleting
+                      ? 'bg-red-600 hover:bg-red-500 text-white border border-red-500 shadow-red-600/40 animate-pulse'
+                      : 'bg-slate-800/80 text-slate-500 border border-slate-800 cursor-not-allowed opacity-50'
+                  }`}
+                >
+                  {isDeleting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin text-white" />
+                      <span className="text-white">Eliminando datos...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-4 h-4" />
+                      <span>ELIMINAR DEFINITIVAMENTE</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </motion.div>
           </div>
         )}

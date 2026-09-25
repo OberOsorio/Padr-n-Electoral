@@ -96,6 +96,13 @@ export interface CensoLookupResult {
   mesa_sugerida?: number | null;
 }
 
+export interface ConsultarDocumentoExternoResult {
+  encontrado: boolean;
+  nombres?: string | null;
+  apellidos?: string | null;
+  raw_response?: any;
+}
+
 export interface TopPollingPlace {
   puesto: string;
   total: number;

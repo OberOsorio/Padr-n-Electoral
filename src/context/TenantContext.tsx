@@ -87,6 +87,7 @@ interface TenantContextType {
   createCampaignWithAdmin: (params: CreateCampaignParams) => Promise<Tenant>;
   updateTenant: (id: string, updates: Partial<Tenant>) => Promise<void>;
   toggleTenantStatus: (id: string) => Promise<void>;
+  deleteTenantPermanently: (id: string) => Promise<{ success: boolean; message?: string; error?: string }>;
   loading: boolean;
   planUsage: PlanUsage;
   refetchTenants: () => Promise<void>;
@@ -344,7 +345,65 @@ export const TenantProvider: React.FC<{ children: React.ReactNode; userRole?: st
     await updateTenant(id, { is_active: !target.is_active });
   };
 
-  // 6. Cálculo de límites y cuotas del plan
+  // 6. Eliminar Campaña Definitivamente (Acción Destructiva Hermética con RPC en Supabase)
+  const deleteTenantPermanently = async (id: string): Promise<{ success: boolean; message?: string; error?: string }> => {
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await (supabase.rpc as any)('eliminar_tenant_critico', {
+          p_tenant_id: id,
+        });
+
+        if (error) {
+          console.error('Error al invocar eliminar_tenant_critico en Supabase:', error);
+          const { error: delErr } = await (supabase.from('tenants') as any).delete().eq('id', id);
+          if (delErr) {
+            return { success: false, error: delErr.message };
+          }
+        } else if (data && data.success === false) {
+          return { success: false, error: data.error };
+        }
+      } catch (err: any) {
+        console.error('Excepción al eliminar tenant en Supabase:', err);
+        return { success: false, error: err.message };
+      }
+    }
+
+    // Actualizar estado local reactivo
+    setTenants((prev) => {
+      const updated = prev.filter((t) => t.id !== id);
+      localStorage.setItem(LOCAL_STORAGE_TENANTS_KEY, JSON.stringify(updated));
+      return updated;
+    });
+
+    // Limpiar electores y equipo local asociados al tenant
+    try {
+      const storedElectors = localStorage.getItem('electoral_local_electors');
+      if (storedElectors) {
+        const electors = JSON.parse(storedElectors);
+        const filtered = electors.filter((e: any) => e.tenant_id !== id);
+        localStorage.setItem('electoral_local_electors', JSON.stringify(filtered));
+      }
+
+      const storedTeam = localStorage.getItem('electoral_local_team');
+      if (storedTeam) {
+        const team = JSON.parse(storedTeam);
+        const filtered = team.filter((m: any) => m.tenant_id !== id);
+        localStorage.setItem('electoral_local_team', JSON.stringify(filtered));
+      }
+    } catch (e) {
+      console.warn('Aviso limpiando localStorage tras borrado de campaña:', e);
+    }
+
+    if (currentTenantId === id) {
+      const remaining = tenants.filter((t) => t.id !== id);
+      const nextId = remaining.length > 0 ? remaining[0].id : null;
+      setCurrentTenantId(nextId);
+    }
+
+    return { success: true };
+  };
+
+  // 7. Cálculo de límites y cuotas del plan
   const planUsage: PlanUsage = useMemo(() => {
     const maxElectors = currentTenant?.max_electors || 10000;
     const total = totalTenantElectors;
@@ -369,6 +428,7 @@ export const TenantProvider: React.FC<{ children: React.ReactNode; userRole?: st
         createCampaignWithAdmin,
         updateTenant,
         toggleTenantStatus,
+        deleteTenantPermanently,
         loading,
         planUsage,
         refetchTenants: fetchTenants,

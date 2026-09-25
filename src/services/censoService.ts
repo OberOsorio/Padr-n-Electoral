@@ -1,5 +1,5 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import type { CensoLookupResult } from '../types';
+import type { CensoLookupResult, ConsultarDocumentoExternoResult } from '../types';
 
 // Banco de datos local precargado para pruebas de alta velocidad (<50ms) en modo demo
 const LOCAL_DEMO_CENSO: Record<string, { nombres: string; apellidos: string; puesto_sugerido?: string; mesa_sugerida?: number }> = {
@@ -18,8 +18,65 @@ const LOCAL_DEMO_CENSO: Record<string, { nombres: string; apellidos: string; pue
 };
 
 /**
- * Consulta un ciudadano en el Censo Maestro Local mediante función RPC en Supabase (<50ms).
- * Si Supabase no está conectado o el RPC no está disponible, utiliza el almacenamiento de demostración local.
+ * Invoca directamente la función RPC `consultar_documento_externo` en Supabase.
+ * Ejecuta una petición HTTP nativa desde PostgreSQL (vía extensión http) hacia el servicio
+ * de consulta ciudadana y retorna nombres, apellidos y payload en bruto.
+ */
+export async function consultarDocumentoExterno(
+  cedula: string,
+  tipoDoc: string = '3'
+): Promise<ConsultarDocumentoExternoResult> {
+  const cleanCedula = cedula.trim().replace(/\D/g, '');
+  if (cleanCedula.length < 5) {
+    return { encontrado: false };
+  }
+
+  if (!isSupabaseConfigured) {
+    const demo = LOCAL_DEMO_CENSO[cleanCedula];
+    if (demo) {
+      return {
+        encontrado: true,
+        nombres: demo.nombres,
+        apellidos: demo.apellidos,
+        raw_response: { demo: true }
+      };
+    }
+    return { encontrado: false };
+  }
+
+  try {
+    const { data, error } = await (supabase.rpc as any)('consultar_documento_externo', {
+      p_cedula: cleanCedula,
+      p_tipo_doc: tipoDoc,
+    });
+
+    if (error) {
+      console.warn('Aviso en RPC consultar_documento_externo:', error.message);
+      return { encontrado: false, raw_response: { error: error.message } };
+    }
+
+    const row = Array.isArray(data) ? data[0] : data;
+    if (row && row.encontrado) {
+      return {
+        encontrado: true,
+        nombres: row.nombres,
+        apellidos: row.apellidos,
+        raw_response: row.raw_response,
+      };
+    }
+
+    return { encontrado: false, raw_response: row?.raw_response };
+  } catch (err: any) {
+    console.error('Error al invocar consultar_documento_externo:', err);
+    return { encontrado: false, raw_response: { error: err?.message } };
+  }
+}
+
+/**
+ * Consulta un ciudadano en el sistema de censo con arquitectura en cascada:
+ * 1. Censo Maestro Local en base de datos (<5ms, indexado con B-Tree)
+ * 2. Si no existe localmente, ejecuta la función RPC `consultar_documento_externo` (HTTP nativo desde Postgres)
+ * 3. En modo offline/desarrollo sin credenciales, utiliza el almacén local demo
  */
 export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLookupResult> {
   const cleanCedula = cedula.trim().replace(/\D/g, '');
@@ -30,7 +87,6 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
 
   // 1. Si no está conectado con Supabase, buscar en el censo demo local
   if (!isSupabaseConfigured) {
-    // Revisar si hay un censo personalizado en localStorage
     let localCenso = LOCAL_DEMO_CENSO;
     const stored = localStorage.getItem('electoral_local_censo');
     if (stored) {
@@ -54,7 +110,7 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
     return { found: false };
   }
 
-  // 2. Consulta en Supabase a través de la función RPC optimizada
+  // 2. Consulta en Supabase: Primero en Censo Maestro Local (<5ms)
   try {
     const { data, error } = await (supabase.rpc as any)('buscar_ciudadano_censo', {
       p_cedula: cleanCedula,
@@ -73,7 +129,7 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
       }
     }
 
-    // 3. Fallback directo a la tabla censo_maestro si la RPC falla o está pendiente de migración
+    // Fallback directo a la tabla censo_maestro
     const { data: tableData, error: tableError } = await (supabase.from('censo_maestro') as any)
       .select('nombres, apellidos, puesto_sugerido, mesa_sugerida')
       .eq('cedula', cleanCedula)
@@ -88,8 +144,20 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
         mesa_sugerida: tableData.mesa_sugerida ?? null,
       };
     }
+
+    // 3. Cascada a Consulta Externa vía HTTP Nativo en PostgreSQL
+    const extResult = await consultarDocumentoExterno(cleanCedula);
+    if (extResult.encontrado && extResult.nombres) {
+      return {
+        found: true,
+        nombres: extResult.nombres,
+        apellidos: extResult.apellidos ?? null,
+        puesto_sugerido: null,
+        mesa_sugerida: null,
+      };
+    }
   } catch (err) {
-    console.warn('Error al consultar censo_maestro en Supabase, recurriendo a demo local:', err);
+    console.warn('Error en consulta de censo Supabase, recurriendo a demo local:', err);
     const hit = LOCAL_DEMO_CENSO[cleanCedula];
     if (hit) {
       return {
