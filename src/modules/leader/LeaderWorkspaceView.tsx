@@ -155,6 +155,12 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
     }
 
     if (clean.length < 5) {
+      if (isAutofilledFromCenso) {
+        setNombres('');
+        setApellidos('');
+        setEdad('');
+        setIsAutofilledFromCenso(false);
+      }
       setCollisionResult(null);
       setIsCheckingCedula(false);
       return;

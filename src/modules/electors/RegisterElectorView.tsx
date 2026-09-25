@@ -339,6 +339,12 @@ export const RegisterElectorView = ({
     }
 
     if (val.length < 5) {
+      if (isAutofilledFromCenso) {
+        setNombres('');
+        setApellidos('');
+        setEdad('');
+        setIsAutofilledFromCenso(false);
+      }
       setCollisionResult(null);
       setIsCheckingCedula(false);
       return;
@@ -1082,9 +1088,11 @@ export const RegisterElectorView = ({
                   setCedula('');
                   setNombres('');
                   setApellidos('');
+                  setEdad('');
                   setTelefono('');
                   setNotas('');
                   setCollisionResult(null);
+                  setIsAutofilledFromCenso(false);
                   setServerError(null);
                   cedulaInputRef.current?.focus();
                 }}
