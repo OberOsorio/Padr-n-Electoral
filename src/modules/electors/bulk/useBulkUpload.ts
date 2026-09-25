@@ -229,15 +229,27 @@ export const useBulkUpload = () => {
             ...(currentTenantId ? { tenant_id: currentTenantId } : {}),
           }));
 
-          const { error } = await (supabase.from('electores') as any).upsert(
-            payload,
-            {
-              onConflict: 'cedula',
-              ignoreDuplicates: collisionMode === 'skip',
-            }
-          );
+          let insertErr: any = null;
+          try {
+            const { error: upsertError } = await (supabase.from('electores') as any).upsert(
+              payload,
+              {
+                onConflict: 'cedula',
+                ignoreDuplicates: collisionMode === 'skip',
+              }
+            );
+            insertErr = upsertError;
+          } catch (e) {
+            insertErr = e;
+          }
 
-          if (error) throw error;
+          if (insertErr) {
+            // Fallback a inserción directa si ON CONFLICT no coincide con la restricción exacta
+            const { error: fallbackError } = await (supabase.from('electores') as any).insert(payload);
+            if (fallbackError && !fallbackError.message?.includes('duplicate')) {
+              throw fallbackError;
+            }
+          }
 
           cumulativeProcessed += chunk.length;
           cumulativeSuccessful += chunk.length;
