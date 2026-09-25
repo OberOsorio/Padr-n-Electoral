@@ -17,7 +17,7 @@ export const MasterPlatformLayout: React.FC<MasterPlatformLayoutProps> = ({ onSi
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#070a12] text-slate-900 dark:text-slate-100 flex transition-colors duration-200">
+    <div className="h-[100dvh] w-full bg-slate-50 dark:bg-[#070a12] text-slate-900 dark:text-slate-100 flex overflow-hidden transition-colors duration-200">
       {/* SuperAdmin Master Sidebar */}
       <MasterSidebar
         activeTab={activeTab}
@@ -28,21 +28,23 @@ export const MasterPlatformLayout: React.FC<MasterPlatformLayoutProps> = ({ onSi
       />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
-        {/* Mobile Header Bar (Only visible on mobile < lg) */}
-        <header className="lg:hidden sticky top-0 z-20 h-14 bg-white/90 dark:bg-[#0b0f19]/90 backdrop-blur-md border-b border-slate-200 dark:border-purple-900/20 px-3 sm:px-4 flex items-center justify-between transition-colors">
-          <div className="flex items-center gap-2.5">
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-y-auto">
+        {/* Mobile Header Bar Fijo Superior */}
+        <header className="lg:hidden sticky top-0 z-30 w-full shrink-0 h-16 bg-white/95 dark:bg-[#070a12]/95 backdrop-blur-md border-b border-slate-200/90 dark:border-purple-900/30 px-4 sm:px-6 flex items-center justify-between transition-colors shadow-xs">
+          <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => setIsMobileOpen(true)}
-              className="p-2 -ml-1 rounded-xl text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
+              className="p-2.5 -ml-1.5 rounded-xl text-slate-700 hover:text-slate-900 dark:text-slate-200 dark:hover:text-white bg-slate-100/80 hover:bg-slate-200/80 dark:bg-slate-800/60 dark:hover:bg-slate-800 transition-all cursor-pointer shrink-0"
               aria-label="Abrir menú"
             >
-              <Menu className="h-5 w-5" />
+              <Menu className="h-5 w-5" strokeWidth={2.3} />
             </button>
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white font-mono">
-              SuperAdmin
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-base sm:text-lg font-black uppercase tracking-wider text-slate-900 dark:text-white font-mono">
+                SUPERADMIN
+              </span>
+            </div>
           </div>
 
           <ThemeToggle size="sm" />

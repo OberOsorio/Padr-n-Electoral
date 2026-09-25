@@ -76,7 +76,7 @@ export const AppLayout = ({
   const isAdmin = userRole?.toLowerCase().includes('admin') ?? true;
 
   return (
-    <div className="min-h-screen w-full bg-slate-50 dark:bg-[#0F172A] text-slate-900 dark:text-slate-100 flex overflow-hidden transition-colors duration-200 relative">
+    <div className="h-[100dvh] w-full bg-slate-50 dark:bg-[#0F172A] text-slate-900 dark:text-slate-100 flex overflow-hidden transition-colors duration-200 relative">
       {/* 1. Sidebar de Escritorio (Visible en md+) */}
       <Sidebar
         activeTab={activeTab}
@@ -130,9 +130,9 @@ export const AppLayout = ({
       </AnimatePresence>
 
       {/* 3. Área de Contenido Principal Scrolleable */}
-      <div className="flex-1 h-screen overflow-y-auto bg-slate-50 dark:bg-[#0F172A] transition-colors duration-200 flex flex-col">
+      <div className="flex-1 h-full overflow-y-auto bg-slate-50 dark:bg-[#0F172A] transition-colors duration-200 flex flex-col">
         {/* Header Móvil Superior Fijo (Visible únicamente en < md) */}
-        <header className="md:hidden sticky top-0 z-30 w-full bg-white/90 dark:bg-[#161F30]/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-700/60 px-4 py-2 flex items-center justify-between transition-colors shadow-xs">
+        <header className="md:hidden sticky top-0 z-30 w-full shrink-0 bg-white/95 dark:bg-[#161F30]/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-700/60 px-4 py-3 flex items-center justify-between transition-colors shadow-xs">
           {/* Logo e Isotipo */}
           <div className="flex items-center gap-2">
             <div className="h-7 w-7 rounded-lg bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-500/40 flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-xs relative shrink-0">
