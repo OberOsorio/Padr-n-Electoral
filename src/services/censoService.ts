@@ -1,5 +1,6 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { CensoLookupResult, ConsultarDocumentoExternoResult } from '../types';
+import { parseNombreCompleto, formatearMayusculas } from '../utils/nameParser';
 
 // Banco de datos local precargado para pruebas de alta velocidad (<50ms) en modo demo
 const LOCAL_DEMO_CENSO: Record<string, { nombres: string; apellidos: string; edad?: number; puesto_sugerido?: string; mesa_sugerida?: number }> = {
@@ -18,19 +19,14 @@ const LOCAL_DEMO_CENSO: Record<string, { nombres: string; apellidos: string; eda
   '1030405060': { nombres: 'Diego Fernando', apellidos: 'Castro Muñoz', edad: 40, puesto_sugerido: 'Coliseo Municipal de Deportes', mesa_sugerida: 5 },
   '1192746189': { nombres: 'Andrea Marcela', apellidos: 'Ortega Morales', edad: 26 },
   '25970463': { nombres: 'Marcia Margarita', apellidos: 'Espitia Reinel', edad: 43 },
-  '25970436': { nombres: 'Erica Del', apellidos: 'Carmen Orozco Urango', edad: 53 },
+  '25970436': { nombres: 'Erica del Carmen', apellidos: 'Orozco Urango', edad: 53 },
   '1062680090': { nombres: 'Jeyner Esteban', apellidos: 'Osorio Orozco', edad: 34 },
   '1062680096': { nombres: 'Erlinda Marcela', apellidos: 'Correa Arteaga', edad: 34 },
 };
 
 export function toTitleCase(str?: string | null): string {
   if (!str) return '';
-  return str
-    .trim()
-    .toLowerCase()
-    .split(/\s+/)
-    .map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1) : ''))
-    .join(' ');
+  return formatearMayusculas(str);
 }
 
 /**
@@ -63,12 +59,13 @@ export async function consultarDocumentoExterno(
     if (apiRes.ok) {
       const data = await apiRes.json();
       if (data && data.encontrado && data.nombres) {
+        const parsed = parseNombreCompleto(`${data.nombres} ${data.apellidos || ''}`);
         // Cachear en censo_maestro de forma segura vía RPC (Security Definer)
         if (isSupabaseConfigured) {
           (supabase.rpc as any)('guardar_en_censo_maestro', {
             p_cedula: cleanCedula,
-            p_nombres: data.nombres,
-            p_apellidos: data.apellidos || '',
+            p_nombres: parsed.nombres,
+            p_apellidos: parsed.apellidos,
             p_edad: data.edad ? Number(data.edad) : null,
           })
             .then(() => {})
@@ -77,8 +74,8 @@ export async function consultarDocumentoExterno(
 
         return {
           encontrado: true,
-          nombres: toTitleCase(data.nombres),
-          apellidos: toTitleCase(data.apellidos || ''),
+          nombres: parsed.nombres,
+          apellidos: parsed.apellidos,
           edad: data.edad ? Number(data.edad) : null,
           municipio: data.municipio || null,
           departamento: data.departamento || null,
@@ -187,10 +184,11 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
             // fallback
           }
         }
+        const parsed = parseNombreCompleto(`${record.nombres} ${record.apellidos || ''}`);
         return {
           found: true,
-          nombres: toTitleCase(record.nombres),
-          apellidos: toTitleCase(record.apellidos),
+          nombres: parsed.nombres,
+          apellidos: parsed.apellidos,
           edad,
           puesto_sugerido: record.puesto || record.puesto_sugerido || null,
           mesa_sugerida: record.mesa || record.mesa_sugerida || null,
@@ -217,10 +215,11 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
             // fallback
           }
         }
+        const parsed = parseNombreCompleto(`${record.nombres} ${record.apellidos || ''}`);
         return {
           found: true,
-          nombres: toTitleCase(record.nombres),
-          apellidos: toTitleCase(record.apellidos),
+          nombres: parsed.nombres,
+          apellidos: parsed.apellidos,
           edad,
           puesto_sugerido: record.puesto_sugerido || record.puesto || null,
           mesa_sugerida: record.mesa_sugerida || record.mesa || null,
@@ -246,10 +245,11 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
           // fallback
         }
       }
+      const parsed = parseNombreCompleto(`${tableData.nombres} ${tableData.apellidos || ''}`);
       return {
         found: true,
-        nombres: toTitleCase(tableData.nombres),
-        apellidos: toTitleCase(tableData.apellidos),
+        nombres: parsed.nombres,
+        apellidos: parsed.apellidos,
         edad,
         puesto_sugerido: tableData.puesto_sugerido ?? null,
         mesa_sugerida: tableData.mesa_sugerida ?? null,

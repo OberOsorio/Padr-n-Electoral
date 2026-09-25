@@ -155,35 +155,108 @@ export default {
           );
         }
 
-        const parts = rawNombre.split(/\s+/).filter(Boolean);
-        let nombres = '';
-        let apellidos = '';
-
-        if (parts.length === 1) {
-          nombres = parts[0];
-        } else if (parts.length === 2) {
-          nombres = parts[0];
-          apellidos = parts[1];
-        } else if (parts.length === 3) {
-          nombres = parts[0];
-          apellidos = `${parts[1]} ${parts[2]}`;
-        } else {
-          nombres = parts.slice(0, parts.length - 2).join(' ');
-          apellidos = parts.slice(parts.length - 2).join(' ');
+        function formatCase(str) {
+          if (!str) return '';
+          const palabrasMenores = ['del', 'de', 'la', 'los', 'las', 'el', 'y'];
+          return str
+            .toLowerCase()
+            .split(/\s+/)
+            .filter(Boolean)
+            .map((word, idx) => {
+              if (idx !== 0 && palabrasMenores.includes(word)) return word;
+              return word.charAt(0).toUpperCase() + word.slice(1);
+            })
+            .join(' ')
+            .trim();
         }
 
-        const toTitleCase = (str) =>
-          str
-            .toLowerCase()
-            .split(' ')
-            .map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1) : ''))
-            .join(' ');
+        function extractApellido(tokens) {
+          if (tokens.length === 0) return '';
+          let part = tokens.pop();
+          const len = tokens.length;
+          if (len >= 2) {
+            const p1 = tokens[len - 2].toLowerCase();
+            const p2 = tokens[len - 1].toLowerCase();
+            if (p1 === 'de' && (p2 === 'la' || p2 === 'los' || p2 === 'las')) {
+              const art = tokens.pop();
+              const prep = tokens.pop();
+              return prep + ' ' + art + ' ' + part;
+            }
+          }
+          if (tokens.length >= 1) {
+            const p = tokens[tokens.length - 1].toLowerCase();
+            if (['de', 'del', 'san', 'santa'].includes(p)) {
+              const prep = tokens.pop();
+              return prep + ' ' + part;
+            }
+          }
+          return part;
+        }
+
+        function parseNombreCompleto(fullName) {
+          if (!fullName || typeof fullName !== 'string') {
+            return { nombres: '', apellidos: '' };
+          }
+          const textoLimpio = fullName.trim().replace(/\s+/g, ' ');
+          if (!textoLimpio) return { nombres: '', apellidos: '' };
+
+          const NOMBRES_COMPUESTOS = [
+            'del carmen', 'de la cruz', 'de jesus', 'de dios', 'de los angeles',
+            'de las nieves', 'del rosario', 'del pilar', 'maria del carmen',
+            'ana del carmen', 'luz del carmen', 'juan de dios', 'maria jose',
+            'juan carlos', 'juan pablo', 'juan manuel'
+          ];
+
+          for (const compuesto of NOMBRES_COMPUESTOS) {
+            const regexPrefijo = new RegExp('^([a-záéíóúñA-ZÁÉÍÓÚÑ]+)\\s+(' + compuesto + ')(?:\\s+|$)', 'i');
+            const matchPrefijo = textoLimpio.match(regexPrefijo);
+            if (matchPrefijo) {
+              const nombresExtraidos = matchPrefijo[1] + ' ' + matchPrefijo[2];
+              const apellidosRestantes = textoLimpio.substring(nombresExtraidos.length).trim();
+              return {
+                nombres: formatCase(nombresExtraidos),
+                apellidos: formatCase(apellidosRestantes)
+              };
+            }
+
+            const regexDirecto = new RegExp('^(' + compuesto + ')(?:\\s+|$)', 'i');
+            const matchDirecto = textoLimpio.match(regexDirecto);
+            if (matchDirecto && textoLimpio.length > matchDirecto[1].length) {
+              const nombresExtraidos = matchDirecto[1];
+              const apellidosRestantes = textoLimpio.substring(nombresExtraidos.length).trim();
+              return {
+                nombres: formatCase(nombresExtraidos),
+                apellidos: formatCase(apellidosRestantes)
+              };
+            }
+          }
+
+          const palabras = textoLimpio.split(/\s+/).filter(Boolean);
+          if (palabras.length <= 1) return { nombres: formatCase(palabras[0] || ''), apellidos: '' };
+          if (palabras.length === 2) return { nombres: formatCase(palabras[0]), apellidos: formatCase(palabras[1]) };
+
+          const tokens = [...palabras];
+          const segundoApellido = extractApellido(tokens);
+          const primerApellido = extractApellido(tokens);
+          const nombresRestantes = tokens.join(' ');
+
+          if (!nombresRestantes) {
+            return { nombres: formatCase(primerApellido), apellidos: formatCase(segundoApellido) };
+          }
+
+          return {
+            nombres: formatCase(nombresRestantes),
+            apellidos: formatCase(primerApellido + ' ' + segundoApellido)
+          };
+        }
+
+        const { nombres, apellidos } = parseNombreCompleto(rawNombre);
 
         return new Response(
           JSON.stringify({
             encontrado: true,
-            nombres: toTitleCase(nombres),
-            apellidos: toTitleCase(apellidos),
+            nombres,
+            apellidos,
             edad: json?.edad ? Number(json.edad) : null,
             nombre_completo: rawNombre,
             departamento: json?.departamento || json?.Departamento || null,

@@ -1,6 +1,7 @@
 import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import { parseNombreCompleto } from './src/utils/nameParser.ts'
 
 function dnpLookupDevPlugin(): Plugin {
   return {
@@ -59,11 +60,7 @@ function dnpLookupDevPlugin(): Plugin {
               if (ruiRes.ok) {
                 const ruiData = ((await ruiRes.json().catch(() => null)) || {}) as any;
                 if (ruiData && ruiData.ok && ruiData.nombre) {
-                  const parts = ruiData.nombre.trim().split(/\s+/).filter(Boolean);
-                  const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
-                  const cleanParts = parts.map(capitalize);
-                  const nombres = cleanParts.length >= 4 ? cleanParts.slice(0, 2).join(' ') : cleanParts.slice(0, 1).join(' ');
-                  const apellidos = cleanParts.length >= 4 ? cleanParts.slice(2).join(' ') : cleanParts.slice(1).join(' ');
+                  const { nombres, apellidos } = parseNombreCompleto(ruiData.nombre);
 
                   res.setHeader('Content-Type', 'application/json');
                   res.end(JSON.stringify({
@@ -93,11 +90,7 @@ function dnpLookupDevPlugin(): Plugin {
                     sisbenData.nombre ||
                     `${sisbenData.primerNombre || ''} ${sisbenData.segundoNombre || ''} ${sisbenData.primerApellido || ''} ${sisbenData.segundoApellido || ''}`.trim();
                   if (rawNombre) {
-                    const parts = rawNombre.trim().split(/\s+/).filter(Boolean);
-                    const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
-                    const cleanParts = parts.map(capitalize);
-                    const nombres = cleanParts.length >= 4 ? cleanParts.slice(0, 2).join(' ') : cleanParts.slice(0, 1).join(' ');
-                    const apellidos = cleanParts.length >= 4 ? cleanParts.slice(2).join(' ') : cleanParts.slice(1).join(' ');
+                    const { nombres, apellidos } = parseNombreCompleto(rawNombre);
 
                     res.setHeader('Content-Type', 'application/json');
                     res.end(JSON.stringify({
