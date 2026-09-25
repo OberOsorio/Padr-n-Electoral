@@ -2,19 +2,25 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { CensoLookupResult, ConsultarDocumentoExternoResult } from '../types';
 
 // Banco de datos local precargado para pruebas de alta velocidad (<50ms) en modo demo
-const LOCAL_DEMO_CENSO: Record<string, { nombres: string; apellidos: string; puesto_sugerido?: string; mesa_sugerida?: number }> = {
-  '1047892341': { nombres: 'Carlos Eduardo', apellidos: 'Mendoza Ospina', puesto_sugerido: 'I.E. Santander Central', mesa_sugerida: 4 },
-  '1098341902': { nombres: 'Laura Sofía', apellidos: 'Herrera Morales', puesto_sugerido: 'Coliseo Municipal de Deportes', mesa_sugerida: 2 },
-  '73542189': { nombres: 'Miguel Ángel', apellidos: 'Morales Torres', puesto_sugerido: 'Colegio Mayor Departamental', mesa_sugerida: 7 },
-  '1143670554': { nombres: 'Valentina', apellidos: 'Restrepo Castro', puesto_sugerido: 'I.E. Técnico San Juan Bautista', mesa_sugerida: 1 },
-  '1052884112': { nombres: 'Andrés Felipe', apellidos: 'Gómez Ortiz', puesto_sugerido: 'Escuela Mixta El Prado', mesa_sugerida: 3 },
-  '1085294019': { nombres: 'Esteban Camilo', apellidos: 'Torres Valderrama', puesto_sugerido: 'I.E. Santander Central', mesa_sugerida: 4 },
-  '528391145': { nombres: 'María Lucía', apellidos: 'Pérez Domínguez', puesto_sugerido: 'Coliseo Municipal de Deportes', mesa_sugerida: 2 },
-  '1098456432': { nombres: 'Andrés Felipe', apellidos: 'Ramírez Gómez', puesto_sugerido: 'I.E. Santander Central', mesa_sugerida: 4 },
-  '43987123': { nombres: 'Carmen Rosa', apellidos: 'Vargas Silva', puesto_sugerido: 'Colegio Mayor Departamental', mesa_sugerida: 6 },
-  '1047892903': { nombres: 'Jhonatan David', apellidos: 'Montoya Restrepo', puesto_sugerido: 'I.E. Técnico San Juan Bautista', mesa_sugerida: 1 },
-  '1020304050': { nombres: 'Juliana Patricia', apellidos: 'Salazar Cardona', puesto_sugerido: 'I.E. Santander Central', mesa_sugerida: 3 },
-  '1030405060': { nombres: 'Diego Fernando', apellidos: 'Castro Muñoz', puesto_sugerido: 'Coliseo Municipal de Deportes', mesa_sugerida: 5 },
+const LOCAL_DEMO_CENSO: Record<string, { nombres: string; apellidos: string; edad?: number; puesto_sugerido?: string; mesa_sugerida?: number }> = {
+  '1007299001': { nombres: 'Ober Luis', apellidos: 'Osorio Orozco', edad: 27, puesto_sugerido: 'I.E. Santander Central', mesa_sugerida: 1 },
+  '1047892341': { nombres: 'Carlos Eduardo', apellidos: 'Mendoza Ospina', edad: 38, puesto_sugerido: 'I.E. Santander Central', mesa_sugerida: 4 },
+  '1098341902': { nombres: 'Laura Sofía', apellidos: 'Herrera Morales', edad: 29, puesto_sugerido: 'Coliseo Municipal de Deportes', mesa_sugerida: 2 },
+  '73542189': { nombres: 'Miguel Ángel', apellidos: 'Morales Torres', edad: 52, puesto_sugerido: 'Colegio Mayor Departamental', mesa_sugerida: 7 },
+  '1143670554': { nombres: 'Valentina', apellidos: 'Restrepo Castro', edad: 24, puesto_sugerido: 'I.E. Técnico San Juan Bautista', mesa_sugerida: 1 },
+  '1052884112': { nombres: 'Andrés Felipe', apellidos: 'Gómez Ortiz', edad: 31, puesto_sugerido: 'Escuela Mixta El Prado', mesa_sugerida: 3 },
+  '1085294019': { nombres: 'Esteban Camilo', apellidos: 'Torres Valderrama', edad: 34, puesto_sugerido: 'I.E. Santander Central', mesa_sugerida: 4 },
+  '528391145': { nombres: 'María Lucía', apellidos: 'Pérez Domínguez', edad: 47, puesto_sugerido: 'Coliseo Municipal de Deportes', mesa_sugerida: 2 },
+  '1098456432': { nombres: 'Andrés Felipe', apellidos: 'Ramírez Gómez', edad: 33, puesto_sugerido: 'I.E. Santander Central', mesa_sugerida: 4 },
+  '43987123': { nombres: 'Carmen Rosa', apellidos: 'Vargas Silva', edad: 42, puesto_sugerido: 'Colegio Mayor Departamental', mesa_sugerida: 6 },
+  '1047892903': { nombres: 'Jhonatan David', apellidos: 'Montoya Restrepo', edad: 35, puesto_sugerido: 'I.E. Técnico San Juan Bautista', mesa_sugerida: 1 },
+  '1020304050': { nombres: 'Juliana Patricia', apellidos: 'Salazar Cardona', edad: 28, puesto_sugerido: 'I.E. Santander Central', mesa_sugerida: 3 },
+  '1030405060': { nombres: 'Diego Fernando', apellidos: 'Castro Muñoz', edad: 40, puesto_sugerido: 'Coliseo Municipal de Deportes', mesa_sugerida: 5 },
+  '1192746189': { nombres: 'Andrea Marcela', apellidos: 'Ortega Morales', edad: 26 },
+  '25970463': { nombres: 'Marcia Margarita', apellidos: 'Espitia Reinel', edad: 43 },
+  '25970436': { nombres: 'Erica Del', apellidos: 'Carmen Orozco Urango', edad: 53 },
+  '1062680090': { nombres: 'Jeyner Esteban', apellidos: 'Osorio Orozco', edad: 34 },
+  '1062680096': { nombres: 'Erlinda Marcela', apellidos: 'Correa Arteaga', edad: 34 },
 };
 
 export function toTitleCase(str?: string | null): string {
@@ -153,6 +159,7 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
         found: true,
         nombres: hit.nombres,
         apellidos: hit.apellidos,
+        edad: hit.edad ?? null,
         puesto_sugerido: hit.puesto_sugerido ?? null,
         mesa_sugerida: hit.mesa_sugerida ?? null,
       };
@@ -169,11 +176,22 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
     if (!rpcError && rpcData) {
       const record = Array.isArray(rpcData) ? rpcData[0] : rpcData;
       if (record && (record.encontrado === true || record.found === true)) {
+        let edad = record.edad !== undefined && record.edad !== null ? Number(record.edad) : null;
+        if (!edad) {
+          try {
+            const ext = await consultarDocumentoExterno(cleanCedula);
+            if (ext.encontrado && ext.edad) {
+              edad = ext.edad;
+            }
+          } catch {
+            // fallback
+          }
+        }
         return {
           found: true,
           nombres: toTitleCase(record.nombres),
           apellidos: toTitleCase(record.apellidos),
-          edad: record.edad !== undefined && record.edad !== null ? Number(record.edad) : null,
+          edad,
           puesto_sugerido: record.puesto || record.puesto_sugerido || null,
           mesa_sugerida: record.mesa || record.mesa_sugerida || null,
         };
@@ -188,11 +206,22 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
     if (!legacyError && legacyData) {
       const record = Array.isArray(legacyData) ? legacyData[0] : legacyData;
       if (record && (record.found === true || record.encontrado === true)) {
+        let edad = record.edad !== undefined && record.edad !== null ? Number(record.edad) : null;
+        if (!edad) {
+          try {
+            const ext = await consultarDocumentoExterno(cleanCedula);
+            if (ext.encontrado && ext.edad) {
+              edad = ext.edad;
+            }
+          } catch {
+            // fallback
+          }
+        }
         return {
           found: true,
           nombres: toTitleCase(record.nombres),
           apellidos: toTitleCase(record.apellidos),
-          edad: record.edad !== undefined && record.edad !== null ? Number(record.edad) : null,
+          edad,
           puesto_sugerido: record.puesto_sugerido || record.puesto || null,
           mesa_sugerida: record.mesa_sugerida || record.mesa || null,
         };
@@ -206,11 +235,22 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
       .maybeSingle();
 
     if (!tableError && tableData) {
+      let edad = tableData.edad !== undefined && tableData.edad !== null ? Number(tableData.edad) : null;
+      if (!edad) {
+        try {
+          const ext = await consultarDocumentoExterno(cleanCedula);
+          if (ext.encontrado && ext.edad) {
+            edad = ext.edad;
+          }
+        } catch {
+          // fallback
+        }
+      }
       return {
         found: true,
         nombres: toTitleCase(tableData.nombres),
         apellidos: toTitleCase(tableData.apellidos),
-        edad: tableData.edad !== undefined && tableData.edad !== null ? Number(tableData.edad) : null,
+        edad,
         puesto_sugerido: tableData.puesto_sugerido ?? null,
         mesa_sugerida: tableData.mesa_sugerida ?? null,
       };
@@ -236,6 +276,7 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
         found: true,
         nombres: hit.nombres,
         apellidos: hit.apellidos,
+        edad: hit.edad ?? null,
         puesto_sugerido: hit.puesto_sugerido ?? null,
         mesa_sugerida: hit.mesa_sugerida ?? null,
       };
