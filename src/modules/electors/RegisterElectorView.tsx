@@ -62,6 +62,7 @@ export const RegisterElectorView = ({
   const [isCheckingCedula, setIsCheckingCedula] = useState(false);
   const [collisionResult, setCollisionResult] = useState<CollisionCheckResult | null>(null);
   const [isAutofilledFromCenso, setIsAutofilledFromCenso] = useState(false);
+  const currentCedulaRef = useRef<string>('');
 
   // Estados de envío y feedback
   const [saving, setSaving] = useState(false);
@@ -152,6 +153,11 @@ export const RegisterElectorView = ({
     const autofillFromCenso = async (cleanNum: string) => {
       try {
         const censo = await buscarCiudadanoEnCenso(cleanNum);
+        // Si el usuario ya cambió la cédula mientras respondía la red, descartar
+        if (currentCedulaRef.current !== cleanNum) {
+          return;
+        }
+
         if (censo.found && censo.nombres) {
           setNombres(censo.nombres);
           if (censo.apellidos) setApellidos(censo.apellidos);
@@ -163,14 +169,10 @@ export const RegisterElectorView = ({
           }
           setIsAutofilledFromCenso(true);
         } else {
-          setNombres('');
-          setApellidos('');
           setIsAutofilledFromCenso(false);
         }
       } catch (e) {
         console.error('Error al autocompletar desde censo maestro:', e);
-        setNombres('');
-        setApellidos('');
         setIsAutofilledFromCenso(false);
       }
     };
@@ -310,20 +312,23 @@ export const RegisterElectorView = ({
   const handleCedulaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value.replace(/\D/g, ''); // Numpad: solo dígitos
     setCedula(val);
+    currentCedulaRef.current = val;
     setServerError(null);
-
-    // Si los nombres previos fueron cargados por autocompletado, limpiarlos al modificar la cédula
-    if (isAutofilledFromCenso) {
-      setNombres('');
-      setApellidos('');
-      setIsAutofilledFromCenso(false);
-    }
 
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
     }
 
-    if (!val || val.length < 5) {
+    if (!val) {
+      setNombres('');
+      setApellidos('');
+      setCollisionResult(null);
+      setIsCheckingCedula(false);
+      setIsAutofilledFromCenso(false);
+      return;
+    }
+
+    if (val.length < 5) {
       setCollisionResult(null);
       setIsCheckingCedula(false);
       return;
@@ -413,23 +418,49 @@ export const RegisterElectorView = ({
         window.dispatchEvent(new Event('elector_registered'));
         refetchTenants();
       } else {
-        // Inserción en Supabase con RLS y asignación explícita de tenant
-        const { error: insertError } = await (supabase.from('electores') as any).insert({
-          cedula: cleanCedula,
-          nombres: cleanNombres,
-          apellidos: cleanApellidos,
-          telefono: telefono.trim() || null,
-          puesto_votacion: puestoVotacion,
-          mesa: Number(mesa),
-          notas: notas.trim() || null,
-          ...(currentTenantId ? { tenant_id: currentTenantId } : {}),
-        });
+        // Inserción en Supabase vía RPC registrar_elector_directo (Security Definer)
+        let savedSuccessfully = false;
+        try {
+          const { data: rpcRes, error: rpcErr } = await (supabase.rpc as any)('registrar_elector_directo', {
+            p_cedula: cleanCedula,
+            p_nombres: cleanNombres,
+            p_apellidos: cleanApellidos,
+            p_telefono: telefono.trim() || null,
+            p_puesto: puestoVotacion,
+            p_mesa: Number(mesa),
+            p_notas: notas.trim() || null,
+            p_tenant_id: currentTenantId || null,
+          });
 
-        if (insertError) {
-          if (insertError.code === '23505' || insertError.message.includes('unique')) {
-            throw new Error('Esta cédula ya fue registrada previamente en esta campaña.');
+          if (!rpcErr && rpcRes && rpcRes.success === true) {
+            savedSuccessfully = true;
+          } else if (rpcRes && rpcRes.success === false) {
+            throw new Error(rpcRes.error || 'Error al registrar elector.');
           }
-          throw insertError;
+        } catch (rpcEx: any) {
+          if (rpcEx?.message?.includes('previamente')) {
+            throw rpcEx;
+          }
+        }
+
+        if (!savedSuccessfully) {
+          const { error: insertError } = await (supabase.from('electores') as any).insert({
+            cedula: cleanCedula,
+            nombres: cleanNombres,
+            apellidos: cleanApellidos,
+            telefono: telefono.trim() || null,
+            puesto_votacion: puestoVotacion,
+            mesa: Number(mesa),
+            notas: notas.trim() || null,
+            ...(currentTenantId ? { tenant_id: currentTenantId } : {}),
+          });
+
+          if (insertError) {
+            if (insertError.code === '23505' || insertError.message.includes('unique')) {
+              throw new Error('Esta cédula ya fue registrada previamente en esta campaña.');
+            }
+            throw insertError;
+          }
         }
 
         refetchTenants();

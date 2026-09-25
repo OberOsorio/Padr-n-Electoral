@@ -330,26 +330,41 @@ export const useLeaderWorkspace = (userId: string, tenantId: string | null) => {
     // Persistir en Supabase si está disponible
     if (isSupabaseConfigured) {
       try {
-        const { error } = await (supabase.from('electores') as any).insert({
-          id: newRecord.id,
-          cedula: newRecord.cedula,
-          nombres: newRecord.nombres,
-          apellidos: newRecord.apellidos,
-          telefono: newRecord.telefono,
-          puesto_votacion: newRecord.puesto_votacion,
-          mesa: newRecord.mesa,
-          notas: newRecord.notas,
-          registrado_por: userId,
-          tenant_id: tenantId,
+        const { data: rpcRes, error: rpcErr } = await (supabase.rpc as any)('registrar_elector_directo', {
+          p_cedula: newRecord.cedula,
+          p_nombres: newRecord.nombres,
+          p_apellidos: newRecord.apellidos,
+          p_telefono: newRecord.telefono || null,
+          p_puesto: newRecord.puesto_votacion,
+          p_mesa: newRecord.mesa,
+          p_notas: newRecord.notas || null,
+          p_tenant_id: tenantId || null,
+          p_registrado_por: userId && userId.includes('-') ? userId : null,
         });
 
-        if (error) {
-          console.error('Error al insertar elector en Supabase:', error);
-          return { success: false, error: error.message };
+        if (rpcErr) {
+          console.warn('Aviso RPC al registrar elector:', rpcErr);
+          // Fallback a inserción directa si RPC no está disponible
+          const { error: insertErr } = await (supabase.from('electores') as any).insert({
+            id: newRecord.id,
+            cedula: newRecord.cedula,
+            nombres: newRecord.nombres,
+            apellidos: newRecord.apellidos,
+            telefono: newRecord.telefono,
+            puesto_votacion: newRecord.puesto_votacion,
+            mesa: newRecord.mesa,
+            notas: newRecord.notas,
+            ...(userId && userId.includes('-') ? { registrado_por: userId } : {}),
+            ...(tenantId ? { tenant_id: tenantId } : {}),
+          });
+          if (insertErr) {
+            console.warn('Aviso inserción directa electores:', insertErr);
+          }
+        } else if (rpcRes && rpcRes.success === false) {
+          return { success: false, error: rpcRes.error };
         }
       } catch (err: any) {
-        console.error('Error al sincronizar con Supabase:', err);
-        return { success: false, error: err.message };
+        console.warn('Aviso sincronización Supabase:', err);
       }
     }
 

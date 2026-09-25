@@ -87,6 +87,7 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
 
   // Debounce ref for cédula verification
   const debounceTimerRef = useRef<any>(null);
+  const currentLeaderCedulaRef = useRef<string>('');
 
   // Formato de fecha de registro
   const formatRegistrationDate = (isoString?: string) => {
@@ -134,17 +135,20 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
   const handleCedulaChange = (val: string) => {
     const clean = val.replace(/\D/g, '');
     setCedula(clean);
+    currentLeaderCedulaRef.current = clean;
     setFormError(null);
-
-    // Si los nombres previos provinieron de autocompletado, limpiarlos al cambiar la cédula
-    if (isAutofilledFromCenso) {
-      setNombres('');
-      setApellidos('');
-      setIsAutofilledFromCenso(false);
-    }
 
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
+    }
+
+    if (!clean) {
+      setNombres('');
+      setApellidos('');
+      setCollisionResult(null);
+      setIsCheckingCedula(false);
+      setIsAutofilledFromCenso(false);
+      return;
     }
 
     if (clean.length < 5) {
@@ -162,10 +166,13 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
       });
 
       const res = await checkCollision(clean);
+      if (currentLeaderCedulaRef.current !== clean) return;
       setCollisionResult(res);
 
       if (!res.exists) {
         const censo = await censoPromise;
+        if (currentLeaderCedulaRef.current !== clean) return;
+
         if (censo.found && censo.nombres) {
           setNombres(censo.nombres);
           if (censo.apellidos) setApellidos(censo.apellidos);
@@ -177,8 +184,6 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
           }
           setIsAutofilledFromCenso(true);
         } else {
-          setNombres('');
-          setApellidos('');
           setIsAutofilledFromCenso(false);
         }
       } else {
@@ -390,12 +395,6 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
               formError={formError}
               lastRegistered={lastRegistered}
               onCedulaChange={handleCedulaChange}
-              onCedulaBlur={() => {
-                if (cedula.length >= 5) {
-                  if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
-                  handleCedulaChange(cedula);
-                }
-              }}
               setNombres={setNombres}
               setApellidos={setApellidos}
               setTelefono={setTelefono}
