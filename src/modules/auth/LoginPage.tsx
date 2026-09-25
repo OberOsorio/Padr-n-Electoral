@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { supabase, isSupabaseConfigured } from '../../lib/supabase';
-import type { Profile } from '../../types';
+import { supabase } from '../../lib/supabase';
+import type { Profile, ActiveSessionData } from '../../types';
 import {
   Mail,
   Lock,
@@ -12,10 +12,9 @@ import {
   ArrowLeft,
 } from 'lucide-react';
 import { ThemeToggle } from '../../components/ui/ThemeToggle';
-import { DemoAccountsSelector } from './DemoAccountsSelector';
 
 interface LoginPageProps {
-  onSuccess?: (email?: string) => void;
+  onSuccess?: (sessionData: ActiveSessionData) => void;
   onBackToLanding?: () => void;
 }
 
@@ -37,25 +36,6 @@ export const LoginPage = ({ onSuccess, onBackToLanding }: LoginPageProps) => {
     }
   }, []);
 
-  const fillDemoCredentials = (roleType: 'superadmin' | 'admin' | 'coordinador' | 'lider' | 'suspended' = 'admin') => {
-    if (roleType === 'superadmin') {
-      setEmail('superadmin@saas.gov');
-      setPassword('SuperAdmin2026*');
-    } else if (roleType === 'coordinador') {
-      setEmail('coordinador@alcaldia2027.gov');
-      setPassword('Coord2026*');
-    } else if (roleType === 'lider') {
-      setEmail('lider@alcaldia2027.gov');
-      setPassword('Lider2026*');
-    } else if (roleType === 'suspended') {
-      setEmail('admin@caucaunido.org');
-      setPassword('Admin2026*');
-    } else {
-      setEmail('admin@alcaldia2027.gov');
-      setPassword('Admin2026*');
-    }
-    setErrorMessage(null);
-  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -70,78 +50,6 @@ export const LoginPage = ({ onSuccess, onBackToLanding }: LoginPageProps) => {
     setLoading(true);
 
     try {
-      // Si Supabase aún no está conectado con variables reales, permitir acceso con credenciales demo autorizadas
-      if (!isSupabaseConfigured) {
-        const lowerEmail = trimmedEmail.toLowerCase();
-        let demoSession: any = null;
-
-        if (lowerEmail === 'superadmin@saas.gov' && password === 'SuperAdmin2026*') {
-          demoSession = {
-            user: {
-              id: 'usr_superadmin_001',
-              email: 'superadmin@saas.gov',
-              role: 'superadmin',
-              tenant_id: null,
-              user_metadata: { full_name: 'SuperAdmin Maestro' },
-            },
-          };
-        } else if (
-          (lowerEmail === 'admin@alcaldia2027.gov' && password === 'Admin2026*') ||
-          (lowerEmail === 'admin@electoral.gov' && password === 'Admin2026*')
-        ) {
-          demoSession = {
-            user: {
-              id: 'usr_admin_001_master',
-              email: lowerEmail,
-              role: 'admin',
-              tenant_id: 'ten_alcaldia_2027',
-              user_metadata: { full_name: 'Director Campaña Alcaldía 2027' },
-            },
-          };
-        } else if (lowerEmail === 'coordinador@alcaldia2027.gov' && password === 'Coord2026*') {
-          demoSession = {
-            user: {
-              id: 'usr_coord_001',
-              email: 'coordinador@alcaldia2027.gov',
-              role: 'coordinador',
-              tenant_id: 'ten_alcaldia_2027',
-              user_metadata: { full_name: 'Cdor. Javier Rivas' },
-            },
-          };
-        } else if (lowerEmail === 'lider@alcaldia2027.gov' && password === 'Lider2026*') {
-          demoSession = {
-            user: {
-              id: 'usr_lider_001',
-              email: 'lider@alcaldia2027.gov',
-              role: 'lider',
-              tenant_id: 'ten_alcaldia_2027',
-              user_metadata: { full_name: 'Marcos Benavides' },
-            },
-          };
-        } else if (lowerEmail === 'admin@caucaunido.org' && password === 'Admin2026*') {
-          demoSession = {
-            user: {
-              id: 'usr_cauca_001',
-              email: 'admin@caucaunido.org',
-              role: 'admin',
-              tenant_id: 'ten_cauca_unido',
-              user_metadata: { full_name: 'Rodrigo Benítez' },
-            },
-          };
-        }
-
-        if (demoSession) {
-          localStorage.setItem('electoral_demo_auth', JSON.stringify(demoSession));
-          onSuccess?.(demoSession.user.email);
-          return;
-        } else {
-          setErrorMessage(
-            'Credenciales no reconocidas. Pruebe los accesos rápidos demo (SuperAdmin, Admin o Coordinador).'
-          );
-          return;
-        }
-      }
-
       // 1. Inicio de sesión estándar en Supabase
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: trimmedEmail,
@@ -164,35 +72,54 @@ export const LoginPage = ({ onSuccess, onBackToLanding }: LoginPageProps) => {
         return;
       }
 
-      // 2. Validación de estado activo en la tabla 'profiles'
-      const { data, error: profileError } = await supabase
+      // 2. Consulta y validación de perfil real en la base de datos
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', authData.user.id)
         .maybeSingle();
 
-      const profile = data as Profile | null;
-
       if (profileError) {
         console.error('Error de verificación de perfil:', profileError);
+      }
+
+      const profile = profileData as Profile | null;
+
+      // Si el perfil existe pero está marcado como inactivo o suspendido
+      if (profile && profile.is_active === false) {
         await supabase.auth.signOut();
-        setErrorMessage('Error al verificar los permisos del usuario.');
+        setErrorMessage('Su cuenta se encuentra inactiva o suspendida. Comuníquese con el Administrador.');
         return;
       }
 
-      if (!profile) {
-        await supabase.auth.signOut();
-        setErrorMessage('Perfil no encontrado en el sistema. Contacte al Administrador.');
-        return;
-      }
+      // Identificar rol del usuario desde su perfil o metadata
+      const userRole = (
+        profile?.role ||
+        authData.user.user_metadata?.role ||
+        'admin'
+      ).toLowerCase();
 
-      if (profile.is_active !== true) {
-        await supabase.auth.signOut();
-        setErrorMessage('Su cuenta se encuentra inactiva. Acceso denegado.');
-        return;
-      }
+      const userName =
+        profile?.full_name ||
+        authData.user.user_metadata?.full_name ||
+        authData.user.email?.split('@')[0] ||
+        'Usuario del Sistema';
 
-      onSuccess?.(authData.user.email);
+      const tenantId = profile?.tenant_id || (authData.user.user_metadata?.tenant_id as string) || null;
+
+      // Limpiar residuos de datos demo en el navegador
+      localStorage.removeItem('electoral_demo_auth');
+
+      const sessionData: ActiveSessionData = {
+        email: authData.user.email || trimmedEmail,
+        id: authData.user.id,
+        userName,
+        role: userRole,
+        tenantId,
+        isDemo: false,
+      };
+
+      onSuccess?.(sessionData);
     } catch (err: unknown) {
       console.error('Error durante autenticación:', err);
       setErrorMessage(
@@ -334,13 +261,8 @@ export const LoginPage = ({ onSuccess, onBackToLanding }: LoginPageProps) => {
             </button>
           </div>
         </form>
-
-        {/* Acceso Rápido para Demostración Multi-Tenant */}
-        <DemoAccountsSelector
-          currentEmail={email}
-          onSelectAccount={fillDemoCredentials}
-        />
       </div>
     </div>
   );
 };
+

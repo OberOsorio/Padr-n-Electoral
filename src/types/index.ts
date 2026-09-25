@@ -39,6 +39,16 @@ export interface Profile {
   created_at: string;
 }
 
+export interface ActiveSessionData {
+  email: string;
+  id: string;
+  userName: string;
+  role: AppRole | string;
+  tenantId?: string | null;
+  isDemo?: boolean;
+}
+
+
 export interface TeamMember {
   id: string;
   full_name: string;

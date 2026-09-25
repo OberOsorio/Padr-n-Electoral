@@ -5,14 +5,8 @@ import { AppLayout } from '../components/layout/AppLayout';
 import { SuspendedTenantScreen } from '../components/common/SuspendedTenantScreen';
 import { LeaderWorkspaceView } from '../modules/leader/LeaderWorkspaceView';
 
-export interface ActiveSessionData {
-  email: string;
-  id: string;
-  userName?: string;
-  role?: string;
-  tenantId?: string | null;
-  isDemo?: boolean;
-}
+import type { ActiveSessionData } from '../types';
+export type { ActiveSessionData };
 
 interface AppRouterProps {
   session: ActiveSessionData;

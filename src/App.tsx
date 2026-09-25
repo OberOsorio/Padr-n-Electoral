@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from './lib/supabase';
-import type { Profile } from './types';
+import type { Profile, ActiveSessionData } from './types';
 import { LoginPage } from './modules/auth/LoginPage';
 import { LandingPage } from './modules/public/LandingPage';
 import { AppRouter } from './routes/AppRouter';
@@ -8,13 +8,37 @@ import { TenantProvider } from './context/TenantContext';
 import { useIdleTimeout } from './hooks/useIdleTimeout';
 import { Loader2 } from 'lucide-react';
 
-interface ActiveSessionData {
-  email: string;
-  id: string;
-  userName?: string;
-  role?: string;
-  tenantId?: string | null;
-  isDemo?: boolean;
+async function buildSessionFromAuthUser(authUser: any): Promise<ActiveSessionData> {
+  const { data: profileData } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', authUser.id)
+    .maybeSingle();
+
+  const profile = profileData as Profile | null;
+
+  const userRole = (
+    profile?.role ||
+    authUser.user_metadata?.role ||
+    'admin'
+  ).toLowerCase();
+
+  const userName =
+    profile?.full_name ||
+    authUser.user_metadata?.full_name ||
+    authUser.email?.split('@')[0] ||
+    'Usuario del Sistema';
+
+  const tenantId = profile?.tenant_id || (authUser.user_metadata?.tenant_id as string) || null;
+
+  return {
+    email: authUser.email || '',
+    id: authUser.id,
+    userName,
+    role: userRole,
+    tenantId,
+    isDemo: false,
+  };
 }
 
 export default function App() {
@@ -23,73 +47,26 @@ export default function App() {
   const [publicView, setPublicView] = useState<'landing' | 'login'>('landing');
 
   useEffect(() => {
-    // 1. Revisar si hay sesión demo en localStorage
-    const savedDemo = localStorage.getItem('electoral_demo_auth');
-    if (savedDemo) {
-      try {
-        const parsed = JSON.parse(savedDemo);
-        if (parsed?.user?.email) {
-          setSession({
-            email: parsed.user.email,
-            id: parsed.user.id || 'usr_admin_001_master',
-            userName: parsed.user.user_metadata?.full_name || 'Administrador General',
-            role: parsed.user.role || 'Admin',
-            tenantId: parsed.user.tenant_id || 'ten_alcaldia_2027',
-            isDemo: true,
-          });
-          setLoading(false);
-          return;
-        }
-      } catch (err) {
-        console.error('Error al leer sesión demo:', err);
-      }
-    }
+    // 1. Limpiar cualquier almacenamiento residual de sesiones demo
+    localStorage.removeItem('electoral_demo_auth');
 
-    // 2. Obtener sesión de Supabase
+    // 2. Obtener sesión activa de Supabase
     supabase.auth.getSession().then(async ({ data: { session: currentSession } }) => {
       if (currentSession?.user) {
-        const { data } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', currentSession.user.id)
-          .maybeSingle();
-
-        const profile = data as Profile | null;
-
-        setSession({
-          email: currentSession.user.email || 'admin@electoral.gov',
-          id: currentSession.user.id,
-          userName: profile?.full_name || 'Usuario del Sistema',
-          role: profile?.role || 'admin',
-          tenantId: profile?.tenant_id || null,
-          isDemo: false,
-        });
+        const sessionData = await buildSessionFromAuthUser(currentSession.user);
+        setSession(sessionData);
       }
       setLoading(false);
     });
 
-    // 3. Escuchar cambios de estado en Supabase
+    // 3. Escuchar cambios de estado en Supabase Auth
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, currentSession) => {
       if (currentSession?.user) {
-        const { data } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', currentSession.user.id)
-          .maybeSingle();
-
-        const profile = data as Profile | null;
-
-        setSession({
-          email: currentSession.user.email || 'admin@electoral.gov',
-          id: currentSession.user.id,
-          userName: profile?.full_name || 'Usuario del Sistema',
-          role: profile?.role || 'admin',
-          tenantId: profile?.tenant_id || null,
-          isDemo: false,
-        });
-      } else if (!localStorage.getItem('electoral_demo_auth')) {
+        const sessionData = await buildSessionFromAuthUser(currentSession.user);
+        setSession(sessionData);
+      } else {
         setSession(null);
       }
       setLoading(false);
@@ -105,11 +82,11 @@ export default function App() {
       localStorage.removeItem('electoral_demo_auth');
       await supabase.auth.signOut();
       setSession(null);
-      setPublicView('landing');
+      setPublicView('login');
     } catch (error) {
       console.error('Error al cerrar sesión:', error);
       setSession(null);
-      setPublicView('landing');
+      setPublicView('login');
     }
   }, []);
 
@@ -130,35 +107,10 @@ export default function App() {
     }, [handleSignOut]),
   });
 
-  const handleLoginSuccess = (email?: string) => {
-    const savedDemo = localStorage.getItem('electoral_demo_auth');
-    if (savedDemo) {
-      try {
-        const parsed = JSON.parse(savedDemo);
-        if (parsed?.user) {
-          setSession({
-            email: parsed.user.email || email || 'admin@alcaldia2027.gov',
-            id: parsed.user.id || 'usr_admin_001_master',
-            userName: parsed.user.user_metadata?.full_name || 'Usuario del Sistema',
-            role: parsed.user.role || 'admin',
-            tenantId: parsed.user.tenant_id ?? null,
-            isDemo: true,
-          });
-          return;
-        }
-      } catch (e) {
-        console.error('Error reading saved demo auth on success:', e);
-      }
+  const handleLoginSuccess = (sessionData?: ActiveSessionData) => {
+    if (sessionData) {
+      setSession(sessionData);
     }
-
-    setSession({
-      email: email || 'admin@alcaldia2027.gov',
-      id: 'usr_admin_001_master',
-      userName: 'Director Campaña Alcaldía 2027',
-      role: 'admin',
-      tenantId: 'ten_alcaldia_2027',
-      isDemo: true,
-    });
   };
 
   if (loading) {
