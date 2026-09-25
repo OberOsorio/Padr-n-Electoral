@@ -85,11 +85,13 @@ export default function App() {
   const handleSignOut = useCallback(async () => {
     try {
       localStorage.removeItem('electoral_demo_auth');
+      sessionStorage.removeItem('electoral_superadmin_mode');
       await supabase.auth.signOut();
       setSession(null);
       setPublicView('login');
     } catch (error) {
       console.error('Error al cerrar sesión:', error);
+      sessionStorage.removeItem('electoral_superadmin_mode');
       setSession(null);
       setPublicView('login');
     }

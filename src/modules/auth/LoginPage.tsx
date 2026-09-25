@@ -112,8 +112,9 @@ export const LoginPage = ({ onSuccess, onBackToLanding }: LoginPageProps) => {
 
       const tenantId = profile?.tenant_id || (authData.user.user_metadata?.tenant_id as string) || null;
 
-      // Limpiar residuos de datos demo en el navegador
+      // Limpiar residuos de datos demo y modos previos en el navegador
       localStorage.removeItem('electoral_demo_auth');
+      sessionStorage.removeItem('electoral_superadmin_mode');
 
       const sessionData: ActiveSessionData = {
         email: authData.user.email || trimmedEmail,

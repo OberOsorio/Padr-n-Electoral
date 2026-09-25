@@ -10,9 +10,10 @@ import { AnimatePresence, motion } from 'framer-motion';
 
 interface MasterPlatformLayoutProps {
   onSignOut?: () => void;
+  onOpenGateway?: () => void;
 }
 
-export const MasterPlatformLayout: React.FC<MasterPlatformLayoutProps> = ({ onSignOut }) => {
+export const MasterPlatformLayout: React.FC<MasterPlatformLayoutProps> = ({ onSignOut, onOpenGateway }) => {
   const [activeTab, setActiveTab] = useState<MasterTab>('overview');
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
@@ -23,6 +24,7 @@ export const MasterPlatformLayout: React.FC<MasterPlatformLayoutProps> = ({ onSi
         activeTab={activeTab}
         onSelectTab={setActiveTab}
         onSignOut={onSignOut}
+        onOpenGateway={onOpenGateway}
         isMobileOpen={isMobileOpen}
         onCloseMobile={() => setIsMobileOpen(false)}
       />
@@ -47,7 +49,18 @@ export const MasterPlatformLayout: React.FC<MasterPlatformLayoutProps> = ({ onSi
             </div>
           </div>
 
-          <ThemeToggle size="sm" />
+          <div className="flex items-center gap-2">
+            {onOpenGateway && (
+              <button
+                type="button"
+                onClick={onOpenGateway}
+                className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-500/30 transition-colors cursor-pointer"
+              >
+                Selector
+              </button>
+            )}
+            <ThemeToggle size="sm" />
+          </div>
         </header>
 
         {/* View Switcher with Smooth Animated Transitions */}

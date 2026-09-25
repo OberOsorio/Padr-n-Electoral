@@ -5,7 +5,8 @@ import {
   Activity,
   ShieldAlert,
   Layers,
-  X
+  X,
+  ArrowRight,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { ThemeToggle } from '../ui/ThemeToggle';
@@ -18,6 +19,7 @@ interface MasterSidebarProps {
   activeTab: MasterTab;
   onSelectTab: (tab: MasterTab) => void;
   onSignOut?: () => void;
+  onOpenGateway?: () => void;
   isMobileOpen?: boolean;
   onCloseMobile?: () => void;
 }
@@ -26,6 +28,7 @@ export const MasterSidebar: React.FC<MasterSidebarProps> = ({
   activeTab,
   onSelectTab,
   onSignOut,
+  onOpenGateway,
   isMobileOpen = false,
   onCloseMobile,
 }) => {
@@ -184,6 +187,23 @@ export const MasterSidebar: React.FC<MasterSidebarProps> = ({
           );
         })}
       </nav>
+
+      {/* Selector de Entornos / Modo Campaña */}
+      {onOpenGateway && (
+        <div className="p-3 border-t border-slate-200 dark:border-purple-900/20">
+          <button
+            type="button"
+            onClick={onOpenGateway}
+            className="w-full flex items-center justify-between p-2.5 rounded-xl bg-purple-500/10 hover:bg-purple-500/15 border border-purple-500/25 text-purple-700 dark:text-purple-300 transition-all text-xs font-semibold group cursor-pointer shadow-xs"
+          >
+            <div className="flex items-center gap-2">
+              <Building2 className="w-4 h-4 text-purple-500 group-hover:scale-110 transition-transform" />
+              <span>Inspeccionar Campaña</span>
+            </div>
+            <ArrowRight className="w-3.5 h-3.5 text-purple-400 group-hover:translate-x-0.5 transition-transform" />
+          </button>
+        </div>
+      )}
 
       {/* Footer SuperAdmin Profile Card */}
       <div className="p-3 sm:p-3.5 border-t border-slate-200 dark:border-purple-900/20 bg-slate-50/50 dark:bg-slate-950/40">
