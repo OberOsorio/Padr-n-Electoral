@@ -1,0 +1,2 @@
+# Ignore _worker.js from static assets since worker.js is the entrypoint
+_worker.js
