@@ -1,0 +1,388 @@
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import type { Tenant, TenantPlan } from '../types';
+
+export const DEFAULT_TENANTS: Tenant[] = [
+  {
+    id: 'ten_alcaldia_2027',
+    name: 'Campaña Alcaldía 2027',
+    slug: 'alcaldia-2027',
+    plan: 'pro',
+    max_electors: 25000,
+    is_active: true,
+    created_at: new Date('2026-01-15T00:00:00Z').toISOString(),
+    admin_name: 'Dr. Alejandro Morales',
+    admin_email: 'admin@alcaldia2027.gov',
+    totalElectores: 18450,
+    totalUsers: 8,
+  },
+  {
+    id: 'ten_partido_progresista',
+    name: 'Partido Progresista Central',
+    slug: 'partido-progresista',
+    plan: 'enterprise',
+    max_electors: 100000,
+    is_active: true,
+    created_at: new Date('2026-02-01T00:00:00Z').toISOString(),
+    admin_name: 'Ing. Sofía Carvajal',
+    admin_email: 'sofia.carvajal@partidoprogresista.org',
+    totalElectores: 64200,
+    totalUsers: 24,
+  },
+  {
+    id: 'ten_alianza_regional',
+    name: 'Movimiento Alianza Regional',
+    slug: 'alianza-regional',
+    plan: 'standard',
+    max_electors: 10000,
+    is_active: true,
+    created_at: new Date('2026-03-10T00:00:00Z').toISOString(),
+    admin_name: 'Lic. Fernando Quintero',
+    admin_email: 'fernando.quintero@alianzaregional.co',
+    totalElectores: 7850,
+    totalUsers: 5,
+  },
+  {
+    id: 'ten_cauca_unido',
+    name: 'Cauca Unido 2026',
+    slug: 'cauca-unido',
+    plan: 'standard',
+    max_electors: 8000,
+    is_active: false,
+    created_at: new Date('2026-02-14T00:00:00Z').toISOString(),
+    admin_name: 'Rodrigo Benítez',
+    admin_email: 'admin@caucaunido.org',
+    totalElectores: 3200,
+    totalUsers: 2,
+  },
+];
+
+const LOCAL_STORAGE_TENANTS_KEY = 'electoral_saas_tenants';
+const LOCAL_STORAGE_ACTIVE_TENANT_KEY = 'electoral_active_tenant_id';
+
+interface PlanUsage {
+  totalElectors: number;
+  maxElectors: number;
+  percentage: number;
+  isNearLimit: boolean;
+  isLimitReached: boolean;
+}
+
+interface CreateCampaignParams {
+  name: string;
+  slug: string;
+  plan: TenantPlan;
+  max_electors: number;
+  adminName: string;
+  adminEmail: string;
+  adminPassword?: string;
+}
+
+interface TenantContextType {
+  currentTenant: Tenant | null;
+  tenants: Tenant[];
+  currentTenantId: string | null;
+  setCurrentTenantId: (id: string | null) => void;
+  createTenant: (tenantData: { name: string; slug: string; plan: TenantPlan; max_electors: number }) => Promise<Tenant>;
+  createCampaignWithAdmin: (params: CreateCampaignParams) => Promise<Tenant>;
+  updateTenant: (id: string, updates: Partial<Tenant>) => Promise<void>;
+  toggleTenantStatus: (id: string) => Promise<void>;
+  loading: boolean;
+  planUsage: PlanUsage;
+  refetchTenants: () => Promise<void>;
+}
+
+const TenantContext = createContext<TenantContextType | undefined>(undefined);
+
+export const TenantProvider: React.FC<{ children: React.ReactNode; userRole?: string; userTenantId?: string | null }> = ({
+  children,
+  userRole: _userRole,
+  userTenantId,
+}) => {
+  const [tenants, setTenants] = useState<Tenant[]>([]);
+  const [currentTenantId, setCurrentTenantIdState] = useState<string | null>(null);
+  const [totalTenantElectors, setTotalTenantElectors] = useState<number>(0);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  // 1. Cargar lista de Tenants
+  const fetchTenants = useCallback(async () => {
+    setLoading(true);
+
+    if (!isSupabaseConfigured) {
+      try {
+        const stored = localStorage.getItem(LOCAL_STORAGE_TENANTS_KEY);
+        const list: Tenant[] = stored ? JSON.parse(stored) : DEFAULT_TENANTS;
+        setTenants(list);
+
+        // Seleccionar tenant activo inicial
+        const savedTenantId = localStorage.getItem(LOCAL_STORAGE_ACTIVE_TENANT_KEY);
+        const initialTenantId = userTenantId || savedTenantId || list[0]?.id || null;
+        setCurrentTenantIdState(initialTenantId);
+      } catch (err) {
+        console.error('Error al cargar tenants locales:', err);
+        setTenants(DEFAULT_TENANTS);
+        setCurrentTenantIdState(DEFAULT_TENANTS[0].id);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    try {
+      const { data, error } = await (supabase.from('tenants') as any)
+        .select('*')
+        .order('name', { ascending: true });
+
+      if (error) throw error;
+
+      const loadedTenants: Tenant[] = data || [];
+
+      if (loadedTenants.length === 0) {
+        // Sembrar tenants por defecto si la base está vacía
+        setTenants(DEFAULT_TENANTS);
+        setCurrentTenantIdState(userTenantId || DEFAULT_TENANTS[0].id);
+      } else {
+        setTenants(loadedTenants);
+        const savedTenantId = localStorage.getItem(LOCAL_STORAGE_ACTIVE_TENANT_KEY);
+        const activeId = userTenantId || savedTenantId || loadedTenants[0]?.id || null;
+        setCurrentTenantIdState(activeId);
+      }
+    } catch (err) {
+      console.warn('Error al consultar tenants de Supabase (usando respaldo local):', err);
+      const stored = localStorage.getItem(LOCAL_STORAGE_TENANTS_KEY);
+      const list: Tenant[] = stored ? JSON.parse(stored) : DEFAULT_TENANTS;
+      setTenants(list);
+      setCurrentTenantIdState(userTenantId || list[0]?.id || null);
+    } finally {
+      setLoading(false);
+    }
+  }, [userTenantId]);
+
+  useEffect(() => {
+    fetchTenants();
+  }, [fetchTenants]);
+
+  // Cambiar tenant activo
+  const setCurrentTenantId = useCallback((id: string | null) => {
+    setCurrentTenantIdState(id);
+    if (id) {
+      localStorage.setItem(LOCAL_STORAGE_ACTIVE_TENANT_KEY, id);
+    } else {
+      localStorage.removeItem(LOCAL_STORAGE_ACTIVE_TENANT_KEY);
+    }
+  }, []);
+
+  // Tenant actualmente seleccionado
+  const currentTenant = useMemo(() => {
+    return tenants.find((t) => t.id === currentTenantId) || tenants[0] || null;
+  }, [tenants, currentTenantId]);
+
+  // 2. Consultar uso de censo electoral para el Tenant activo
+  useEffect(() => {
+    if (!currentTenant?.id) return;
+
+    const countElectors = async () => {
+      if (!isSupabaseConfigured) {
+        const stored = localStorage.getItem('electoral_local_electors');
+        const list = stored ? JSON.parse(stored) : [];
+        const count = list.filter((e: any) => !e.tenant_id || e.tenant_id === currentTenant.id).length;
+        setTotalTenantElectors(count);
+        return;
+      }
+
+      try {
+        const { count, error } = await (supabase.from('electores') as any)
+          .select('id', { count: 'exact', head: true })
+          .eq('tenant_id', currentTenant.id);
+
+        if (!error && count !== null) {
+          setTotalTenantElectors(count);
+        }
+      } catch (err) {
+        console.warn('Error al consultar electores del tenant:', err);
+      }
+    };
+
+    countElectors();
+  }, [currentTenant?.id]);
+
+  // 3. Crear nuevo Tenant (Campaña SaaS)
+  const createTenant = async (tenantData: {
+    name: string;
+    slug: string;
+    plan: TenantPlan;
+    max_electors: number;
+  }): Promise<Tenant> => {
+    const newTenant: Tenant = {
+      id: crypto.randomUUID ? crypto.randomUUID() : `ten_${Date.now()}`,
+      name: tenantData.name,
+      slug: tenantData.slug.toLowerCase().trim().replace(/[^a-z0-9-]+/g, '-'),
+      plan: tenantData.plan,
+      max_electors: tenantData.max_electors || 10000,
+      is_active: true,
+      created_at: new Date().toISOString(),
+    };
+
+    // Actualizar estado local
+    setTenants((prev) => {
+      const updated = [...prev, newTenant];
+      localStorage.setItem(LOCAL_STORAGE_TENANTS_KEY, JSON.stringify(updated));
+      return updated;
+    });
+
+    if (isSupabaseConfigured) {
+      try {
+        const { error } = await (supabase.from('tenants') as any).insert({
+          id: newTenant.id,
+          name: newTenant.name,
+          slug: newTenant.slug,
+          plan: newTenant.plan,
+          max_electors: newTenant.max_electors,
+          is_active: newTenant.is_active,
+        });
+        if (error) console.error('Error insertando tenant en Supabase:', error);
+      } catch (err) {
+        console.error('Error al persistir tenant en Supabase:', err);
+      }
+    }
+
+    return newTenant;
+  };
+
+  // 4. Crear Campaña con Administrador asignado
+  const createCampaignWithAdmin = async (params: CreateCampaignParams): Promise<Tenant> => {
+    const tenantId = `ten_${Date.now()}`;
+    const newTenant: Tenant = {
+      id: tenantId,
+      name: params.name,
+      slug: params.slug.toLowerCase().trim().replace(/[^a-z0-9-]+/g, '-'),
+      plan: params.plan,
+      max_electors: params.max_electors || 10000,
+      is_active: true,
+      created_at: new Date().toISOString(),
+      admin_name: params.adminName,
+      admin_email: params.adminEmail,
+      totalElectores: 0,
+      totalUsers: 1,
+    };
+
+    // Actualizar tenants localmente
+    setTenants((prev) => {
+      const updated = [newTenant, ...prev];
+      localStorage.setItem(LOCAL_STORAGE_TENANTS_KEY, JSON.stringify(updated));
+      return updated;
+    });
+
+    // Registrar perfil demo del administrador para permitir su inicio de sesión inmediato
+    try {
+      const storedTeam = localStorage.getItem('electoral_local_team');
+      const teamList = storedTeam ? JSON.parse(storedTeam) : [];
+      teamList.unshift({
+        id: `usr_${tenantId}_admin`,
+        full_name: params.adminName,
+        email: params.adminEmail,
+        role: 'admin',
+        tenant_id: tenantId,
+        is_active: true,
+        created_at: new Date().toISOString(),
+        totalElectores: 0,
+        lastActivity: new Date().toISOString(),
+      });
+      localStorage.setItem('electoral_local_team', JSON.stringify(teamList));
+    } catch (e) {
+      console.warn('Error al respaldar admin local:', e);
+    }
+
+    if (isSupabaseConfigured) {
+      try {
+        await (supabase.from('tenants') as any).insert({
+          id: newTenant.id,
+          name: newTenant.name,
+          slug: newTenant.slug,
+          plan: newTenant.plan,
+          max_electors: newTenant.max_electors,
+          is_active: newTenant.is_active,
+        });
+
+        // Intentar registrar el profile si ya existe el usuario de auth
+        await (supabase.from('profiles') as any).insert({
+          id: `usr_${tenantId}_admin`,
+          full_name: params.adminName,
+          role: 'admin',
+          tenant_id: tenantId,
+          is_active: true,
+        });
+      } catch (err) {
+        console.error('Error persistiendo campaña y administrador en Supabase:', err);
+      }
+    }
+
+    return newTenant;
+  };
+
+  // 4. Actualizar Tenant
+  const updateTenant = async (id: string, updates: Partial<Tenant>) => {
+    setTenants((prev) => {
+      const updated = prev.map((t) => (t.id === id ? { ...t, ...updates } : t));
+      localStorage.setItem(LOCAL_STORAGE_TENANTS_KEY, JSON.stringify(updated));
+      return updated;
+    });
+
+    if (isSupabaseConfigured) {
+      try {
+        await (supabase.from('tenants') as any).update(updates).eq('id', id);
+      } catch (err) {
+        console.error('Error actualizando tenant en Supabase:', err);
+      }
+    }
+  };
+
+  // 5. Alternar estado activo / suspendido
+  const toggleTenantStatus = async (id: string) => {
+    const target = tenants.find((t) => t.id === id);
+    if (!target) return;
+    await updateTenant(id, { is_active: !target.is_active });
+  };
+
+  // 6. Cálculo de límites y cuotas del plan
+  const planUsage: PlanUsage = useMemo(() => {
+    const maxElectors = currentTenant?.max_electors || 10000;
+    const total = totalTenantElectors;
+    const percentage = maxElectors > 0 ? Math.min(100, Math.round((total / maxElectors) * 100)) : 0;
+    return {
+      totalElectors: total,
+      maxElectors,
+      percentage,
+      isNearLimit: percentage >= 85,
+      isLimitReached: total >= maxElectors,
+    };
+  }, [currentTenant, totalTenantElectors]);
+
+  return (
+    <TenantContext.Provider
+      value={{
+        currentTenant,
+        tenants,
+        currentTenantId,
+        setCurrentTenantId,
+        createTenant,
+        createCampaignWithAdmin,
+        updateTenant,
+        toggleTenantStatus,
+        loading,
+        planUsage,
+        refetchTenants: fetchTenants,
+      }}
+    >
+      {children}
+    </TenantContext.Provider>
+  );
+};
+
+export const useTenant = () => {
+  const context = useContext(TenantContext);
+  if (!context) {
+    throw new Error('useTenant debe ser utilizado dentro de un TenantProvider');
+  }
+  return context;
+};
