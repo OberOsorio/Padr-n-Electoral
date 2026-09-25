@@ -149,33 +149,35 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
 
     setIsCheckingCedula(true);
     debounceTimerRef.current = setTimeout(async () => {
+      // Iniciar búsqueda de censo y colisión en paralelo
+      const censoPromise = buscarCiudadanoEnCenso(clean).catch((e) => {
+        console.error('Error al autocompletar desde censo maestro:', e);
+        return { found: false } as const;
+      });
+
       const res = await checkCollision(clean);
       setCollisionResult(res);
+
       if (!res.exists) {
-        try {
-          const censo = await buscarCiudadanoEnCenso(clean);
-          if (censo.found && censo.nombres) {
-            setNombres(censo.nombres);
-            if (censo.apellidos) setApellidos(censo.apellidos);
-            if (censo.puesto_sugerido && PREDEFINED_POLLING_PLACES.some((p) => p.name === censo.puesto_sugerido)) {
-              setPuestoVotacion(censo.puesto_sugerido);
-            }
-            if (censo.mesa_sugerida) {
-              setMesa(censo.mesa_sugerida);
-            }
-            setIsAutofilledFromCenso(true);
-          } else {
-            setIsAutofilledFromCenso(false);
+        const censo = await censoPromise;
+        if (censo.found && censo.nombres) {
+          setNombres(censo.nombres);
+          if (censo.apellidos) setApellidos(censo.apellidos);
+          if (censo.puesto_sugerido && PREDEFINED_POLLING_PLACES.some((p) => p.name === censo.puesto_sugerido)) {
+            setPuestoVotacion(censo.puesto_sugerido);
           }
-        } catch (e) {
-          console.error('Error al autocompletar desde censo maestro:', e);
+          if (censo.mesa_sugerida) {
+            setMesa(censo.mesa_sugerida);
+          }
+          setIsAutofilledFromCenso(true);
+        } else {
           setIsAutofilledFromCenso(false);
         }
       } else {
         setIsAutofilledFromCenso(false);
       }
       setIsCheckingCedula(false);
-    }, 250);
+    }, 200);
   };
 
   // Submit registration
@@ -380,6 +382,12 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
               formError={formError}
               lastRegistered={lastRegistered}
               onCedulaChange={handleCedulaChange}
+              onCedulaBlur={() => {
+                if (cedula.length >= 5) {
+                  if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+                  handleCedulaChange(cedula);
+                }
+              }}
               setNombres={setNombres}
               setApellidos={setApellidos}
               setTelefono={setTelefono}

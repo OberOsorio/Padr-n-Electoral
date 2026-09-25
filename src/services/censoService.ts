@@ -17,6 +17,16 @@ const LOCAL_DEMO_CENSO: Record<string, { nombres: string; apellidos: string; pue
   '1030405060': { nombres: 'Diego Fernando', apellidos: 'Castro Muñoz', puesto_sugerido: 'Coliseo Municipal de Deportes', mesa_sugerida: 5 },
 };
 
+export function toTitleCase(str?: string | null): string {
+  if (!str) return '';
+  return str
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1) : ''))
+    .join(' ');
+}
+
 /**
  * Consulta el servicio de Ventanilla Social DNP (/Home/ObtenerDatosRUI) a través del endpoint /api/dnp-lookup.
  * Cachea automáticamente los nombres encontrados en `censo_maestro` para que futuras consultas
@@ -47,25 +57,21 @@ export async function consultarDocumentoExterno(
     if (apiRes.ok) {
       const data = await apiRes.json();
       if (data && data.encontrado && data.nombres) {
-        // Cachear en censo_maestro en segundo plano
+        // Cachear en censo_maestro de forma segura vía RPC (Security Definer)
         if (isSupabaseConfigured) {
-          (supabase.from('censo_maestro') as any)
-            .upsert(
-              {
-                cedula: cleanCedula,
-                nombres: data.nombres,
-                apellidos: data.apellidos || '',
-              },
-              { onConflict: 'cedula' }
-            )
+          (supabase.rpc as any)('guardar_en_censo_maestro', {
+            p_cedula: cleanCedula,
+            p_nombres: data.nombres,
+            p_apellidos: data.apellidos || '',
+          })
             .then(() => {})
-            .catch(() => {});
+            .catch((err: any) => console.warn('Aviso guardando en censo_maestro:', err));
         }
 
         return {
           encontrado: true,
-          nombres: data.nombres,
-          apellidos: data.apellidos || '',
+          nombres: toTitleCase(data.nombres),
+          apellidos: toTitleCase(data.apellidos || ''),
           raw_response: data,
         };
       }
@@ -161,8 +167,8 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
       if (record && (record.encontrado === true || record.found === true)) {
         return {
           found: true,
-          nombres: record.nombres,
-          apellidos: record.apellidos,
+          nombres: toTitleCase(record.nombres),
+          apellidos: toTitleCase(record.apellidos),
           puesto_sugerido: record.puesto || record.puesto_sugerido || null,
           mesa_sugerida: record.mesa || record.mesa_sugerida || null,
         };
@@ -179,8 +185,8 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
       if (record && (record.found === true || record.encontrado === true)) {
         return {
           found: true,
-          nombres: record.nombres,
-          apellidos: record.apellidos,
+          nombres: toTitleCase(record.nombres),
+          apellidos: toTitleCase(record.apellidos),
           puesto_sugerido: record.puesto_sugerido || record.puesto || null,
           mesa_sugerida: record.mesa_sugerida || record.mesa || null,
         };
@@ -196,8 +202,8 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
     if (!tableError && tableData) {
       return {
         found: true,
-        nombres: tableData.nombres,
-        apellidos: tableData.apellidos,
+        nombres: toTitleCase(tableData.nombres),
+        apellidos: toTitleCase(tableData.apellidos),
         puesto_sugerido: tableData.puesto_sugerido ?? null,
         mesa_sugerida: tableData.mesa_sugerida ?? null,
       };

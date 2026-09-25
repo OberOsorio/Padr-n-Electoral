@@ -37,6 +37,7 @@ export interface LeaderRegisterViewProps {
     mesa: number;
   } | null;
   onCedulaChange: (val: string) => void;
+  onCedulaBlur?: () => void;
   setNombres: (val: string) => void;
   setApellidos: (val: string) => void;
   setTelefono: (val: string) => void;
@@ -64,6 +65,7 @@ export const LeaderRegisterView: React.FC<LeaderRegisterViewProps> = ({
   formError,
   lastRegistered,
   onCedulaChange,
+  onCedulaBlur,
   setNombres,
   setApellidos,
   setTelefono,
@@ -156,6 +158,7 @@ export const LeaderRegisterView: React.FC<LeaderRegisterViewProps> = ({
                 required
                 value={cedula}
                 onChange={(e) => onCedulaChange(e.target.value)}
+                onBlur={onCedulaBlur}
                 placeholder="Ej. 1088492019"
                 className={`w-full pl-4 pr-11 py-3 bg-slate-50 dark:bg-slate-950/80 border rounded-xl text-sm font-mono text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none transition-all ${
                   isFormLocked

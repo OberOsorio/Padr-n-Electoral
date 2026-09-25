@@ -171,6 +171,9 @@ export const RegisterElectorView = ({
       }
     };
 
+    // Iniciar consulta de censo maestro en paralelo
+    const autofillPromise = autofillFromCenso(cleanCedula);
+
     try {
       if (!isSupabaseConfigured) {
         // Validación en almacenamiento local de demostración aislada por tenant
@@ -206,7 +209,7 @@ export const RegisterElectorView = ({
           setIsAutofilledFromCenso(false);
         } else {
           setCollisionResult({ exists: false });
-          await autofillFromCenso(cleanCedula);
+          await autofillPromise;
         }
         return;
       }
@@ -290,7 +293,7 @@ export const RegisterElectorView = ({
         setIsAutofilledFromCenso(false);
       } else {
         setCollisionResult({ exists: false });
-        await autofillFromCenso(cleanCedula);
+        await autofillPromise;
       }
     } catch (err) {
       console.error('Error en debounce de verificación:', err);
@@ -626,6 +629,13 @@ export const RegisterElectorView = ({
                 required
                 value={cedula}
                 onChange={handleCedulaChange}
+                onBlur={() => {
+                  const clean = cedula.replace(/\D/g, '');
+                  if (clean.length >= 5 && !collisionResult) {
+                    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+                    checkCedulaCollision(clean);
+                  }
+                }}
                 onKeyDown={(e) => handleKeyDown(e, nombresInputRef)}
                 placeholder="Ej. 1047892341 (solo números)"
                 disabled={saving}
