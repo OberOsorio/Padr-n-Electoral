@@ -98,17 +98,30 @@ export const LoginPage = ({ onSuccess, onBackToLanding }: LoginPageProps) => {
       }
 
       // Identificar rol del usuario desde su perfil o metadata
-      const userRole = (
+      const isSuperAdminEmail = (authData.user.email || trimmedEmail).toLowerCase().trim() === 'oberosorio1@gmail.com';
+      let userRole = (
+        (isSuperAdminEmail ? 'superadmin' : null) ||
         profile?.role ||
         authData.user.user_metadata?.role ||
         'admin'
       ).toLowerCase();
 
+      if (isSuperAdminEmail && profile && profile.role !== 'superadmin') {
+        userRole = 'superadmin';
+        try {
+          await (supabase.from('profiles') as any)
+            .update({ role: 'superadmin' })
+            .eq('id', authData.user.id);
+        } catch {
+          // ignore
+        }
+      }
+
       const userName =
         profile?.full_name ||
         authData.user.user_metadata?.full_name ||
         authData.user.email?.split('@')[0] ||
-        'Usuario del Sistema';
+        'Ober Osorio';
 
       const tenantId = profile?.tenant_id || (authData.user.user_metadata?.tenant_id as string) || null;
 

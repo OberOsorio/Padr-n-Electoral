@@ -63,7 +63,7 @@ export const AppRouter: React.FC<AppRouterProps> = ({ session, onSignOut }) => {
         <AppLayout
           userEmail={session.email}
           userName={`${session.userName || 'SuperAdmin'} (Sandbox)`}
-          userRole="admin"
+          userRole="superadmin"
           isSuperAdminInspection={true}
           onBackToMasterPlatform={() => {
             setSuperAdminMode('master');

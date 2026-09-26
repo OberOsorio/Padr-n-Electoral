@@ -8,7 +8,12 @@ import { TenantProvider } from './context/TenantContext';
 import { useIdleTimeout } from './hooks/useIdleTimeout';
 import { Loader2 } from 'lucide-react';
 
+const SUPERADMIN_EMAILS = ['oberosorio1@gmail.com'];
+
 async function buildSessionFromAuthUser(authUser: any): Promise<ActiveSessionData> {
+  const email = (authUser.email || '').toLowerCase().trim();
+  const isSuperAdminEmail = SUPERADMIN_EMAILS.includes(email);
+
   const { data: profileData } = await supabase
     .from('profiles')
     .select('*')
@@ -17,17 +22,29 @@ async function buildSessionFromAuthUser(authUser: any): Promise<ActiveSessionDat
 
   const profile = profileData as Profile | null;
 
-  const userRole = (
+  let userRole = (
+    (isSuperAdminEmail ? 'superadmin' : null) ||
     profile?.role ||
     authUser.user_metadata?.role ||
     'admin'
   ).toLowerCase();
 
+  if (isSuperAdminEmail && profile && profile.role !== 'superadmin') {
+    userRole = 'superadmin';
+    try {
+      await (supabase.from('profiles') as any)
+        .update({ role: 'superadmin' })
+        .eq('id', authUser.id);
+    } catch (healErr) {
+      console.warn('Auto-heal superadmin role failed:', healErr);
+    }
+  }
+
   const userName =
     profile?.full_name ||
     authUser.user_metadata?.full_name ||
     authUser.email?.split('@')[0] ||
-    'Usuario del Sistema';
+    'Ober Osorio';
 
   const tenantId = profile?.tenant_id || (authUser.user_metadata?.tenant_id as string) || null;
 
