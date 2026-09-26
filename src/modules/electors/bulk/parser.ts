@@ -40,10 +40,39 @@ export const parseFileToRawRows = async (file: File): Promise<RawParsedRow[]> =>
           }
 
           const worksheet = workbook.Sheets[firstSheetName];
-          const json = XLSX.utils.sheet_to_json<RawParsedRow>(worksheet, {
+          let json = XLSX.utils.sheet_to_json<RawParsedRow>(worksheet, {
             defval: '',
             raw: false, // Convierte números de cédula largos en texto sin notación científica
           });
+
+          // Detección inteligente si el archivo Excel tiene filas de título previo (ej: banner en fila 1)
+          if (json.length > 0) {
+            const firstRowKeys = Object.keys(json[0] || {});
+            const hasDocumento = firstRowKeys.some((k) =>
+              /cedula|documento|identificacion|cc|dni/i.test(k)
+            );
+            if (!hasDocumento) {
+              const matrix = XLSX.utils.sheet_to_json<string[]>(worksheet, {
+                header: 1,
+                defval: '',
+                raw: false,
+              });
+              for (let r = 1; r < Math.min(matrix.length, 6); r++) {
+                const rowCells = (matrix[r] || []).map((c) => String(c).trim());
+                const rowHasDoc = rowCells.some((c) =>
+                  /cedula|documento|identificacion|cc|dni/i.test(c)
+                );
+                if (rowHasDoc) {
+                  json = XLSX.utils.sheet_to_json<RawParsedRow>(worksheet, {
+                    defval: '',
+                    raw: false,
+                    range: r,
+                  });
+                  break;
+                }
+              }
+            }
+          }
 
           resolve(json);
         } catch (err: any) {
@@ -71,6 +100,7 @@ export const downloadOfficialTemplate = (format: 'csv' | 'xlsx'): void => {
       cedula: '1098765432',
       nombres: 'Carlos Andrés',
       apellidos: 'Restrepo Montoya',
+      edad: '32',
       telefono: '3157894512',
       puesto_votacion: 'I.E. Santander Central',
       mesa: '3',
@@ -80,6 +110,7 @@ export const downloadOfficialTemplate = (format: 'csv' | 'xlsx'): void => {
       cedula: '1012345678',
       nombres: 'Mariana Sofia',
       apellidos: 'Gómez Henao',
+      edad: '28',
       telefono: '3009876543',
       puesto_votacion: 'Colegio Mayor Departamental',
       mesa: '1',
@@ -89,6 +120,7 @@ export const downloadOfficialTemplate = (format: 'csv' | 'xlsx'): void => {
       cedula: '52489632',
       nombres: 'Alonso Javier',
       apellidos: 'Duque Roldán',
+      edad: '45',
       telefono: '3104561234',
       puesto_votacion: 'Coliseo Municipal de Deportes',
       mesa: '7',
@@ -104,6 +136,7 @@ export const downloadOfficialTemplate = (format: 'csv' | 'xlsx'): void => {
       { wch: 18 }, // cedula
       { wch: 22 }, // nombres
       { wch: 22 }, // apellidos
+      { wch: 8 },  // edad
       { wch: 18 }, // telefono
       { wch: 32 }, // puesto_votacion
       { wch: 8 },  // mesa
@@ -114,7 +147,7 @@ export const downloadOfficialTemplate = (format: 'csv' | 'xlsx'): void => {
     XLSX.writeFile(workbook, fileName);
   } else {
     // CSV con UTF-8 BOM
-    const headers = ['cedula', 'nombres', 'apellidos', 'telefono', 'puesto_votacion', 'mesa', 'notas'];
+    const headers = ['cedula', 'nombres', 'apellidos', 'edad', 'telefono', 'puesto_votacion', 'mesa', 'notas'];
     const csvContent = [
       headers.join(';'),
       ...sampleData.map((row) =>
@@ -122,6 +155,7 @@ export const downloadOfficialTemplate = (format: 'csv' | 'xlsx'): void => {
           `"${row.cedula}"`,
           `"${row.nombres}"`,
           `"${row.apellidos}"`,
+          `"${row.edad}"`,
           `"${row.telefono}"`,
           `"${row.puesto_votacion}"`,
           `"${row.mesa}"`,

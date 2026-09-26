@@ -117,18 +117,50 @@ export const useBulkUpload = () => {
 
     let cumulativeProcessed = 0;
     let cumulativeSuccessful = 0;
+    let cumulativeUpdated = 0;
     let cumulativeSkipped = 0;
     let cumulativeFailedChunks = 0;
+    let lastErrorMessage: string | null = null;
 
-    // Obtener ID de usuario en sesión
+    // Obtener ID de usuario y campaña activa en sesión
     let currentUserId: string | null = null;
     let currentUserName = 'Personal Autorizado';
+    let activeTenantId = currentTenantId;
 
     if (isSupabaseConfigured) {
       try {
         const { data: sessionData } = await supabase.auth.getSession();
-        currentUserId = sessionData.session?.user?.id || null;
-      } catch {
+        const uid = sessionData.session?.user?.id || null;
+        if (uid) {
+          // Verificar existencia en profiles para evitar violación de llave foránea
+          const { data: profileCheck } = await (supabase.from('profiles') as any)
+            .select('id, full_name, tenant_id')
+            .eq('id', uid)
+            .maybeSingle();
+
+          const profile = profileCheck as { id: string; full_name?: string; tenant_id?: string } | null;
+
+          if (profile?.id) {
+            currentUserId = profile.id;
+            currentUserName = profile.full_name || 'Personal Autorizado';
+            if (!activeTenantId && profile.tenant_id) {
+              activeTenantId = profile.tenant_id;
+            }
+          }
+        }
+
+        // Si aún no tenemos tenantId, consultar el primer tenant activo
+        if (!activeTenantId) {
+          const { data: tenantData } = await (supabase.from('tenants') as any)
+            .select('id')
+            .eq('is_active', true)
+            .limit(1);
+          if (tenantData && tenantData.length > 0) {
+            activeTenantId = tenantData[0].id;
+          }
+        }
+      } catch (authErr) {
+        console.warn('Error resolviendo credenciales para bulk upload:', authErr);
         currentUserId = null;
       }
     } else {
@@ -144,7 +176,7 @@ export const useBulkUpload = () => {
       }
     }
 
-    // Procesar cada chunk de 500 registros
+    // Procesar cada chunk de registros
     for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
       const startIdx = chunkIndex * CHUNK_SIZE;
       const endIdx = Math.min(startIdx + CHUNK_SIZE, totalRecords);
@@ -181,12 +213,13 @@ export const useBulkUpload = () => {
                 cedula: row.cedula,
                 nombres: row.nombres,
                 apellidos: row.apellidos,
+                edad: row.edad,
                 telefono: row.telefono,
                 puesto_votacion: row.puesto_votacion,
                 mesa: row.mesa,
                 notas: row.notas,
                 registrado_por: currentUserId,
-                tenant_id: currentTenantId || 'ten_alcaldia_2027',
+                tenant_id: activeTenantId || 'ten_alcaldia_2027',
                 created_at: exists ? existingMap.get(row.cedula)!.created_at : new Date().toISOString(),
                 registrador: {
                   full_name: currentUserName,
@@ -210,27 +243,43 @@ export const useBulkUpload = () => {
 
           // Pequeña pausa simulada para suavidad de UI (40ms)
           await new Promise((res) => setTimeout(res, 40));
-        } catch (err) {
+        } catch (err: any) {
           console.error(`Error en chunk local ${chunkNumber}:`, err);
           cumulativeFailedChunks++;
+          lastErrorMessage = err?.message || 'Error local';
         }
       } else {
-        // MODO PRODUCCIÓN: SUPABASE CON BATCH UPSERT
+        // MODO PRODUCCIÓN: SUPABASE CON RPC SEGURA DE ALTO RENDIMIENTO
         try {
           const payload = chunk.map((r) => ({
             cedula: r.cedula,
             nombres: r.nombres,
             apellidos: r.apellidos,
+            edad: r.edad,
             telefono: r.telefono,
             puesto_votacion: r.puesto_votacion,
             mesa: r.mesa,
             notas: r.notas,
             registrado_por: currentUserId,
-            ...(currentTenantId ? { tenant_id: currentTenantId } : {}),
+            tenant_id: activeTenantId,
           }));
 
-          let insertErr: any = null;
-          try {
+          // Estrategia 1: Función RPC importar_electores_lote (Security Definer con edad y sincronización)
+          const { data: rpcRes, error: rpcErr } = await (supabase.rpc as any)('importar_electores_lote', {
+            p_electores: payload,
+            p_tenant_id: activeTenantId,
+            p_registrado_por: currentUserId,
+            p_collision_mode: collisionMode,
+          });
+
+          if (!rpcErr && rpcRes && rpcRes.success) {
+            cumulativeProcessed += rpcRes.processed || chunk.length;
+            cumulativeSuccessful += rpcRes.inserted || 0;
+            cumulativeUpdated += rpcRes.updated || 0;
+            cumulativeSkipped += rpcRes.skipped || 0;
+          } else {
+            console.warn(`Lote ${chunkNumber}: RPC falló (${rpcErr?.message || rpcRes?.error}), aplicando inserción directa...`);
+            // Estrategia 2: Fallback a upsert directo en tabla electores
             const { error: upsertError } = await (supabase.from('electores') as any).upsert(
               payload,
               {
@@ -238,24 +287,23 @@ export const useBulkUpload = () => {
                 ignoreDuplicates: collisionMode === 'skip',
               }
             );
-            insertErr = upsertError;
-          } catch (e) {
-            insertErr = e;
-          }
 
-          if (insertErr) {
-            // Fallback a inserción directa si ON CONFLICT no coincide con la restricción exacta
-            const { error: fallbackError } = await (supabase.from('electores') as any).insert(payload);
-            if (fallbackError && !fallbackError.message?.includes('duplicate')) {
-              throw fallbackError;
+            if (upsertError) {
+              // Estrategia 3: Inserción directa
+              const { error: insertError } = await (supabase.from('electores') as any).insert(payload);
+              if (insertError) {
+                lastErrorMessage = insertError.message || upsertError.message;
+                throw insertError;
+              }
             }
-          }
 
-          cumulativeProcessed += chunk.length;
-          cumulativeSuccessful += chunk.length;
-        } catch (err) {
+            cumulativeProcessed += chunk.length;
+            cumulativeSuccessful += chunk.length;
+          }
+        } catch (err: any) {
           console.error(`Error al insertar lote ${chunkNumber} en Supabase:`, err);
           cumulativeFailedChunks++;
+          lastErrorMessage = err?.message || 'Error de conexión o permisos en base de datos.';
         }
       }
 
@@ -276,23 +324,43 @@ export const useBulkUpload = () => {
     const durationMs = Math.round(performance.now() - startTime);
 
     if (isMountedRef.current) {
-      setProgress((prev) => ({
-        ...prev,
-        status: 'completed',
-        percentage: 100,
-        currentChunkMessage: `Importación completada con éxito. ${cumulativeSuccessful} registros incorporados al padrón.`,
-      }));
+      if (cumulativeSuccessful === 0 && cumulativeUpdated === 0 && cumulativeFailedChunks > 0) {
+        // Fallaron todos los lotes
+        setProgress((prev) => ({
+          ...prev,
+          status: 'error',
+          errorMessage: lastErrorMessage || 'No se pudieron guardar los registros. Verifique los datos o su conexión.',
+        }));
+      } else {
+        const msg = cumulativeUpdated > 0
+          ? `Importación completada: ${cumulativeSuccessful} nuevos y ${cumulativeUpdated} actualizados.`
+          : `Importación completada con éxito: ${cumulativeSuccessful} registros incorporados al padrón.`;
 
-      setPostSummary({
-        fileName: preflight.fileName,
-        totalProcessed: cumulativeProcessed,
-        successful: cumulativeSuccessful,
-        skipped: cumulativeSkipped + preflight.invalidRows.length,
-        errors: preflight.invalidRows.length,
-        durationMs,
-      });
+        setProgress((prev) => ({
+          ...prev,
+          status: 'completed',
+          percentage: 100,
+          currentChunkMessage: msg,
+        }));
 
-      refetchTenants?.();
+        setPostSummary({
+          fileName: preflight.fileName,
+          totalProcessed: cumulativeProcessed,
+          successful: cumulativeSuccessful,
+          updated: cumulativeUpdated,
+          skipped: cumulativeSkipped + preflight.invalidRows.length,
+          errors: preflight.invalidRows.length + (cumulativeFailedChunks > 0 ? (totalRecords - cumulativeProcessed) : 0),
+          durationMs,
+        });
+
+        // Notificar al contexto de tenants y recargar vistas
+        try {
+          refetchTenants?.();
+          window.dispatchEvent(new CustomEvent('electoral_records_updated'));
+        } catch {
+          // ignore
+        }
+      }
     }
   }, [preflight, collisionMode, currentTenantId, refetchTenants]);
 

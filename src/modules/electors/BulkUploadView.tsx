@@ -70,6 +70,13 @@ export const BulkUploadView: React.FC<BulkUploadViewProps> = ({
     }
   };
 
+  const handleReset = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+    resetUpload();
+  };
+
   const isUploading = progress.status === 'uploading';
   const isCompleted = progress.status === 'completed';
   const isReady = progress.status === 'ready' && preflight && preflight.validRows.length > 0;
@@ -240,7 +247,7 @@ export const BulkUploadView: React.FC<BulkUploadViewProps> = ({
 
               <button
                 type="button"
-                onClick={resetUpload}
+                onClick={handleReset}
                 className="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 hover:border-slate-300 dark:hover:border-slate-600 text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white text-xs font-medium flex items-center gap-2 transition-all cursor-pointer ml-auto shadow-xs"
               >
                 <RotateCcw className="w-3.5 h-3.5 text-slate-400" />
@@ -309,7 +316,7 @@ export const BulkUploadView: React.FC<BulkUploadViewProps> = ({
           </div>
           <button
             type="button"
-            onClick={resetUpload}
+            onClick={handleReset}
             className="px-4 py-2 rounded-xl bg-rose-100 hover:bg-rose-200 dark:bg-rose-900/40 dark:hover:bg-rose-900/60 border border-rose-300 dark:border-rose-500/40 text-xs font-semibold text-rose-900 dark:text-rose-100 transition-colors cursor-pointer"
           >
             Intentar con otro archivo
@@ -337,13 +344,54 @@ export const BulkUploadView: React.FC<BulkUploadViewProps> = ({
                 </div>
               </div>
 
+              <div className="flex items-center gap-2 self-start sm:self-auto">
+                <button
+                  type="button"
+                  onClick={handleReset}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700/60 text-xs text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer shadow-xs"
+                >
+                  <RotateCcw className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Cambiar Archivo</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={startBatchImport}
+                  disabled={!isReady}
+                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all shadow-md cursor-pointer ${
+                    isReady
+                      ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-500/20 active:scale-[0.98]'
+                      : 'bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-400 cursor-not-allowed'
+                  }`}
+                >
+                  <Layers className="w-3.5 h-3.5" />
+                  <span>Guardar e Importar ({preflight.validRows.length.toLocaleString('es-CO')})</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Banner de Acción Rápida */}
+            <div className="my-4 p-4 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 text-blue-900 dark:text-blue-200">
+                <CheckCircle2 className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0" />
+                <div>
+                  <p className="text-xs sm:text-sm font-semibold">
+                    Archivo listo para guardar: {preflight.validRows.length.toLocaleString('es-CO')} electores válidos
+                  </p>
+                  <p className="text-[11px] text-blue-700/80 dark:text-blue-300/80 mt-0.5">
+                    Haga clic en el botón <strong>&quot;Guardar e Importar&quot;</strong> para sincronizar los registros con el padrón electoral central.
+                  </p>
+                </div>
+              </div>
+
               <button
                 type="button"
-                onClick={resetUpload}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700/60 text-xs text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer self-start sm:self-auto shadow-xs"
+                onClick={startBatchImport}
+                disabled={!isReady}
+                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold flex items-center justify-center gap-2 transition-all shadow-md shadow-blue-600/20 cursor-pointer shrink-0"
               >
-                <RotateCcw className="w-3.5 h-3.5 text-slate-400" />
-                <span>Cambiar Archivo</span>
+                <span>Guardar Ahora</span>
+                <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
 
@@ -490,6 +538,7 @@ export const BulkUploadView: React.FC<BulkUploadViewProps> = ({
                     <tr>
                       <th className="py-2.5 px-3">Cédula</th>
                       <th className="py-2.5 px-3">Nombre Completo</th>
+                      <th className="py-2.5 px-3 text-center">Edad</th>
                       <th className="py-2.5 px-3">Teléfono</th>
                       <th className="py-2.5 px-3">Puesto Asignado</th>
                       <th className="py-2.5 px-3 text-center">Mesa</th>
@@ -503,6 +552,13 @@ export const BulkUploadView: React.FC<BulkUploadViewProps> = ({
                         </td>
                         <td className="py-2.5 px-3 font-medium text-slate-900 dark:text-white">
                           {row.nombres} {row.apellidos}
+                        </td>
+                        <td className="py-2.5 px-3 text-center font-mono">
+                          {row.edad !== null && row.edad !== undefined ? (
+                            <span className="font-semibold text-slate-800 dark:text-slate-200">{row.edad} años</span>
+                          ) : (
+                            <span className="text-slate-400 dark:text-slate-500 italic">N/A</span>
+                          )}
                         </td>
                         <td className="py-2.5 px-3 font-mono text-slate-500 dark:text-slate-400">
                           {row.telefono || <span className="text-slate-400 dark:text-slate-500 italic">N/A</span>}
@@ -536,8 +592,9 @@ export const BulkUploadView: React.FC<BulkUploadViewProps> = ({
               >
                 <Layers className="w-4 h-4 text-white" />
                 <span>
-                  Iniciar Importación ({preflight.validRows.length.toLocaleString('es-CO')} registros)
+                  Guardar e Importar al Padrón ({preflight.validRows.length.toLocaleString('es-CO')} registros)
                 </span>
+                <ArrowRight className="w-4 h-4 text-white ml-1" />
               </button>
             </div>
           </div>

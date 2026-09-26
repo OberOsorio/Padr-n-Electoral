@@ -4,6 +4,7 @@ import type {
   RowValidationError,
   PreflightSummary,
 } from './types';
+import { parseNombreCompleto } from '../../../utils/nameParser';
 
 // Normaliza un encabezado para comparación (sin tildes, minúsculas, sin espacios ni caracteres especiales)
 const normalizeHeader = (header: string): string => {
@@ -11,6 +12,7 @@ const normalizeHeader = (header: string): string => {
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[°º]/g, 'o')
     .replace(/[^a-z0-9]/g, '_')
     .replace(/^_+|_+$/g, '');
 };
@@ -25,12 +27,20 @@ const COLUMN_ALIASES: Record<string, string[]> = {
     'identificacion',
     'identificación',
     'cc',
+    'c_c',
     'dni',
     'numero_documento',
     'cedula_elector',
     'num_documento',
     'no_documento',
     'id',
+    'cedula_ciudadania',
+    'cedula_de_ciudadania',
+    'nro_documento',
+    'nro_doc',
+    'documento_identidad',
+    'documento_de_identidad',
+    'num_doc',
   ],
   nombres: [
     'nombres',
@@ -41,6 +51,9 @@ const COLUMN_ALIASES: Record<string, string[]> = {
     'nombres_elector',
     'nombre_completo',
     'full_name',
+    'nombres_y_apellidos',
+    'nombre_y_apellido',
+    'elector',
   ],
   apellidos: [
     'apellidos',
@@ -50,6 +63,15 @@ const COLUMN_ALIASES: Record<string, string[]> = {
     'surnames',
     'last_name',
     'apellidos_elector',
+  ],
+  edad: [
+    'edad',
+    'anos',
+    'años',
+    'age',
+    'edad_elector',
+    'anhos',
+    'edades',
   ],
   telefono: [
     'telefono',
@@ -62,6 +84,7 @@ const COLUMN_ALIASES: Record<string, string[]> = {
     'whatsapp',
     'contacto',
     'numero_contacto',
+    'cel',
   ],
   puesto_votacion: [
     'puesto_votacion',
@@ -75,6 +98,7 @@ const COLUMN_ALIASES: Record<string, string[]> = {
     'colegio',
     'institucion',
     'sede',
+    'puesto_asignado',
   ],
   mesa: [
     'mesa',
@@ -84,6 +108,7 @@ const COLUMN_ALIASES: Record<string, string[]> = {
     'no_mesa',
     'table',
     'mesa_asignada',
+    'nro_mesa',
   ],
   notas: [
     'notas',
@@ -94,6 +119,7 @@ const COLUMN_ALIASES: Record<string, string[]> = {
     'comentarios',
     'notes',
     'detalle',
+    'descripcion',
   ],
 };
 
@@ -207,12 +233,12 @@ export const validateAndNormalizeRows = (
     let nombres = mapping.nombres ? String(row[mapping.nombres] ?? '').trim() : '';
     let apellidos = mapping.apellidos ? String(row[mapping.apellidos] ?? '').trim() : '';
 
-    // Manejo inteligente si solo existe columna 'nombre_completo'
-    if (nombres && !apellidos && (!mapping.apellidos || !row[mapping.apellidos])) {
-      const parts = nombres.split(/\s+/);
-      if (parts.length >= 2) {
-        nombres = parts.slice(0, Math.ceil(parts.length / 2)).join(' ');
-        apellidos = parts.slice(Math.ceil(parts.length / 2)).join(' ');
+    // Manejo inteligente si solo existe columna 'nombre_completo' o si nombres y apellidos apuntan a la misma columna
+    if (nombres && (!apellidos || mapping.nombres === mapping.apellidos)) {
+      const parsed = parseNombreCompleto(nombres);
+      if (parsed.nombres && parsed.apellidos) {
+        nombres = parsed.nombres;
+        apellidos = parsed.apellidos;
       }
     }
 
@@ -232,17 +258,26 @@ export const validateAndNormalizeRows = (
       apellidos = 'Sin Registrar';
     }
 
-    // 3. Extraer Teléfono
+    // 3. Extraer Edad
+    let cleanEdad: number | null = null;
+    if (mapping.edad && row[mapping.edad] !== undefined && row[mapping.edad] !== '') {
+      const parsedEdad = parseInt(String(row[mapping.edad]).replace(/\D/g, ''), 10);
+      if (!isNaN(parsedEdad) && parsedEdad >= 10 && parsedEdad <= 120) {
+        cleanEdad = parsedEdad;
+      }
+    }
+
+    // 4. Extraer Teléfono
     const rawTel = mapping.telefono ? String(row[mapping.telefono] ?? '').trim() : '';
     const cleanTel = rawTel ? rawTel.replace(/[^\d\+\s]/g, '').trim() : null;
 
-    // 4. Extraer Puesto de Votación
+    // 5. Extraer Puesto de Votación
     const puesto = mapping.puesto_votacion
       ? String(row[mapping.puesto_votacion] ?? '').trim()
       : '';
     const puestoFinal = puesto || 'Sede Principal (Por Asignar)';
 
-    // 5. Extraer Mesa
+    // 6. Extraer Mesa
     let mesaFinal = 1;
     if (mapping.mesa && row[mapping.mesa] !== undefined && row[mapping.mesa] !== '') {
       const parsedMesa = parseInt(String(row[mapping.mesa]).replace(/\D/g, ''), 10);
@@ -251,7 +286,7 @@ export const validateAndNormalizeRows = (
       }
     }
 
-    // 6. Extraer Notas
+    // 7. Extraer Notas
     const notas = mapping.notas ? String(row[mapping.notas] ?? '').trim() : null;
 
     validRows.push({
@@ -259,6 +294,7 @@ export const validateAndNormalizeRows = (
       cedula: cleanCedula,
       nombres,
       apellidos,
+      edad: cleanEdad,
       telefono: cleanTel || null,
       puesto_votacion: puestoFinal,
       mesa: mesaFinal,

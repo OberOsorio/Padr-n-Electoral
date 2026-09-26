@@ -7,6 +7,7 @@ export interface NormalizedElectorRow {
   cedula: string;
   nombres: string;
   apellidos: string;
+  edad: number | null;
   telefono: string | null;
   puesto_votacion: string;
   mesa: number;
@@ -54,6 +55,7 @@ export interface PostUploadSummary {
   fileName: string;
   totalProcessed: number;
   successful: number;
+  updated?: number;
   skipped: number;
   errors: number;
   durationMs: number;
