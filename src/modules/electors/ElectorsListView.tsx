@@ -83,9 +83,6 @@ export const ElectorsListView = ({
           <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 dark:text-white tracking-tight">
             Padrón / Lista de Electores
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-300 mt-1">
-            Visualización de alta densidad, búsqueda server-side y contacto rápido.
-          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">

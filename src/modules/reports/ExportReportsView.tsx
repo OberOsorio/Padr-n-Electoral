@@ -307,9 +307,6 @@ export const ExportReportsView: React.FC<ExportReportsViewProps> = ({
               <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white tracking-tight">
                 Padrón Electoral Consolidado
               </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                Descarga un archivo Excel con todos los electores registrados en la campaña actual, organizados con sus nombres, cédula, teléfono, puesto y mesa asignada.
-              </p>
             </div>
 
             <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60 flex items-center justify-between">
@@ -364,9 +361,6 @@ export const ExportReportsView: React.FC<ExportReportsViewProps> = ({
               <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white tracking-tight">
                 Reporte Individual por Líder
               </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                Filtra y genera el archivo Excel con los electores reportados exclusivamente por un líder o miembro específico del equipo de trabajo.
-              </p>
             </div>
 
             <div>

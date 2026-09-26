@@ -67,17 +67,6 @@ export const DirectorDashboardView = ({
         </div>
 
         <div className="flex items-center gap-3 self-start sm:self-center">
-          {/* Badge de estado de campaña: Sincronización Realtime */}
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 shadow-xs">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-            </span>
-            <span className="text-xs font-medium text-emerald-800 dark:text-emerald-300 tracking-tight whitespace-nowrap">
-              Campaña Activa • Sincronización Realtime
-            </span>
-          </div>
-
           {/* Botón de actualización de métricas */}
           <button
             type="button"

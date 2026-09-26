@@ -3,7 +3,6 @@ import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import type { ElectorWithRegistrant, CollisionCheckResult } from '../../types';
 import {
   UserPlus,
-  Shield,
   CreditCard,
   User,
   Phone,
@@ -1079,12 +1078,7 @@ export const RegisterElectorView = ({
           </div>
 
           {/* Botones de Acción */}
-          <div className="pt-4 border-t border-slate-200 dark:border-slate-700/60 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2 text-[11px] font-mono text-slate-500 dark:text-slate-300">
-              <Shield className="w-3.5 h-3.5 text-blue-500" />
-              <span>Validación de integridad RLS activa</span>
-            </div>
-
+          <div className="pt-4 border-t border-slate-200 dark:border-slate-700/60 flex flex-col sm:flex-row items-center justify-end gap-3">
             <div className="flex items-center gap-3 w-full sm:w-auto">
               <button
                 type="button"
