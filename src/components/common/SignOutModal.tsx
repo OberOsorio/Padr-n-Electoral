@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { LogOut, X, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -32,16 +33,18 @@ export const SignOutModal: React.FC<SignOutModalProps> = ({
     }
   };
 
-  return (
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6"
           role="dialog"
           aria-modal="true"
           aria-labelledby="signout-modal-title"
         >
-          {/* Backdrop con micro-desenfoque */}
+          {/* Backdrop con micro-desenfoque sobre toda la pantalla */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -52,13 +55,13 @@ export const SignOutModal: React.FC<SignOutModalProps> = ({
             aria-hidden="true"
           />
 
-          {/* Tarjeta Ejecutiva del Modal */}
+          {/* Tarjeta Ejecutiva del Modal Centrado en Pantalla */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 8 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="relative w-full max-w-sm rounded-2xl bg-white dark:bg-slate-900/95 border border-slate-200 dark:border-slate-800 p-6 sm:p-7 shadow-xl dark:shadow-2xl backdrop-blur-xl overflow-hidden z-10"
+            className="relative w-full max-w-sm rounded-2xl bg-white dark:bg-slate-900/95 border border-slate-200 dark:border-slate-800 p-6 sm:p-7 shadow-2xl backdrop-blur-xl overflow-hidden z-10"
           >
             {/* Micro-resplandor superior centrado */}
             <div
@@ -140,7 +143,8 @@ export const SignOutModal: React.FC<SignOutModalProps> = ({
           </motion.div>
         </div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };
 
