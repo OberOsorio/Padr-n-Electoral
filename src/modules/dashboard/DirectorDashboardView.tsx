@@ -42,9 +42,9 @@ export const DirectorDashboardView = ({
     second: '2-digit',
   });
 
-  const coordinadoresCount = metrics.coordinadoresActivos || 1;
-  const lideresCount = metrics.lideresActivos || 8;
-  const contactPct = metrics.contactabilidadPct ?? 100;
+  const coordinadoresCount = metrics.coordinadoresActivos ?? 0;
+  const lideresCount = metrics.lideresActivos ?? 0;
+  const contactPct = metrics.totalElectores > 0 ? (metrics.contactabilidadPct ?? 0) : 0;
 
   return (
     <div className="space-y-6 sm:space-y-8 p-4 sm:p-6 lg:p-8 xl:p-10 max-w-[1600px] mx-auto pb-24 md:pb-10 animate-in fade-in duration-300">
@@ -111,12 +111,14 @@ export const DirectorDashboardView = ({
           iconBg="bg-blue-50 border-blue-200 dark:bg-blue-950/40 dark:border-blue-800/40"
           spotlightColor="rgba(37, 99, 235, 0.16)"
           badge={
-            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/40">
-              +12% vs semana previa
-            </span>
+            metrics.totalElectores > 0 ? (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/40">
+                {metrics.porcentajeMeta}% de la meta
+              </span>
+            ) : undefined
           }
-          trendText="Censo activo y verificado"
-          trendPositive={true}
+          trendText={metrics.totalElectores > 0 ? "Censo activo y verificado" : "Sin electores registrados"}
+          trendPositive={metrics.totalElectores > 0}
         />
 
         {/* KPI 2: Cobertura Territorial */}
@@ -124,13 +126,13 @@ export const DirectorDashboardView = ({
           title="Cobertura Territorial"
           value={`${metrics.puestosActivos} ${metrics.puestosActivos === 1 ? 'puesto cubierto' : 'puestos cubiertos'}`}
           valueClassName="text-2xl sm:text-2xl font-semibold"
-          subtitle="Centros de votación con líderes asignados"
+          subtitle="Centros de votación con presencia"
           icon={MapPin}
           iconColor="text-emerald-600 dark:text-emerald-400"
           iconBg="bg-emerald-50 border-emerald-200 dark:bg-emerald-950/40 dark:border-emerald-800/40"
           spotlightColor="rgba(16, 185, 129, 0.14)"
-          trendText="Presencia activa en terreno"
-          trendPositive={true}
+          trendText={metrics.puestosActivos > 0 ? "Presencia activa en terreno" : "Sin puestos asignados"}
+          trendPositive={metrics.puestosActivos > 0}
         />
 
         {/* KPI 3: Fuerza Operativa */}
@@ -153,8 +155,8 @@ export const DirectorDashboardView = ({
           iconColor="text-indigo-600 dark:text-indigo-400"
           iconBg="bg-indigo-50 border-indigo-200 dark:bg-indigo-950/40 dark:border-indigo-800/40"
           spotlightColor="rgba(99, 102, 241, 0.14)"
-          trendText="Despliegue operativo validado"
-          trendPositive={true}
+          trendText={coordinadoresCount + lideresCount > 0 ? "Despliegue operativo validado" : "Equipo en conformación"}
+          trendPositive={coordinadoresCount + lideresCount > 0}
         />
 
         {/* KPI 4: Calidad de Contacto (Fidelización) */}
@@ -168,8 +170,8 @@ export const DirectorDashboardView = ({
           iconBg="bg-amber-50 border-amber-200 dark:bg-amber-950/40 dark:border-amber-800/40"
           spotlightColor="rgba(245, 158, 11, 0.14)"
           progressPercentage={contactPct}
-          trendText="Canal WhatsApp directo"
-          trendPositive={true}
+          trendText={metrics.totalElectores > 0 ? "Canal WhatsApp directo" : "Sin electores registrados"}
+          trendPositive={metrics.totalElectores > 0}
         />
       </motion.div>
 

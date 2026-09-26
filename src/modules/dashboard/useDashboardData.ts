@@ -69,13 +69,6 @@ const INITIAL_DEMO_ELECTORS: ElectorWithRegistrant[] = [
   },
 ];
 
-const INITIAL_DEMO_TOP_POLLING: TopPollingPlace[] = [
-  { puesto: 'I.E. Santander Central', total: 742, porcentaje: 21.7 },
-  { puesto: 'Colegio Mayor Departamental', total: 618, porcentaje: 18.1 },
-  { puesto: 'Coliseo Municipal de Deportes', total: 520, porcentaje: 15.2 },
-  { puesto: 'I.E. Técnico San Juan Bautista', total: 435, porcentaje: 12.7 },
-];
-
 export const useDashboardData = (metaObjetivo: number = DEFAULT_META) => {
   const { currentTenant, currentTenantId } = useTenant();
   const effectiveMeta = currentTenant?.max_electors || metaObjetivo;
@@ -145,24 +138,20 @@ export const useDashboardData = (metaObjetivo: number = DEFAULT_META) => {
         .sort((a, b) => b.total - a.total)
         .slice(0, 4);
 
-      const contactPct = total > 0 ? Math.round((conTelefonoCount / total) * 100) : 100;
+      const contactPct = total > 0 ? Math.round((conTelefonoCount / total) * 100) : 0;
 
       setMetrics({
         totalElectores: total,
         metaCobertura: effectiveMeta,
         porcentajeMeta: pct,
-        puestosActivos: Object.keys(puestosMap).length || (total > 0 ? 1 : 0),
-        coordinadoresActivos: 3,
-        lideresActivos: 8,
+        puestosActivos: Object.keys(puestosMap).length,
+        coordinadoresActivos: 0,
+        lideresActivos: 0,
         contactabilidadPct: contactPct,
         totalConTelefono: conTelefonoCount,
       });
 
-      setTopPollingPlaces(
-        topPuestos.length > 0
-          ? topPuestos
-          : INITIAL_DEMO_TOP_POLLING.map((p) => ({ ...p, mesasCount: 3 }))
-      );
+      setTopPollingPlaces(topPuestos);
       setRecentElectors(scopedElectors.slice(0, 5));
       setLoading(false);
       setIsLiveActive(true);
@@ -194,11 +183,9 @@ export const useDashboardData = (metaObjetivo: number = DEFAULT_META) => {
       let coordinadoresCount = 0;
       let lideresCount = 0;
       (profilesList || []).forEach((p: any) => {
-        if (p.role === 'coordinador' || p.role === 'admin') coordinadoresCount++;
+        if (p.role === 'coordinador') coordinadoresCount++;
         if (p.role === 'lider') lideresCount++;
       });
-      // Fallback mínimo si la base de datos recién inicia
-      if (coordinadoresCount === 0) coordinadoresCount = 1;
 
       // 3. Puestos de Votación, Mesas y Teléfonos por Tenant
       let puestosQuery = supabase.from('electores').select('puesto_votacion, mesa, telefono');
@@ -241,7 +228,7 @@ export const useDashboardData = (metaObjetivo: number = DEFAULT_META) => {
         .sort((a, b) => b.total - a.total)
         .slice(0, 4);
 
-      const contactPct = totalCount > 0 ? Math.round((conTelefonoCount / totalCount) * 100) : 100;
+      const contactPct = totalCount > 0 ? Math.round((conTelefonoCount / totalCount) * 100) : 0;
 
       // 4. Últimos 5 Electores Registrados por Tenant
       let recentQuery = supabase
@@ -317,7 +304,10 @@ export const useDashboardData = (metaObjetivo: number = DEFAULT_META) => {
           metaCobertura: effectiveMeta,
           porcentajeMeta: 0,
           puestosActivos: 0,
-          coordinadoresActivos: 1,
+          coordinadoresActivos: 0,
+          lideresActivos: 0,
+          contactabilidadPct: 0,
+          totalConTelefono: 0,
         });
         setTopPollingPlaces([]);
         setRecentElectors([]);

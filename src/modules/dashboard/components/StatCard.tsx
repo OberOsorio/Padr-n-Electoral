@@ -107,8 +107,10 @@ export const StatCard = ({
                 transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
                 className="relative bg-gradient-to-r from-blue-600 via-blue-500 to-[#E5B869] h-full rounded-full shadow-[0_0_10px_rgba(229,184,105,0.5)]"
               >
-                {/* Micro destello luminoso en la punta */}
-                <span className="absolute right-0 top-0 bottom-0 w-2 rounded-full bg-white/80 shadow-[0_0_8px_rgba(255,255,255,0.9)]" />
+                {/* Micro destello luminoso en la punta solo si hay progreso */}
+                {progressPercentage > 0 && (
+                  <span className="absolute right-0 top-0 bottom-0 w-2 rounded-full bg-white/80 shadow-[0_0_8px_rgba(255,255,255,0.9)]" />
+                )}
               </motion.div>
             </div>
           )}
