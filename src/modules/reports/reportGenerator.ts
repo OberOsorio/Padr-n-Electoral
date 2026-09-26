@@ -104,6 +104,7 @@ export const formatElectorsForExport = (
       'Nombres': e.nombres,
       'Apellidos': e.apellidos,
       'Nombre Completo': `${e.nombres} ${e.apellidos}`.trim(),
+      'Edad': e.edad !== null && e.edad !== undefined ? e.edad : '',
       'Teléfono': e.telefono || 'Sin registrar',
       'Puesto de Votación': e.puesto_votacion,
       'Mesa': e.mesa || 1,
@@ -127,6 +128,7 @@ export const exportToExcel = (
     { wch: 20 }, // Nombres
     { wch: 22 }, // Apellidos
     { wch: 30 }, // Nombre Completo
+    { wch: 10 }, // Edad
     { wch: 16 }, // Teléfono
     { wch: 35 }, // Puesto
     { wch: 8 },  // Mesa

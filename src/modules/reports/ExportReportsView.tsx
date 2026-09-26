@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import {
   FileSpreadsheet,
-  FileText,
   Download,
   Filter,
   Calendar,
@@ -337,56 +336,26 @@ export const ExportReportsView = ({
               </div>
 
               {/* Botones de Selección de Formato */}
-              <div className="grid grid-cols-2 gap-3 mb-6">
-                <button
-                  type="button"
-                  onClick={() => setFilters((prev) => ({ ...prev, format: 'xlsx' }))}
-                  className={`p-4 rounded-xl border text-left transition-all relative cursor-pointer ${
-                    filters.format === 'xlsx'
-                      ? 'bg-blue-50 dark:bg-blue-950/40 border-blue-500 text-blue-900 dark:text-white shadow-xs dark:shadow-lg ring-1 ring-blue-500'
-                      : 'bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-700/60 hover:border-slate-300 dark:hover:border-slate-600 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-                  }`}
-                >
-                  {filters.format === 'xlsx' && (
-                    <div className="absolute top-2.5 right-2.5 h-2 w-2 rounded-full bg-blue-600 dark:bg-blue-400 ring-4 ring-blue-100 dark:ring-blue-950" />
-                  )}
-                  <FileSpreadsheet
-                    className={`w-6 h-6 mb-2 ${
-                      filters.format === 'xlsx' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'
-                    }`}
-                  />
-                  <div className="text-xs font-semibold uppercase tracking-wider font-mono">
-                    Excel (.xlsx)
+              {/* Formato Oficial Exclusivo: Excel (.xlsx) */}
+              <div className="mb-6 p-4 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-300/80 dark:border-emerald-500/40 relative overflow-hidden shadow-xs">
+                <div className="flex items-start gap-3.5">
+                  <div className="p-2.5 rounded-xl bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 shrink-0 border border-emerald-200 dark:border-emerald-800/60">
+                    <FileSpreadsheet className="w-6 h-6" />
                   </div>
-                  <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
-                    Hojas con ancho automático y formato nativo.
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-bold uppercase tracking-wider font-mono text-emerald-900 dark:text-emerald-200">
+                        Excel (.xlsx)
+                      </span>
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-emerald-100 dark:bg-emerald-900/70 text-emerald-800 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-700/60">
+                        Estándar Oficial
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-1 leading-snug">
+                      Libro de cálculo nativo con columnas autoajustadas, encabezados formateados y protección de tipo de dato para documentos y contactos.
+                    </p>
                   </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setFilters((prev) => ({ ...prev, format: 'csv' }))}
-                  className={`p-4 rounded-xl border text-left transition-all relative cursor-pointer ${
-                    filters.format === 'csv'
-                      ? 'bg-blue-50 dark:bg-blue-950/40 border-blue-500 text-blue-900 dark:text-white shadow-xs dark:shadow-lg ring-1 ring-blue-500'
-                      : 'bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-700/60 hover:border-slate-300 dark:hover:border-slate-600 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-                  }`}
-                >
-                  {filters.format === 'csv' && (
-                    <div className="absolute top-2.5 right-2.5 h-2 w-2 rounded-full bg-blue-600 dark:bg-blue-400 ring-4 ring-blue-100 dark:ring-blue-950" />
-                  )}
-                  <FileText
-                    className={`w-6 h-6 mb-2 ${
-                      filters.format === 'csv' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-slate-500'
-                    }`}
-                  />
-                  <div className="text-xs font-semibold uppercase tracking-wider font-mono">
-                    CSV Estructurado
-                  </div>
-                  <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
-                    UTF-8 BOM con delimitador ';' universal.
-                  </div>
-                </button>
+                </div>
               </div>
 
               {/* Resumen del Lote */}
@@ -413,9 +382,9 @@ export const ExportReportsView = ({
                 </div>
 
                 <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-200 dark:border-slate-700/60">
-                  <span className="text-slate-600 dark:text-slate-400">Codificación:</span>
-                  <span className="font-mono text-[11px] text-slate-700 dark:text-slate-300">
-                    {filters.format === 'xlsx' ? 'OpenXML Binary UTF-8' : 'UTF-8 con BOM (;)'}
+                  <span className="text-slate-600 dark:text-slate-400">Codificación y Formato:</span>
+                  <span className="font-mono text-[11px] text-slate-700 dark:text-slate-300 font-medium">
+                    OpenXML Spreadsheet (.xlsx)
                   </span>
                 </div>
               </div>
@@ -430,21 +399,21 @@ export const ExportReportsView = ({
                 className={`w-full py-3.5 px-4 rounded-xl text-xs sm:text-sm font-semibold tracking-wide flex items-center justify-center gap-2.5 transition-all shadow-xl cursor-pointer ${
                   generating || totalMatching === 0 || loadingPreview
                     ? 'bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 text-slate-400 dark:text-slate-500 cursor-not-allowed'
-                    : 'bg-blue-600 hover:bg-blue-500 active:scale-[0.99] text-white shadow-lg shadow-blue-500/20'
+                    : 'bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] text-white shadow-lg shadow-emerald-600/20'
                 }`}
               >
                 {generating ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin text-white" />
-                    <span>Compilando archivo y formateando...</span>
+                    <span>Compilando archivo Excel (.xlsx)...</span>
                   </>
                 ) : (
                   <>
-                    <Download className="w-4 h-4 text-white" />
+                    <FileSpreadsheet className="w-4 h-4 text-white" />
                     <span>
                       {totalMatching === 0
                         ? 'Sin registros para exportar'
-                        : `Descargar ${filters.format.toUpperCase()} (${totalMatching} registros)`}
+                        : `Descargar Reporte Excel (${totalMatching.toLocaleString('es-CO')} electores)`}
                     </span>
                   </>
                 )}
