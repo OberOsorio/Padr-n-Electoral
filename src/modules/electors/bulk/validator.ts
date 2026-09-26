@@ -5,6 +5,7 @@ import type {
   PreflightSummary,
 } from './types';
 import { parseNombreCompleto } from '../../../utils/nameParser';
+import { supabase, isSupabaseConfigured } from '../../../lib/supabase';
 
 // Normaliza un encabezado para comparación (sin tildes, minúsculas, sin espacios ni caracteres especiales)
 const normalizeHeader = (header: string): string => {
@@ -242,18 +243,11 @@ export const validateAndNormalizeRows = (
       }
     }
 
+    // Si no tiene nombres o están incompletos en el archivo, se preservan vacíos para enriquecer con el Censo
     if (!nombres || nombres.length < 2) {
-      invalidRows.push({
-        rowNumber,
-        cedula: cleanCedula,
-        field: 'Nombres',
-        reason: 'El campo de nombres es obligatorio y debe tener al menos 2 caracteres.',
-        rawData: row,
-      });
-      return;
-    }
-
-    if (!apellidos || apellidos.length < 2) {
+      nombres = '';
+      apellidos = '';
+    } else if (!apellidos || apellidos.length < 2) {
       // Fallback si no tiene apellidos separados
       apellidos = 'Sin Registrar';
     }
@@ -310,5 +304,126 @@ export const validateAndNormalizeRows = (
     invalidRows,
     duplicateCedulasInFile: duplicateCount,
     detectedColumns: detectedList,
+  };
+};
+
+export const enrichRowsWithCensus = async (
+  preflightSummary: PreflightSummary,
+  onProgress?: (processed: number, total: number) => void
+): Promise<PreflightSummary> => {
+  const { validRows: initialRows, invalidRows } = preflightSummary;
+
+  if (!isSupabaseConfigured || initialRows.length === 0) {
+    const valid = initialRows.filter((r) => r.nombres && r.nombres.length >= 2);
+    const newInvalid: RowValidationError[] = [
+      ...invalidRows,
+      ...initialRows
+        .filter((r) => !r.nombres || r.nombres.length < 2)
+        .map((r) => ({
+          rowNumber: r._rowNumber,
+          cedula: r.cedula,
+          field: 'Nombres',
+          reason: 'El documento no tiene nombres en el archivo.',
+          rawData: {},
+        })),
+    ];
+    return {
+      ...preflightSummary,
+      validRows: valid,
+      invalidRows: newInvalid,
+      enrichedCount: 0,
+    };
+  }
+
+  const allCedulas = Array.from(new Set(initialRows.map((r) => r.cedula)));
+  const total = allCedulas.length;
+  const CHUNK_SIZE = 500;
+  const censoMap = new Map<string, any>();
+
+  for (let i = 0; i < total; i += CHUNK_SIZE) {
+    const chunk = allCedulas.slice(i, i + CHUNK_SIZE);
+    try {
+      const { data, error } = await (supabase.rpc as any)('buscar_censo_lote', {
+        p_cedulas: chunk,
+      });
+
+      if (!error && Array.isArray(data)) {
+        data.forEach((c) => {
+          if (c && c.cedula) {
+            censoMap.set(String(c.cedula).trim(), c);
+          }
+        });
+      }
+    } catch (e) {
+      console.warn('Error consultando lote del Censo:', e);
+    }
+    onProgress?.(Math.min(i + chunk.length, total), total);
+  }
+
+  const finalizedValid: NormalizedElectorRow[] = [];
+  const finalizedInvalid: RowValidationError[] = [...invalidRows];
+  let enrichedCount = 0;
+
+  for (const row of initialRows) {
+    const censoInfo = censoMap.get(row.cedula);
+
+    if (censoInfo) {
+      let wasEnriched = false;
+
+      // 1. Si no tenía nombres en el archivo o estaban incompletos
+      if (!row.nombres || row.nombres.length < 2) {
+        const fullCensoName = `${censoInfo.nombres || ''} ${censoInfo.apellidos || ''}`.trim();
+        const parsed = parseNombreCompleto(fullCensoName || censoInfo.nombres || '');
+        row.nombres = parsed.nombres || censoInfo.nombres || 'Sin Registrar';
+        row.apellidos = parsed.apellidos || censoInfo.apellidos || 'Sin Registrar';
+        wasEnriched = true;
+      }
+
+      // 2. Si no tenía edad en el archivo, asignar la edad del censo
+      if ((row.edad === null || row.edad === undefined) && censoInfo.edad) {
+        row.edad = Number(censoInfo.edad);
+        wasEnriched = true;
+      }
+
+      // 3. Si no tenía puesto de votación asignado, asignar sugerido del censo
+      if (
+        censoInfo.puesto_sugerido &&
+        (row.puesto_votacion === 'Sede Principal (Por Asignar)' || !row.puesto_votacion)
+      ) {
+        row.puesto_votacion = censoInfo.puesto_sugerido;
+        wasEnriched = true;
+      }
+
+      // 4. Si la mesa era la default y el censo tiene mesa sugerida
+      if (censoInfo.mesa_sugerida && row.mesa === 1) {
+        row.mesa = Number(censoInfo.mesa_sugerida);
+      }
+
+      if (wasEnriched) {
+        row.isAutofilled = true;
+        row.autofillSource = 'censo_maestro';
+        enrichedCount++;
+      }
+    }
+
+    // Validación definitiva de nombres
+    if (!row.nombres || row.nombres.length < 2) {
+      finalizedInvalid.push({
+        rowNumber: row._rowNumber,
+        cedula: row.cedula,
+        field: 'Nombres / Censo',
+        reason: 'El documento no tiene nombres en el archivo y no fue encontrado en el Censo Electoral.',
+        rawData: {},
+      });
+    } else {
+      finalizedValid.push(row);
+    }
+  }
+
+  return {
+    ...preflightSummary,
+    validRows: finalizedValid,
+    invalidRows: finalizedInvalid,
+    enrichedCount,
   };
 };

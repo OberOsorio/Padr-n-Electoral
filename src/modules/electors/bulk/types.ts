@@ -12,6 +12,8 @@ export interface NormalizedElectorRow {
   puesto_votacion: string;
   mesa: number;
   notas: string | null;
+  isAutofilled?: boolean;
+  autofillSource?: 'censo_maestro' | 'file';
 }
 
 export interface RowValidationError {
@@ -29,6 +31,7 @@ export interface PreflightSummary {
   validRows: NormalizedElectorRow[];
   invalidRows: RowValidationError[];
   duplicateCedulasInFile: number;
+  enrichedCount?: number;
   detectedColumns: {
     original: string;
     mappedTo: string;
@@ -38,7 +41,7 @@ export interface PreflightSummary {
 export type CollisionMode = 'skip' | 'upsert';
 
 export interface BatchProgress {
-  status: 'idle' | 'parsing' | 'validating' | 'ready' | 'uploading' | 'completed' | 'error';
+  status: 'idle' | 'parsing' | 'validating' | 'enriching' | 'ready' | 'uploading' | 'completed' | 'error';
   totalToUpload: number;
   processed: number;
   successful: number;

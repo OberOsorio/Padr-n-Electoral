@@ -11,7 +11,7 @@ import {
   downloadOfficialTemplate,
   downloadValidationErrorsReport,
 } from './parser';
-import { validateAndNormalizeRows } from './validator';
+import { validateAndNormalizeRows, enrichRowsWithCensus } from './validator';
 import type { ElectorWithRegistrant } from '../../../types';
 import { useTenant } from '../../../context/TenantContext';
 
@@ -75,12 +75,41 @@ export const useBulkUpload = () => {
 
       if (!isMountedRef.current) return;
 
-      setPreflight(summary);
+      // Enriquecimiento y autocompletado con Censo Maestro
+      const candidateCedulas = summary.validRows.length;
+      setProgress((prev) => ({
+        ...prev,
+        status: 'enriching',
+        totalToUpload: candidateCedulas,
+        processed: 0,
+        percentage: 0,
+        currentChunkMessage: `Consultando Censo Maestro para ${candidateCedulas.toLocaleString('es-CO')} documentos...`,
+      }));
+
+      const enrichedSummary = await enrichRowsWithCensus(
+        summary,
+        (processed, total) => {
+          if (!isMountedRef.current) return;
+          const pct = total > 0 ? Math.round((processed / total) * 100) : 100;
+          setProgress((prev) => ({
+            ...prev,
+            processed,
+            percentage: pct,
+            currentChunkMessage: `Verificando con Censo Maestro: ${processed.toLocaleString('es-CO')} / ${total.toLocaleString('es-CO')} documentos (${pct}%)...`,
+          }));
+        }
+      );
+
+      if (!isMountedRef.current) return;
+
+      setPreflight(enrichedSummary);
       setProgress((prev) => ({
         ...prev,
         status: 'ready',
-        totalToUpload: summary.validRows.length,
-        currentChunkMessage: `${summary.validRows.length} registros listos para inserción por lotes.`,
+        totalToUpload: enrichedSummary.validRows.length,
+        processed: 0,
+        percentage: 0,
+        currentChunkMessage: `${enrichedSummary.validRows.length.toLocaleString('es-CO')} registros listos para inserción por lotes (${enrichedSummary.enrichedCount || 0} enriquecidos desde el Censo).`,
       }));
     } catch (err: any) {
       if (!isMountedRef.current) return;

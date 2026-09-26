@@ -13,6 +13,7 @@ import {
   Database,
   Loader2,
   ChevronDown,
+  Sparkles,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useBulkUpload } from './bulk/useBulkUpload';
@@ -78,6 +79,7 @@ export const BulkUploadView: React.FC<BulkUploadViewProps> = ({
   };
 
   const isUploading = progress.status === 'uploading';
+  const isEnriching = progress.status === 'enriching';
   const isCompleted = progress.status === 'completed';
   const isReady = progress.status === 'ready' && preflight && preflight.validRows.length > 0;
 
@@ -288,7 +290,7 @@ export const BulkUploadView: React.FC<BulkUploadViewProps> = ({
         </div>
       )}
 
-      {/* 4. Spinner de Parsing inicial o Error de Lectura */}
+      {/* 4. Spinner de Parsing inicial o Validación */}
       {(progress.status === 'parsing' || progress.status === 'validating') && (
         <div className="p-8 rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/60 text-center space-y-3 shadow-xs">
           <Loader2 className="w-8 h-8 animate-spin text-blue-600 dark:text-blue-400 mx-auto" />
@@ -298,6 +300,49 @@ export const BulkUploadView: React.FC<BulkUploadViewProps> = ({
           <p className="text-[11px] text-slate-500 dark:text-slate-400">
             Analizando estructura tabular y deduplicando documentos...
           </p>
+        </div>
+      )}
+
+      {/* 4.1 Barra de Progreso de Enriquecimiento y Consulta al Censo */}
+      {isEnriching && (
+        <div className="p-6 sm:p-8 rounded-2xl bg-white dark:bg-slate-800/95 border border-indigo-300 dark:border-indigo-500/40 text-center space-y-5 shadow-2xl backdrop-blur-xl animate-in zoom-in-95 duration-200">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3 text-left">
+              <div className="p-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800/40 text-indigo-600 dark:text-indigo-400 shadow-sm">
+                <Sparkles className="w-6 h-6 animate-pulse" />
+              </div>
+              <div>
+                <h3 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                  <span>Autocompletando con Censo Maestro</span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                    RPC Lote
+                  </span>
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  {progress.currentChunkMessage}
+                </p>
+              </div>
+            </div>
+
+            <div className="font-mono text-lg sm:text-xl font-bold text-indigo-600 dark:text-indigo-400">
+              {progress.percentage}%
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="h-3 w-full bg-slate-100 dark:bg-slate-900 rounded-full overflow-hidden border border-slate-200 dark:border-slate-700/60 p-0.5 relative">
+              <motion.div
+                className="relative h-full rounded-full bg-gradient-to-r from-indigo-500 via-blue-600 to-emerald-500 shadow-[0_0_12px_rgba(99,102,241,0.5)]"
+                initial={{ width: 0 }}
+                animate={{ width: `${progress.percentage}%` }}
+                transition={{ duration: 0.3, ease: 'easeOut' }}
+              />
+            </div>
+            <div className="flex items-center justify-between text-[11px] font-mono text-slate-500 dark:text-slate-400">
+              <span>Separación léxica de nombres compuestos + Puesto y Mesa</span>
+              <span>{progress.processed.toLocaleString('es-CO')} / {progress.totalToUpload.toLocaleString('es-CO')} verificadas</span>
+            </div>
+          </div>
         </div>
       )}
 
@@ -396,7 +441,7 @@ export const BulkUploadView: React.FC<BulkUploadViewProps> = ({
             </div>
 
             {/* KPI Cards de Auditoría */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 my-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 my-6">
               <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700/60">
                 <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
                   Filas Válidas para Inserción
@@ -406,6 +451,18 @@ export const BulkUploadView: React.FC<BulkUploadViewProps> = ({
                 </span>
                 <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 block">
                   Cumplen con cédula, nombres y estructura
+                </span>
+              </div>
+
+              <div className="p-4 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-indigo-700 dark:text-indigo-400 block font-semibold">
+                  Autocompletados Censo
+                </span>
+                <span className="text-2xl font-bold font-mono text-indigo-700 dark:text-indigo-300 mt-1 block">
+                  {(preflight.enrichedCount || 0).toLocaleString('es-CO')}
+                </span>
+                <span className="text-[10px] text-indigo-600/90 dark:text-indigo-400/90 mt-0.5 block">
+                  Nombres o puestos recuperados de Supabase
                 </span>
               </div>
 
@@ -551,7 +608,18 @@ export const BulkUploadView: React.FC<BulkUploadViewProps> = ({
                           {row.cedula}
                         </td>
                         <td className="py-2.5 px-3 font-medium text-slate-900 dark:text-white">
-                          {row.nombres} {row.apellidos}
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span>{row.nombres} {row.apellidos}</span>
+                            {row.isAutofilled && (
+                              <span
+                                title="Autocompletado mediante consulta al Censo Maestro"
+                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40 shrink-0"
+                              >
+                                <Sparkles className="w-2.5 h-2.5" />
+                                Censo
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="py-2.5 px-3 text-center font-mono">
                           {row.edad !== null && row.edad !== undefined ? (
