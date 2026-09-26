@@ -11,8 +11,6 @@ import {
 import { useTenant } from '../../context/TenantContext';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { exportarElectoresExcel } from '../../services/exportService';
-import { useExportLogs } from './useExportLogs';
-import { ExportHistoryTable } from './components/ExportHistoryTable';
 
 export interface ExportReportsViewProps {
   onNavigateToDashboard?: () => void;
@@ -30,12 +28,8 @@ interface LeaderOption {
 
 export const ExportReportsView: React.FC<ExportReportsViewProps> = ({
   onNavigateToDashboard,
-  userName = 'Administrador General',
-  userEmail = 'admin@electoral.gov',
-  userRole = 'Admin',
 }) => {
   const { currentTenantId } = useTenant();
-  const { logs, loading: loadingLogs, refetchLogs, recordExport } = useExportLogs();
 
   const [loading, setLoading] = useState(true);
   const [totalElectores, setTotalElectores] = useState(0);
@@ -146,15 +140,6 @@ export const ExportReportsView: React.FC<ExportReportsViewProps> = ({
         tenantId: currentTenantId,
       });
       setSuccessMsg(`Padrón consolidado descargado exitosamente (${res.count.toLocaleString('es-CO')} electores en ${res.fileName}).`);
-      recordExport({
-        userName,
-        userEmail,
-        userRole,
-        recordCount: res.count,
-        exportFormat: 'xlsx',
-        filtersSummary: 'Padrón Completo Consolidado',
-      });
-      refetchLogs();
     } catch (err: any) {
       console.error('Error exportando consolidado:', err);
       setErrorMsg(err.message || 'Ocurrió un error al generar el archivo Excel.');
@@ -179,15 +164,6 @@ export const ExportReportsView: React.FC<ExportReportsViewProps> = ({
         liderNombre: leader.name,
       });
       setSuccessMsg(`Reporte de ${leader.name} descargado exitosamente (${res.count.toLocaleString('es-CO')} electores en ${res.fileName}).`);
-      recordExport({
-        userName,
-        userEmail,
-        userRole,
-        recordCount: res.count,
-        exportFormat: 'xlsx',
-        filtersSummary: `Líder: ${leader.name}`,
-      });
-      refetchLogs();
     } catch (err: any) {
       console.error('Error exportando reporte del líder:', err);
       setErrorMsg(err.message || 'Ocurrió un error al generar el archivo Excel.');
@@ -382,11 +358,6 @@ export const ExportReportsView: React.FC<ExportReportsViewProps> = ({
             </button>
           </div>
         </div>
-      </div>
-
-      {/* 3. Historial de Auditoría */}
-      <div className="pt-4">
-        <ExportHistoryTable logs={logs} loading={loadingLogs} onRefresh={refetchLogs} />
       </div>
     </div>
   );
