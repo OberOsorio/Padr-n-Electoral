@@ -20,7 +20,37 @@ async function buildSessionFromAuthUser(authUser: any): Promise<ActiveSessionDat
     .eq('id', authUser.id)
     .maybeSingle();
 
-  const profile = profileData as Profile | null;
+  let profile = profileData as Profile | null;
+
+  // Si el usuario autenticado no tiene un perfil creado en la base de datos, crearlo automáticamente
+  if (!profile && authUser.id) {
+    try {
+      const defaultRole = isSuperAdminEmail ? 'admin' : (authUser.user_metadata?.role || 'admin');
+      const fullName =
+        authUser.user_metadata?.full_name ||
+        authUser.email?.split('@')[0] ||
+        'Administrador General';
+
+      const { data: newProf, error: newProfErr } = await (supabase.from('profiles') as any)
+        .upsert(
+          {
+            id: authUser.id,
+            full_name: fullName,
+            role: defaultRole,
+            is_active: true,
+          },
+          { onConflict: 'id' }
+        )
+        .select('*')
+        .maybeSingle();
+
+      if (!newProfErr && newProf) {
+        profile = newProf as Profile;
+      }
+    } catch (e) {
+      console.warn('Error al auto-crear perfil para el usuario autenticado:', e);
+    }
+  }
 
   let userRole = (
     (isSuperAdminEmail ? 'superadmin' : null) ||
