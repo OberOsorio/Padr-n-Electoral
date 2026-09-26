@@ -7,10 +7,12 @@ import {
   AlertCircle,
   Loader2,
   RefreshCw,
+  WifiOff,
 } from 'lucide-react';
 import { useTenant } from '../../context/TenantContext';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { exportarElectoresExcel } from '../../services/exportService';
+import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 
 export interface ExportReportsViewProps {
   onNavigateToDashboard?: () => void;
@@ -30,6 +32,7 @@ export const ExportReportsView: React.FC<ExportReportsViewProps> = ({
   onNavigateToDashboard,
 }) => {
   const { currentTenantId } = useTenant();
+  const isOnline = useOnlineStatus();
 
   const [loading, setLoading] = useState(true);
   const [totalElectores, setTotalElectores] = useState(0);
@@ -41,6 +44,11 @@ export const ExportReportsView: React.FC<ExportReportsViewProps> = ({
 
   // Consulta ligera de electores y líderes de la campaña activa
   const fetchCounts = useCallback(async () => {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setErrorMsg(null);
     try {
@@ -119,18 +127,33 @@ export const ExportReportsView: React.FC<ExportReportsViewProps> = ({
       setLeaders(leadersList);
     } catch (err: any) {
       console.error('Error cargando datos para exportación:', err);
-      setErrorMsg(err.message || 'Error al conectar con la base de datos.');
+      const msg = String(err?.message || '');
+      const isNetworkErr =
+        msg.toLowerCase().includes('network') ||
+        msg.toLowerCase().includes('fetch') ||
+        (typeof navigator !== 'undefined' && !navigator.onLine);
+
+      // No mostrar errores técnicos de red cuando no hay internet
+      if (!isNetworkErr) {
+        setErrorMsg(msg || 'Error al conectar con la base de datos.');
+      }
     } finally {
       setLoading(false);
     }
   }, [currentTenantId]);
 
   useEffect(() => {
-    fetchCounts();
-  }, [fetchCounts]);
+    if (isOnline) {
+      fetchCounts();
+    }
+  }, [fetchCounts, isOnline]);
 
   // Opción A: Descargar Padrón Completo Consolidado
   const handleExportConsolidated = async () => {
+    if (!isOnline || (typeof navigator !== 'undefined' && !navigator.onLine)) {
+      setErrorMsg('No es posible exportar sin conexión a internet.');
+      return;
+    }
     if (totalElectores === 0) return;
     setExportingType('consolidated');
     setErrorMsg(null);
@@ -142,7 +165,12 @@ export const ExportReportsView: React.FC<ExportReportsViewProps> = ({
       setSuccessMsg(`Padrón consolidado descargado exitosamente (${res.count.toLocaleString('es-CO')} electores en ${res.fileName}).`);
     } catch (err: any) {
       console.error('Error exportando consolidado:', err);
-      setErrorMsg(err.message || 'Ocurrió un error al generar el archivo Excel.');
+      const msg = String(err?.message || '');
+      if (msg.toLowerCase().includes('network') || msg.toLowerCase().includes('fetch')) {
+        setErrorMsg('Error de conexión a internet. Verifica tu red e intenta nuevamente.');
+      } else {
+        setErrorMsg(msg || 'Ocurrió un error al generar el archivo Excel.');
+      }
     } finally {
       setExportingType(null);
     }
@@ -150,6 +178,10 @@ export const ExportReportsView: React.FC<ExportReportsViewProps> = ({
 
   // Opción B: Descargar Reporte Individual por Líder
   const handleExportLeader = async () => {
+    if (!isOnline || (typeof navigator !== 'undefined' && !navigator.onLine)) {
+      setErrorMsg('No es posible exportar sin conexión a internet.');
+      return;
+    }
     if (!selectedLeaderId) return;
     const leader = leaders.find((l) => l.id === selectedLeaderId);
     if (!leader || leader.electoresCount === 0) return;
@@ -166,13 +198,46 @@ export const ExportReportsView: React.FC<ExportReportsViewProps> = ({
       setSuccessMsg(`Reporte de ${leader.name} descargado exitosamente (${res.count.toLocaleString('es-CO')} electores en ${res.fileName}).`);
     } catch (err: any) {
       console.error('Error exportando reporte del líder:', err);
-      setErrorMsg(err.message || 'Ocurrió un error al generar el archivo Excel.');
+      const msg = String(err?.message || '');
+      if (msg.toLowerCase().includes('network') || msg.toLowerCase().includes('fetch')) {
+        setErrorMsg('Error de conexión a internet. Verifica tu red e intenta nuevamente.');
+      } else {
+        setErrorMsg(msg || 'Ocurrió un error al generar el archivo Excel.');
+      }
     } finally {
       setExportingType(null);
     }
   };
 
   const selectedLeader = leaders.find((l) => l.id === selectedLeaderId);
+
+  // Si no hay acceso a internet, no mostrar los reportes ni lanzar errores
+  if (!isOnline) {
+    return (
+      <div className="max-w-xl mx-auto py-16 px-4 text-center space-y-6 animate-in fade-in duration-300">
+        <div className="mx-auto w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500 shadow-sm">
+          <WifiOff className="w-8 h-8" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+            Módulo no disponible sin conexión
+          </h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+            La exportación de reportes requiere conexión a internet para consultar los datos del padrón electoral en vivo.
+          </p>
+        </div>
+        {onNavigateToDashboard && (
+          <button
+            type="button"
+            onClick={onNavigateToDashboard}
+            className="px-5 py-2.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs sm:text-sm font-semibold hover:opacity-90 transition-all cursor-pointer shadow-md"
+          >
+            Volver al Dashboard
+          </button>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8 p-4 sm:p-6 lg:p-8 pb-24 md:pb-12 animate-in fade-in duration-300">

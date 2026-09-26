@@ -14,6 +14,7 @@ import { motion } from 'framer-motion';
 import { ThemeToggle } from '../ui/ThemeToggle';
 import { useSidebar } from '../../context/SidebarContext';
 import { UserProfileCard } from './UserProfileCard';
+import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 
 export type SidebarTabId =
   | 'dashboard'
@@ -61,8 +62,15 @@ export const Sidebar = ({
   className,
 }: SidebarProps) => {
   const { isCollapsed, toggleSidebar } = useSidebar();
+  const isOnline = useOnlineStatus();
 
-  const effectiveNavItems = NAV_ITEMS;
+  // Ocultar la opción de exportar reportes cuando no hay conexión a internet
+  const effectiveNavItems = NAV_ITEMS.filter((item) => {
+    if (item.id === 'reports' && !isOnline) {
+      return false;
+    }
+    return true;
+  });
 
   // En modal móvil nunca se colapsa en mini-rail; siempre se muestra con texto completo
   const isEffectivelyCollapsed = isCollapsed && !onCloseMobile;

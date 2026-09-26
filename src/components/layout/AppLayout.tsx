@@ -11,6 +11,7 @@ import { Construction, ArrowLeft, Shield, UserPlus, Sparkles, ShieldCheck } from
 import { AnimatePresence, motion } from 'framer-motion';
 import { ThemeToggle } from '../ui/ThemeToggle';
 import { useSidebar } from '../../context/SidebarContext';
+import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 
 interface AppLayoutProps {
   userEmail?: string;
@@ -66,6 +67,14 @@ export const AppLayout = ({
 }: AppLayoutProps) => {
   const [activeTab, setActiveTab] = useState<SidebarTabId>('dashboard');
   const { isOpen: isMobileMenuOpen, setSidebarOpen: setIsMobileMenuOpen } = useSidebar();
+  const isOnline = useOnlineStatus();
+
+  // Si se pierde la conexión y está en reportes, volver al dashboard
+  useEffect(() => {
+    if (!isOnline && activeTab === 'reports') {
+      setActiveTab('dashboard');
+    }
+  }, [isOnline, activeTab]);
 
   // Cerrar menú móvil al presionar la tecla Escape
   useEffect(() => {
