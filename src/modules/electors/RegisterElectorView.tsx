@@ -944,11 +944,15 @@ export const RegisterElectorView = ({
                   <input
                     ref={edadInputRef}
                     id="edad"
-                    type="number"
-                    min="16"
-                    max="125"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={3}
                     value={edad}
-                    onChange={(e) => setEdad(e.target.value ? Number(e.target.value) : '')}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, '');
+                      setEdad(val ? Number(val) : '');
+                    }}
                     onKeyDown={(e) => handleKeyDown(e, mesaInputRef)}
                     placeholder="Ej. 28"
                     disabled={saving || collisionResult?.exists}

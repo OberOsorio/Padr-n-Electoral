@@ -184,11 +184,15 @@ export const EditElectorModal = ({
                 Edad
               </label>
               <input
-                type="number"
-                min="16"
-                max="125"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={3}
                 value={edad}
-                onChange={(e) => setEdad(e.target.value ? Number(e.target.value) : '')}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, '');
+                  setEdad(val ? Number(val) : '');
+                }}
                 placeholder="Ej. 28"
                 className="w-full h-9.5 px-3 bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/60 rounded-xl text-xs font-mono text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:border-blue-500"
               />
