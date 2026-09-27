@@ -523,27 +523,7 @@ export const TenantsManagementView: React.FC = () => {
                   disabled={submitting}
                 />
 
-                {/* 4. Tarjeta Ejecutiva: Capacidad Ilimitada */}
-                <div className="p-3.5 rounded-xl bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-purple-500/10 border border-emerald-500/30 flex items-start gap-3">
-                  <div className="p-2 rounded-lg bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5">
-                    <Infinity className="w-5 h-5" />
-                  </div>
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-2">
-                      <h4 className="text-xs font-bold text-slate-900 dark:text-white tracking-tight">
-                        Capacidad Ilimitada de Padrón
-                      </h4>
-                      <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
-                        ∞ Sin Restricciones
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
-                      Esta campaña cuenta con aprovisionamiento ilimitado para registro manual, importación masiva y exportación de electores sin límites de cupo ni restricciones escalonadas.
-                    </p>
-                  </div>
-                </div>
-
-                {/* 4. Separador: Datos del Administrador Responsable */}
+                {/* Separador: Datos del Administrador Responsable */}
                 <div className="pt-2 pb-1 border-t border-slate-100 dark:border-slate-800">
                   <p className="text-[11px] font-mono uppercase font-semibold text-purple-600 dark:text-purple-400 flex items-center gap-1.5">
                     <User className="w-3.5 h-3.5" />
