@@ -11,6 +11,8 @@ import {
   Trash2,
   Infinity,
   MapPin,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTenant } from '../../context/TenantContext';
@@ -40,7 +42,8 @@ export const TenantsManagementView: React.FC = () => {
   const [municipio, setMunicipio] = useState('');
   const [adminName, setAdminName] = useState('');
   const [adminEmail, setAdminEmail] = useState('');
-  const [adminPassword, setAdminPassword] = useState('Admin2026*');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -159,6 +162,10 @@ export const TenantsManagementView: React.FC = () => {
       setFormError('Debe definir un Administrador Responsable (Nombre y Correo).');
       return;
     }
+    if (!adminPassword || adminPassword.length < 6) {
+      setFormError('Debe definir una contraseña para el administrador (mínimo 6 caracteres).');
+      return;
+    }
 
     setSubmitting(true);
 
@@ -194,7 +201,8 @@ export const TenantsManagementView: React.FC = () => {
       setMunicipio('');
       setAdminName('');
       setAdminEmail('');
-      setAdminPassword('Admin2026*');
+      setAdminPassword('');
+      setShowPassword(false);
       refetchTenants();
     } catch (err: any) {
       console.error('Error creando campaña:', err);
@@ -562,18 +570,35 @@ export const TenantsManagementView: React.FC = () => {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[11px] font-mono uppercase font-semibold text-slate-600 dark:text-slate-400">
-                    Contraseña Provisional
+                  <label className="text-[11px] font-mono uppercase font-semibold text-slate-600 dark:text-slate-400 flex items-center justify-between">
+                    <span>Contraseña *</span>
+                    <span className="text-[10px] font-normal lowercase text-slate-400">
+                      Mínimo 6 caracteres
+                    </span>
                   </label>
-                  <input
-                    type="text"
-                    value={adminPassword}
-                    onChange={(e) => setAdminPassword(e.target.value)}
-                    className="w-full h-10 px-3.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-purple-500"
-                  />
-                  <p className="text-[10px] text-slate-400">
-                    El usuario podrá modificarla tras su primer inicio de sesión.
-                  </p>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      value={adminPassword}
+                      onChange={(e) => setAdminPassword(e.target.value)}
+                      placeholder="Ingrese la contraseña de acceso..."
+                      className="w-full h-10 pl-3.5 pr-10 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-purple-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      tabIndex={-1}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                      title={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 {/* Acciones */}

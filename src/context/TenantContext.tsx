@@ -24,7 +24,7 @@ interface CreateCampaignParams {
   municipio?: string;
   adminName: string;
   adminEmail: string;
-  adminPassword?: string;
+  adminPassword: string;
 }
 
 interface TenantContextType {
@@ -226,7 +226,7 @@ export const TenantProvider: React.FC<{ children: React.ReactNode; userRole?: st
           p_municipio: params.municipio || null,
           p_admin_nombre: params.adminName,
           p_admin_email: params.adminEmail,
-          p_admin_password: params.adminPassword || 'Admin2026*',
+          p_admin_password: params.adminPassword,
         });
 
         if (!rpcErr && rpcRes?.tenant_id) {
@@ -252,7 +252,7 @@ export const TenantProvider: React.FC<{ children: React.ReactNode; userRole?: st
           const nonPersistentClient = createNonPersistentClient();
           const { data: signUpData, error: signUpErr } = await nonPersistentClient.auth.signUp({
             email: params.adminEmail.trim().toLowerCase(),
-            password: params.adminPassword || 'Admin2026*',
+            password: params.adminPassword,
             options: {
               data: {
                 full_name: params.adminName.trim(),
