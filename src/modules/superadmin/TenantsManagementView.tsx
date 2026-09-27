@@ -15,6 +15,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTenant } from '../../context/TenantContext';
 import { useAccessAuditLogs } from './useAccessAuditLogs';
+import { ColombiaGeoSelector } from '../../components/ui/ColombiaGeoSelector';
 import type { Tenant } from '../../types';
 
 export const TenantsManagementView: React.FC = () => {
@@ -513,36 +514,14 @@ export const TenantsManagementView: React.FC = () => {
                   />
                 </div>
 
-                {/* 3. Jurisdicción Territorial (Opcional) */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-[11px] font-mono uppercase font-semibold text-slate-600 dark:text-slate-400 flex items-center gap-1">
-                      <MapPin className="w-3 h-3 text-purple-500" />
-                      <span>Departamento (Opcional)</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={departamento}
-                      onChange={(e) => setDepartamento(e.target.value)}
-                      placeholder="Ej. Córdoba"
-                      className="w-full h-10 px-3 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-purple-500"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[11px] font-mono uppercase font-semibold text-slate-600 dark:text-slate-400 flex items-center gap-1">
-                      <MapPin className="w-3 h-3 text-purple-500" />
-                      <span>Municipio (Opcional)</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={municipio}
-                      onChange={(e) => setMunicipio(e.target.value)}
-                      placeholder="Ej. Montería"
-                      className="w-full h-10 px-3 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-purple-500"
-                    />
-                  </div>
-                </div>
+                {/* 3. Jurisdicción Territorial (Opcional) con Selectores en Cascada y Búsqueda */}
+                <ColombiaGeoSelector
+                  departamento={departamento}
+                  municipio={municipio}
+                  onDepartamentoChange={setDepartamento}
+                  onMunicipioChange={setMunicipio}
+                  disabled={submitting}
+                />
 
                 {/* 4. Tarjeta Ejecutiva: Capacidad Ilimitada */}
                 <div className="p-3.5 rounded-xl bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-purple-500/10 border border-emerald-500/30 flex items-start gap-3">
