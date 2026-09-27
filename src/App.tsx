@@ -102,7 +102,18 @@ export default function App() {
     localStorage.removeItem('electoral_saas_access_logs');
     localStorage.removeItem('electoral_active_tenant_id');
 
-    // 2. Obtener sesión activa de Supabase
+    // Limpiar tokens persistentes de Supabase en localStorage para que la sesión no quede preiniciada
+    try {
+      Object.keys(localStorage).forEach((key) => {
+        if (key.startsWith('sb-') && key.endsWith('-auth-token')) {
+          localStorage.removeItem(key);
+        }
+      });
+    } catch {
+      // ignore
+    }
+
+    // 2. Obtener sesión activa de Supabase (ahora en sessionStorage)
     supabase.auth.getSession().then(async ({ data: { session: currentSession } }) => {
       if (currentSession?.user) {
         const sessionData = await buildSessionFromAuthUser(currentSession.user);
@@ -133,6 +144,15 @@ export default function App() {
     try {
       localStorage.removeItem('electoral_demo_auth');
       sessionStorage.removeItem('electoral_superadmin_mode');
+      try {
+        Object.keys(localStorage).forEach((key) => {
+          if (key.startsWith('sb-') && key.endsWith('-auth-token')) {
+            localStorage.removeItem(key);
+          }
+        });
+      } catch {
+        // ignore
+      }
       await supabase.auth.signOut();
       setSession(null);
       setPublicView('login');
