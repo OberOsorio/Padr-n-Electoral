@@ -121,6 +121,7 @@ export interface ConsultarDocumentoExternoResult {
 
 export interface TopPollingPlace {
   puesto: string;
+  zona?: string;
   total: number;
   porcentaje: number;
   mesasCount?: number;
@@ -128,10 +129,13 @@ export interface TopPollingPlace {
 
 export interface DashboardMetrics {
   totalElectores: number;
+  puestosConElectores: number;
+  totalPuestosCampana: number;
+  lideresConRegistros: number;
   metaCobertura?: number;
   porcentajeMeta?: number;
-  puestosActivos: number;
-  coordinadoresActivos: number;
+  puestosActivos?: number;
+  coordinadoresActivos?: number;
   lideresActivos?: number;
   contactabilidadPct?: number;
   totalConTelefono?: number;

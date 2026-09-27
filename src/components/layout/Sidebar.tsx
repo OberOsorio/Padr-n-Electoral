@@ -3,7 +3,6 @@ import {
   UserPlus,
   Users,
   UploadCloud,
-  ShieldCheck,
   Download,
   Shield,
   X,
@@ -47,7 +46,6 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'register', label: 'Registrar Elector', icon: UserPlus },
   { id: 'electors', label: 'Padrón / Lista de Electores', icon: Users },
   { id: 'bulk-upload', label: 'Carga Masiva', icon: UploadCloud },
-  { id: 'coordinators', label: 'Equipo y Coordinadores', icon: ShieldCheck },
   { id: 'reports', label: 'Exportar Reportes', icon: Download },
 ];
 

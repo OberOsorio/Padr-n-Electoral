@@ -2,83 +2,16 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import type { DashboardMetrics, TopPollingPlace, ElectorWithRegistrant } from '../../types';
 import { useTenant } from '../../context/TenantContext';
+import { PREDEFINED_POLLING_PLACES } from '../electors/constants';
 
-const DEFAULT_META = 5000;
-
-// Datos de demostración de alta fidelidad cuando no hay conexión activa a Supabase
-const INITIAL_DEMO_ELECTORS: ElectorWithRegistrant[] = [
-  {
-    id: 'demo-1',
-    cedula: '1047892341',
-    nombres: 'Carlos Eduardo',
-    apellidos: 'Mendoza',
-    puesto_votacion: 'I.E. Santander Central',
-    mesa: 4,
-    notas: null,
-    registrado_por: 'cdor-1',
-    created_at: new Date(Date.now() - 1000 * 60 * 4).toISOString(),
-    registrador: { full_name: 'Cdor. Javier Rivas', role: 'coordinador' },
-  },
-  {
-    id: 'demo-2',
-    cedula: '1098341902',
-    nombres: 'Laura Sofía',
-    apellidos: 'Herrera Morales',
-    puesto_votacion: 'Coliseo Municipal de Deportes',
-    mesa: 2,
-    notas: null,
-    registrado_por: 'cdor-2',
-    created_at: new Date(Date.now() - 1000 * 60 * 14).toISOString(),
-    registrador: { full_name: 'Cdra. Patricia Gómez', role: 'coordinador' },
-  },
-  {
-    id: 'demo-3',
-    cedula: '73542189',
-    nombres: 'Miguel Ángel',
-    apellidos: 'Morales Torres',
-    puesto_votacion: 'Colegio Mayor Departamental',
-    mesa: 7,
-    notas: null,
-    registrado_por: 'cdor-1',
-    created_at: new Date(Date.now() - 1000 * 60 * 28).toISOString(),
-    registrador: { full_name: 'Cdor. Javier Rivas', role: 'coordinador' },
-  },
-  {
-    id: 'demo-4',
-    cedula: '1143670554',
-    nombres: 'Valentina',
-    apellidos: 'Restrepo Castro',
-    puesto_votacion: 'I.E. Técnico San Juan Bautista',
-    mesa: 1,
-    notas: null,
-    registrado_por: 'cdor-3',
-    created_at: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-    registrador: { full_name: 'Cdor. Manuel Rojas', role: 'coordinador' },
-  },
-  {
-    id: 'demo-5',
-    cedula: '1052884112',
-    nombres: 'Andrés Felipe',
-    apellidos: 'Gómez Ortiz',
-    puesto_votacion: 'Escuela Mixta El Prado',
-    mesa: 3,
-    notas: null,
-    registrado_por: 'cdor-2',
-    created_at: new Date(Date.now() - 1000 * 60 * 65).toISOString(),
-    registrador: { full_name: 'Cdra. Patricia Gómez', role: 'coordinador' },
-  },
-];
-
-export const useDashboardData = (metaObjetivo: number = DEFAULT_META) => {
-  const { currentTenant, currentTenantId } = useTenant();
-  const effectiveMeta = currentTenant?.max_electors || metaObjetivo;
+export const useDashboardData = () => {
+  const { currentTenantId } = useTenant();
 
   const [metrics, setMetrics] = useState<DashboardMetrics>({
     totalElectores: 0,
-    metaCobertura: effectiveMeta,
-    porcentajeMeta: 0,
-    puestosActivos: 0,
-    coordinadoresActivos: 0,
+    puestosConElectores: 0,
+    totalPuestosCampana: PREDEFINED_POLLING_PLACES.length,
+    lideresConRegistros: 0,
   });
 
   const [topPollingPlaces, setTopPollingPlaces] = useState<TopPollingPlace[]>([]);
@@ -89,28 +22,25 @@ export const useDashboardData = (metaObjetivo: number = DEFAULT_META) => {
 
   const isMountedRef = useRef(true);
 
-  // Función principal para consultar métricas
+  // Mapeo rápido de nombres de puestos a su zona correspondiente
+  const pollingZonesMap = useRef(
+    new Map(PREDEFINED_POLLING_PLACES.map((p) => [p.name.toLowerCase().trim(), p.zone]))
+  );
+
+  // Función principal para consultar métricas en vivo desde Supabase
   const fetchDashboardData = useCallback(async () => {
-    // Si no está conectado con Supabase, usar datos de demo almacenados o iniciales
+    // Modo local / desarrollo sin conexión
     if (!isSupabaseConfigured) {
       const stored = localStorage.getItem('electoral_local_electors');
-      const allLocalElectors: ElectorWithRegistrant[] = stored
-        ? JSON.parse(stored)
-        : INITIAL_DEMO_ELECTORS;
+      const allLocalElectors: ElectorWithRegistrant[] = stored ? JSON.parse(stored) : [];
 
-      // Filtrar por el tenant actual
       const scopedElectors = allLocalElectors.filter(
-        (e) =>
-          !currentTenantId ||
-          e.tenant_id === currentTenantId ||
-          (!e.tenant_id && currentTenantId === 'ten_alcaldia_2027')
+        (e) => !currentTenantId || e.tenant_id === currentTenantId
       );
 
-      const total = scopedElectors.length > 0 ? scopedElectors.length : 0;
-      const pct = Math.min(100, Number(((total / effectiveMeta) * 100).toFixed(1)));
-
+      const total = scopedElectors.length;
       const puestosMap: Record<string, { total: number; mesas: Set<number> }> = {};
-      let conTelefonoCount = 0;
+      const distinctLideres = new Set<string>();
 
       scopedElectors.forEach((e) => {
         if (e.puesto_votacion) {
@@ -123,36 +53,37 @@ export const useDashboardData = (metaObjetivo: number = DEFAULT_META) => {
             puestosMap[p].mesas.add(Number(e.mesa));
           }
         }
-        if (e.telefono && String(e.telefono).trim().length >= 7) {
-          conTelefonoCount += 1;
+        if (e.registrado_por) {
+          distinctLideres.add(e.registrado_por);
         }
       });
 
-      const topPuestos: TopPollingPlace[] = Object.entries(puestosMap)
-        .map(([puesto, data]) => ({
-          puesto,
-          total: data.total,
-          porcentaje: total > 0 ? Number(((data.total / total) * 100).toFixed(1)) : 0,
-          mesasCount: data.mesas.size || 1,
-        }))
-        .sort((a, b) => b.total - a.total)
-        .slice(0, 4);
+      const distinctPuestosCount = Object.keys(puestosMap).length;
+      const totalPuestos = Math.max(PREDEFINED_POLLING_PLACES.length, distinctPuestosCount);
 
-      const contactPct = total > 0 ? Math.round((conTelefonoCount / total) * 100) : 0;
+      const topPuestos: TopPollingPlace[] = Object.entries(puestosMap)
+        .map(([puesto, data]) => {
+          const matchedZone = pollingZonesMap.current.get(puesto.toLowerCase().trim()) || 'Zona Urbana';
+          return {
+            puesto,
+            zona: matchedZone,
+            total: data.total,
+            porcentaje: total > 0 ? Number(((data.total / total) * 100).toFixed(1)) : 0,
+            mesasCount: data.mesas.size || 1,
+          };
+        })
+        .sort((a, b) => b.total - a.total)
+        .slice(0, 6);
 
       setMetrics({
         totalElectores: total,
-        metaCobertura: effectiveMeta,
-        porcentajeMeta: pct,
-        puestosActivos: Object.keys(puestosMap).length,
-        coordinadoresActivos: 0,
-        lideresActivos: 0,
-        contactabilidadPct: contactPct,
-        totalConTelefono: conTelefonoCount,
+        puestosConElectores: distinctPuestosCount,
+        totalPuestosCampana: totalPuestos,
+        lideresConRegistros: distinctLideres.size,
       });
 
       setTopPollingPlaces(topPuestos);
-      setRecentElectors(scopedElectors.slice(0, 5));
+      setRecentElectors(scopedElectors.slice(0, 6));
       setLoading(false);
       setIsLiveActive(true);
       return;
@@ -161,44 +92,33 @@ export const useDashboardData = (metaObjetivo: number = DEFAULT_META) => {
     try {
       setLoading(true);
 
-      // 1. Total de Electores Registrados por Tenant
-      let electoresQuery = supabase.from('electores').select('*', { count: 'exact', head: true });
-      if (currentTenantId) {
-        electoresQuery = (electoresQuery as any).eq('tenant_id', currentTenantId);
-      }
-      const { count: totalElectores, error: countError } = await electoresQuery;
+      // 1. Total de Electores Registrados para la Campaña Activa
+      let electoresCountQuery = supabase
+        .from('electores')
+        .select('*', { count: 'exact', head: true });
 
+      if (currentTenantId) {
+        electoresCountQuery = (electoresCountQuery as any).eq('tenant_id', currentTenantId);
+      }
+      const { count: totalElectores, error: countError } = await electoresCountQuery;
       if (countError) throw countError;
       const totalCount = totalElectores ?? 0;
 
-      // 2. Coordinadores y Líderes Activos por Tenant
-      let profilesQuery = supabase.from('profiles').select('role').eq('is_active', true);
+      // 2. Consulta de Puestos y Registradores Activos
+      let electoresDataQuery = supabase
+        .from('electores')
+        .select('puesto_votacion, mesa, registrado_por');
+
       if (currentTenantId) {
-        profilesQuery = (profilesQuery as any).eq('tenant_id', currentTenantId);
+        electoresDataQuery = (electoresDataQuery as any).eq('tenant_id', currentTenantId);
       }
-      const { data: profilesList, error: profilesError } = await profilesQuery;
-
-      if (profilesError) console.error('Error al consultar perfiles:', profilesError);
-
-      let coordinadoresCount = 0;
-      let lideresCount = 0;
-      (profilesList || []).forEach((p: any) => {
-        if (p.role === 'coordinador') coordinadoresCount++;
-        if (p.role === 'lider') lideresCount++;
-      });
-
-      // 3. Puestos de Votación, Mesas y Teléfonos por Tenant
-      let puestosQuery = supabase.from('electores').select('puesto_votacion, mesa, telefono');
-      if (currentTenantId) {
-        puestosQuery = (puestosQuery as any).eq('tenant_id', currentTenantId);
-      }
-      const { data: electoresData, error: puestosError } = await puestosQuery;
-
-      if (puestosError) console.error('Error al obtener puestos y electores:', puestosError);
+      const { data: electoresRows, error: dataError } = await electoresDataQuery;
+      if (dataError) console.error('Error al consultar datos de electores:', dataError);
 
       const puestosMap: Record<string, { total: number; mesas: Set<number> }> = {};
-      let conTelefonoCount = 0;
-      const rows = (electoresData as { puesto_votacion: string; mesa: number; telefono?: string }[] | null) || [];
+      const distinctLideres = new Set<string>();
+
+      const rows = (electoresRows as { puesto_votacion: string; mesa: number; registrado_por?: string }[] | null) || [];
       rows.forEach((item) => {
         const name = item.puesto_votacion?.trim();
         if (name) {
@@ -210,27 +130,30 @@ export const useDashboardData = (metaObjetivo: number = DEFAULT_META) => {
             puestosMap[name].mesas.add(Number(item.mesa));
           }
         }
-        if (item.telefono && String(item.telefono).trim().length >= 7) {
-          conTelefonoCount++;
+        if (item.registrado_por) {
+          distinctLideres.add(item.registrado_por);
         }
       });
 
       const distinctPuestosCount = Object.keys(puestosMap).length;
+      const totalPuestos = Math.max(PREDEFINED_POLLING_PLACES.length, distinctPuestosCount);
 
-      // Calcular Top 4 Puestos con porcentaje relativo y mesas alcanzadas
+      // Top Puestos de Votación con cálculo porcentual real
       const sortedPuestos: TopPollingPlace[] = Object.entries(puestosMap)
-        .map(([puesto, data]) => ({
-          puesto,
-          total: data.total,
-          porcentaje: totalCount > 0 ? Number(((data.total / totalCount) * 100).toFixed(1)) : 0,
-          mesasCount: data.mesas.size || 1,
-        }))
+        .map(([puesto, data]) => {
+          const matchedZone = pollingZonesMap.current.get(puesto.toLowerCase().trim()) || 'Zona Urbana';
+          return {
+            puesto,
+            zona: matchedZone,
+            total: data.total,
+            porcentaje: totalCount > 0 ? Number(((data.total / totalCount) * 100).toFixed(1)) : 0,
+            mesasCount: data.mesas.size || 1,
+          };
+        })
         .sort((a, b) => b.total - a.total)
-        .slice(0, 4);
+        .slice(0, 6);
 
-      const contactPct = totalCount > 0 ? Math.round((conTelefonoCount / totalCount) * 100) : 0;
-
-      // 4. Últimos 5 Electores Registrados por Tenant
+      // 3. Últimos 6 Electores Registrados en Tiempo Real
       let recentQuery = supabase
         .from('electores')
         .select(`
@@ -247,30 +170,21 @@ export const useDashboardData = (metaObjetivo: number = DEFAULT_META) => {
           registrador:profiles(full_name, role)
         `)
         .order('created_at', { ascending: false })
-        .limit(5);
+        .limit(6);
 
       if (currentTenantId) {
         recentQuery = (recentQuery as any).eq('tenant_id', currentTenantId);
       }
 
       const { data: rawRecent, error: recentError } = await recentQuery;
-
       if (recentError) console.error('Error al obtener electores recientes:', recentError);
 
       if (isMountedRef.current) {
-        const calculatedPercentage = totalCount > 0
-          ? Math.min(100, Number(((totalCount / effectiveMeta) * 100).toFixed(1)))
-          : 0;
-
         setMetrics({
           totalElectores: totalCount,
-          metaCobertura: effectiveMeta,
-          porcentajeMeta: calculatedPercentage,
-          puestosActivos: distinctPuestosCount,
-          coordinadoresActivos: coordinadoresCount,
-          lideresActivos: lideresCount,
-          contactabilidadPct: contactPct,
-          totalConTelefono: conTelefonoCount,
+          puestosConElectores: distinctPuestosCount,
+          totalPuestosCampana: totalPuestos,
+          lideresConRegistros: distinctLideres.size,
         });
 
         setTopPollingPlaces(sortedPuestos);
@@ -286,10 +200,12 @@ export const useDashboardData = (metaObjetivo: number = DEFAULT_META) => {
           notas: item.notas,
           registrado_por: item.registrado_por,
           created_at: item.created_at,
-          registrador: item.registrador ? {
-            full_name: item.registrador.full_name,
-            role: item.registrador.role,
-          } : null,
+          registrador: item.registrador
+            ? {
+                full_name: item.registrador.full_name,
+                role: item.registrador.role,
+              }
+            : null,
         }));
 
         setRecentElectors(formattedRecent);
@@ -301,13 +217,9 @@ export const useDashboardData = (metaObjetivo: number = DEFAULT_META) => {
       if (isMountedRef.current) {
         setMetrics({
           totalElectores: 0,
-          metaCobertura: effectiveMeta,
-          porcentajeMeta: 0,
-          puestosActivos: 0,
-          coordinadoresActivos: 0,
-          lideresActivos: 0,
-          contactabilidadPct: 0,
-          totalConTelefono: 0,
+          puestosConElectores: 0,
+          totalPuestosCampana: PREDEFINED_POLLING_PLACES.length,
+          lideresConRegistros: 0,
         });
         setTopPollingPlaces([]);
         setRecentElectors([]);
@@ -317,7 +229,7 @@ export const useDashboardData = (metaObjetivo: number = DEFAULT_META) => {
         setLoading(false);
       }
     }
-  }, [metaObjetivo, effectiveMeta, currentTenantId]);
+  }, [currentTenantId]);
 
   // Suscripción Realtime en Supabase
   useEffect(() => {
@@ -325,7 +237,6 @@ export const useDashboardData = (metaObjetivo: number = DEFAULT_META) => {
     fetchDashboardData();
 
     if (!isSupabaseConfigured) {
-      // Escuchar eventos en ventana para sincronización local
       const handleLocalInsert = () => {
         setLastEventTimestamp(new Date());
         fetchDashboardData();
@@ -337,13 +248,13 @@ export const useDashboardData = (metaObjetivo: number = DEFAULT_META) => {
       };
     }
 
-    // Escuchar eventos INSERT en la tabla 'electores'
+    // Escuchar eventos en la tabla 'electores'
     const channel = supabase
       .channel('dashboard-electores-realtime')
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'electores',
         },

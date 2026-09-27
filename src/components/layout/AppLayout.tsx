@@ -239,6 +239,8 @@ export const AppLayout = ({
               {activeTab === 'dashboard' ? (
                 <DirectorDashboardView
                   onNavigateToElectors={() => setActiveTab('electors')}
+                  onNavigateToRegister={() => setActiveTab('register')}
+                  onNavigateToBulkUpload={() => setActiveTab('bulk-upload')}
                   userName={userName}
                 />
               ) : activeTab === 'register' ? (
