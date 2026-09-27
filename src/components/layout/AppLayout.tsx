@@ -45,9 +45,9 @@ const TAB_TITLES: Record<SidebarTabId, { title: string; subtitle: string; phase:
     phase: 'Módulo Operativo',
   },
   coordinators: {
-    title: 'Equipo y Coordinadores',
-    subtitle: 'Gestión de coordinadores y asignación de zonas',
-    phase: 'Fase 5',
+    title: 'Equipo y Accesos',
+    subtitle: 'Gestión de coordinadores, líderes y credenciales de campaña',
+    phase: 'Módulo Activo',
   },
   reports: {
     title: 'Exportar Reportes',

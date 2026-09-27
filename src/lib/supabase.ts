@@ -9,12 +9,12 @@ const FALLBACK_SUPABASE_ANON_KEY =
 const envUrl = import.meta.env.VITE_SUPABASE_URL;
 const envAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-const supabaseUrl =
+export const supabaseUrl =
   envUrl && !envUrl.includes('placeholder') && envUrl.trim() !== ''
     ? envUrl.trim()
     : FALLBACK_SUPABASE_URL;
 
-const supabaseAnonKey =
+export const supabaseAnonKey =
   envAnonKey && !envAnonKey.includes('placeholder') && envAnonKey.trim() !== ''
     ? envAnonKey.trim()
     : FALLBACK_SUPABASE_ANON_KEY;
@@ -29,4 +29,14 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: true,
   },
 });
+
+export const createNonPersistentClient = () => {
+  return createClient<Database>(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+  });
+};
 

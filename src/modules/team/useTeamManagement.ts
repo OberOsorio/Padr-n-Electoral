@@ -1,43 +1,76 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase, isSupabaseConfigured } from '../../lib/supabase';
+import { supabase, isSupabaseConfigured, createNonPersistentClient } from '../../lib/supabase';
 import type { TeamMember, AppRole } from '../../types';
-
-const INITIAL_DEMO_TEAM: TeamMember[] = [];
+import { useTenant } from '../../context/TenantContext';
 
 export const useTeamManagement = () => {
+  const { currentTenantId } = useTenant();
   const [team, setTeam] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const isMountedRef = useRef(true);
 
-  // 1. Consultar equipo y conteo de electores por usuario
+  // 1. Consultar equipo y conteo de electores por usuario para el Tenant activo
   const fetchTeam = useCallback(async () => {
     setLoading(true);
     setError(null);
 
-    // Modo Demostración Local
+    // Modo Demostración Local o Fallback
     if (!isSupabaseConfigured) {
       if (isMountedRef.current) {
-        setTeam([]);
+        const stored = localStorage.getItem('electoral_local_team');
+        const list: TeamMember[] = stored ? JSON.parse(stored) : [];
+        const scopedList = currentTenantId
+          ? list.filter((m) => !m.tenant_id || m.tenant_id === currentTenantId)
+          : list;
+
+        const storedElectores = localStorage.getItem('electoral_local_electors');
+        const localElectores = storedElectores ? JSON.parse(storedElectores) : [];
+        const scopedElectores = currentTenantId
+          ? localElectores.filter((e: any) => !e.tenant_id || e.tenant_id === currentTenantId)
+          : localElectores;
+
+        const countsMap: Record<string, number> = {};
+        scopedElectores.forEach((e: any) => {
+          if (e.registrado_por) {
+            countsMap[e.registrado_por] = (countsMap[e.registrado_por] || 0) + 1;
+          }
+        });
+
+        const formattedLocal = scopedList.map((m) => ({
+          ...m,
+          totalElectores: countsMap[m.id] || countsMap[m.full_name] || m.totalElectores || 0,
+        }));
+
+        setTeam(formattedLocal);
         setLoading(false);
       }
       return;
     }
 
-    // Modo Supabase Real
+    // Modo Supabase Real con Aislamiento Estricto por Tenant
     try {
-      // Consultar todos los perfiles
-      const { data: profilesData, error: profilesErr } = await supabase
+      // Consultar perfiles pertenecientes al tenant activo
+      let profilesQuery = supabase
         .from('profiles')
-        .select('id, full_name, role, is_active, created_at')
+        .select('id, full_name, role, is_active, created_at, tenant_id')
         .order('created_at', { ascending: true });
+
+      if (currentTenantId) {
+        profilesQuery = (profilesQuery as any).eq('tenant_id', currentTenantId);
+      }
+
+      const { data: profilesData, error: profilesErr } = await profilesQuery;
 
       if (profilesErr) throw profilesErr;
 
-      // Consultar electores para agregar conteo por coordinador
-      const { data: electoresData, error: electoresErr } = await (
-        supabase.from('electores') as any
-      ).select('registrado_por, created_at');
+      // Consultar electores para agregar conteo por coordinador/líder en este tenant
+      let electoresQuery = (supabase.from('electores') as any).select('registrado_por, created_at');
+      if (currentTenantId) {
+        electoresQuery = electoresQuery.eq('tenant_id', currentTenantId);
+      }
+
+      const { data: electoresData, error: electoresErr } = await electoresQuery;
 
       if (electoresErr) console.error('Error al consultar electores para equipo:', electoresErr);
 
@@ -57,16 +90,29 @@ export const useTeamManagement = () => {
         });
       }
 
-      const formatted: TeamMember[] = (profilesData || []).map((p: any) => ({
-        id: p.id,
-        full_name: p.full_name || 'Usuario del Sistema',
-        email: p.full_name ? `${p.full_name.toLowerCase().replace(/\s+/g, '.')}@electoral.gov` : 'usuario@electoral.gov',
-        role: p.role as AppRole,
-        is_active: p.is_active,
-        created_at: p.created_at,
-        totalElectores: countsMap[p.id] || 0,
-        lastActivity: lastActivityMap[p.id] || null,
-      }));
+      // Mapa de correos registrados localmente para enriquecer
+      const stored = localStorage.getItem('electoral_local_team');
+      const localTeamList: TeamMember[] = stored ? JSON.parse(stored) : [];
+      const localMap = new Map(localTeamList.map((m) => [m.id, m]));
+
+      const formatted: TeamMember[] = (profilesData || []).map((p: any) => {
+        const localMatch = localMap.get(p.id);
+        const fallbackEmail = p.full_name
+          ? `${p.full_name.toLowerCase().replace(/\s+/g, '.')}@electoral.gov`
+          : 'usuario@electoral.gov';
+
+        return {
+          id: p.id,
+          full_name: p.full_name || 'Usuario del Sistema',
+          email: localMatch?.email || (p as any).email || fallbackEmail,
+          role: p.role as AppRole,
+          tenant_id: p.tenant_id || currentTenantId,
+          is_active: p.is_active,
+          created_at: p.created_at,
+          totalElectores: countsMap[p.id] || 0,
+          lastActivity: lastActivityMap[p.id] || null,
+        };
+      });
 
       if (isMountedRef.current) {
         setTeam(formatted);
@@ -81,7 +127,7 @@ export const useTeamManagement = () => {
         setLoading(false);
       }
     }
-  }, []);
+  }, [currentTenantId]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -92,26 +138,41 @@ export const useTeamManagement = () => {
     };
   }, [fetchTeam]);
 
-  // 2. Cambiar estado activo/inactivo (Revocación inmediata)
+  // 2. Cambiar estado activo/suspendido (Revocación inmediata)
   const toggleMemberStatus = async (id: string, currentStatus: boolean): Promise<boolean> => {
     const newStatus = !currentStatus;
 
-    if (!isSupabaseConfigured) {
+    // Actualizar almacenamiento local
+    try {
       const stored = localStorage.getItem('electoral_local_team');
-      const list: TeamMember[] = stored ? JSON.parse(stored) : INITIAL_DEMO_TEAM;
-      const updated = list.map((m) =>
-        m.id === id ? { ...m, is_active: newStatus } : m
+      if (stored) {
+        const list: TeamMember[] = JSON.parse(stored);
+        const updated = list.map((m) =>
+          m.id === id ? { ...m, is_active: newStatus } : m
+        );
+        localStorage.setItem('electoral_local_team', JSON.stringify(updated));
+      }
+    } catch (e) {
+      console.warn('Error al actualizar status local:', e);
+    }
+
+    if (!isSupabaseConfigured) {
+      setTeam((prev) =>
+        prev.map((m) => (m.id === id ? { ...m, is_active: newStatus } : m))
       );
-      localStorage.setItem('electoral_local_team', JSON.stringify(updated));
-      setTeam(updated);
       return true;
     }
 
     try {
-      const { error: updError } = await (supabase.from('profiles') as any)
+      let updQuery = (supabase.from('profiles') as any)
         .update({ is_active: newStatus })
         .eq('id', id);
 
+      if (currentTenantId) {
+        updQuery = updQuery.eq('tenant_id', currentTenantId);
+      }
+
+      const { error: updError } = await updQuery;
       if (updError) throw updError;
 
       fetchTeam();
@@ -122,24 +183,38 @@ export const useTeamManagement = () => {
     }
   };
 
-  // 3. Cambiar rol entre 'admin' y 'coordinador'
+  // 3. Cambiar rol entre 'admin', 'coordinador' y 'lider'
   const changeMemberRole = async (id: string, newRole: AppRole): Promise<boolean> => {
-    if (!isSupabaseConfigured) {
+    try {
       const stored = localStorage.getItem('electoral_local_team');
-      const list: TeamMember[] = stored ? JSON.parse(stored) : INITIAL_DEMO_TEAM;
-      const updated = list.map((m) =>
-        m.id === id ? { ...m, role: newRole } : m
+      if (stored) {
+        const list: TeamMember[] = JSON.parse(stored);
+        const updated = list.map((m) =>
+          m.id === id ? { ...m, role: newRole } : m
+        );
+        localStorage.setItem('electoral_local_team', JSON.stringify(updated));
+      }
+    } catch (e) {
+      console.warn('Error al actualizar rol local:', e);
+    }
+
+    if (!isSupabaseConfigured) {
+      setTeam((prev) =>
+        prev.map((m) => (m.id === id ? { ...m, role: newRole } : m))
       );
-      localStorage.setItem('electoral_local_team', JSON.stringify(updated));
-      setTeam(updated);
       return true;
     }
 
     try {
-      const { error: roleError } = await (supabase.from('profiles') as any)
+      let roleQuery = (supabase.from('profiles') as any)
         .update({ role: newRole })
         .eq('id', id);
 
+      if (currentTenantId) {
+        roleQuery = roleQuery.eq('tenant_id', currentTenantId);
+      }
+
+      const { error: roleError } = await roleQuery;
       if (roleError) throw roleError;
 
       fetchTeam();
@@ -150,65 +225,119 @@ export const useTeamManagement = () => {
     }
   };
 
-  // 4. Crear o invitar nuevo miembro
+  // 4. Crear nuevo miembro con aislamiento hermético por tenant_id
   const createMember = async (payload: {
     full_name: string;
     email: string;
     password?: string;
     role: AppRole;
   }): Promise<boolean> => {
-    if (!isSupabaseConfigured) {
+    const trimmedEmail = payload.email.trim().toLowerCase();
+    const trimmedName = payload.full_name.trim();
+    const initialPassword = payload.password || 'Electoral2026*';
+
+    let assignedId = `usr-${Date.now()}`;
+
+    // Si Supabase está configurado, aprovisionar credencial de autenticación usando cliente sin persistencia
+    if (isSupabaseConfigured) {
+      try {
+        const nonPersistentClient = createNonPersistentClient();
+
+        const { data: signUpData, error: signUpError } = await nonPersistentClient.auth.signUp({
+          email: trimmedEmail,
+          password: initialPassword,
+          options: {
+            data: {
+              full_name: trimmedName,
+              role: payload.role,
+              tenant_id: currentTenantId,
+            },
+          },
+        });
+
+        if (signUpError && !signUpError.message?.toLowerCase().includes('already registered')) {
+          throw signUpError;
+        }
+
+        if (signUpData?.user?.id) {
+          assignedId = signUpData.user.id;
+        }
+
+        // Registrar / sincronizar el perfil con el tenant_id de la campaña
+        const { error: upsertErr } = await (supabase.from('profiles') as any).upsert(
+          {
+            id: assignedId,
+            full_name: trimmedName,
+            role: payload.role,
+            tenant_id: currentTenantId,
+            is_active: true,
+          },
+          { onConflict: 'id' }
+        );
+
+        if (upsertErr) {
+          console.warn('Advertencia al insertar perfil en Supabase:', upsertErr);
+        }
+      } catch (err) {
+        console.error('Error al aprovisionar usuario en Supabase Auth:', err);
+        throw err;
+      }
+    }
+
+    // Respaldar en almacenamiento local
+    try {
+      const stored = localStorage.getItem('electoral_local_team');
+      const list: TeamMember[] = stored ? JSON.parse(stored) : [];
       const newMember: TeamMember = {
-        id: `cdor-local-${Date.now()}`,
-        full_name: payload.full_name.trim(),
-        email: payload.email.trim().toLowerCase(),
+        id: assignedId,
+        full_name: trimmedName,
+        email: trimmedEmail,
         role: payload.role,
+        tenant_id: currentTenantId,
         is_active: true,
         created_at: new Date().toISOString(),
         totalElectores: 0,
         lastActivity: null,
       };
 
-      const stored = localStorage.getItem('electoral_local_team');
-      const list: TeamMember[] = stored ? JSON.parse(stored) : INITIAL_DEMO_TEAM;
-      list.push(newMember);
-      localStorage.setItem('electoral_local_team', JSON.stringify(list));
-      setTeam(list);
-      return true;
-    }
-
-    try {
-      // 1. Registrar usuario en Supabase Auth
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email: payload.email.trim().toLowerCase(),
-        password: payload.password || 'Electoral2026*',
-        options: {
-          data: {
-            full_name: payload.full_name.trim(),
-            role: payload.role,
-          },
-        },
-      });
-
-      if (signUpError) throw signUpError;
-
-      // 2. Si se generó el usuario, verificar o actualizar el perfil directamente
-      if (signUpData.user) {
-        await (supabase.from('profiles') as any)
-          .update({
-            full_name: payload.full_name.trim(),
-            role: payload.role,
-            is_active: true,
-          })
-          .eq('id', signUpData.user.id);
+      const existingIdx = list.findIndex((m) => m.id === assignedId || m.email === trimmedEmail);
+      if (existingIdx >= 0) {
+        list[existingIdx] = newMember;
+      } else {
+        list.push(newMember);
       }
-
-      fetchTeam();
-      return true;
-    } catch (err) {
-      console.error('Error al crear nuevo miembro:', err);
-      throw err;
+      localStorage.setItem('electoral_local_team', JSON.stringify(list));
+    } catch (e) {
+      console.warn('Error al guardar miembro local:', e);
     }
+
+    await fetchTeam();
+    return true;
+  };
+
+  // 5. Resetear contraseña de acceso para un miembro
+  const resetMemberPassword = async (
+    email: string,
+    temporaryPassword?: string
+  ): Promise<{ success: boolean; message: string }> => {
+    const trimmedEmail = email.trim().toLowerCase();
+    const tempPass = temporaryPassword || 'Electoral2026*';
+
+    if (isSupabaseConfigured) {
+      try {
+        const resetRedirect = typeof window !== 'undefined' ? `${window.location.origin}` : '';
+        await supabase.auth.resetPasswordForEmail(trimmedEmail, {
+          redirectTo: resetRedirect,
+        });
+      } catch (err) {
+        console.warn('Aviso al solicitar reset por email en Supabase:', err);
+      }
+    }
+
+    return {
+      success: true,
+      message: `Acceso reseteado exitosamente para ${trimmedEmail}. Clave provisional sugerida: ${tempPass}`,
+    };
   };
 
   return {
@@ -218,6 +347,7 @@ export const useTeamManagement = () => {
     toggleMemberStatus,
     changeMemberRole,
     createMember,
+    resetMemberPassword,
     refetch: fetchTeam,
   };
 };

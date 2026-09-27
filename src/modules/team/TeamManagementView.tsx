@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useTeamManagement } from './useTeamManagement';
 import { CreateMemberModal } from './components/CreateMemberModal';
+import { ResetPasswordModal } from './components/ResetPasswordModal';
 import { AccessDeniedView } from './components/AccessDeniedView';
-import type { AppRole } from '../../types';
+import type { AppRole, TeamMember } from '../../types';
 import {
   Users,
   UserPlus,
@@ -12,6 +13,9 @@ import {
   CheckCircle2,
   Shield,
   UserX,
+  KeyRound,
+  UserCheck,
+  Award,
 } from 'lucide-react';
 
 interface TeamManagementViewProps {
@@ -24,11 +28,12 @@ export const TeamManagementView = ({
   onNavigateToDashboard,
 }: TeamManagementViewProps) => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [selectedResetMember, setSelectedResetMember] = useState<TeamMember | null>(null);
   const [searchFilter, setSearchFilter] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | AppRole>('all');
   const [actionMessage, setActionMessage] = useState<string | null>(null);
 
-  // Hook de gestión de equipo
+  // Hook de gestión de equipo con aislamiento de tenant y reseteo
   const {
     team,
     loading,
@@ -36,6 +41,7 @@ export const TeamManagementView = ({
     toggleMemberStatus,
     changeMemberRole,
     createMember,
+    resetMemberPassword,
     refetch,
   } = useTeamManagement();
 
@@ -60,7 +66,13 @@ export const TeamManagementView = ({
   const coordinadoresActivos = team.filter(
     (m) => m.role === 'coordinador' && m.is_active
   ).length;
-  const adminsCount = team.filter((m) => m.role === 'admin' && m.is_active).length;
+  const lideresActivos = team.filter(
+    (m) => m.role === 'lider' && m.is_active
+  ).length;
+  const totalElectoresReportados = team.reduce(
+    (acc, m) => acc + (m.totalElectores || 0),
+    0
+  );
 
   const handleToggle = async (id: string, currentStatus: boolean, name: string) => {
     try {
@@ -84,7 +96,13 @@ export const TeamManagementView = ({
       const ok = await changeMemberRole(id, newRole);
       if (ok) {
         setActionMessage(
-          `Rol de ${name} actualizado a ${newRole === 'admin' ? 'Administrador' : 'Coordinador'}.`
+          `Rol de ${name} actualizado a ${
+            newRole === 'admin'
+              ? 'Administrador'
+              : newRole === 'coordinador'
+              ? 'Coordinador'
+              : 'Líder'
+          }.`
         );
         setTimeout(() => setActionMessage(null), 3000);
       }
@@ -112,13 +130,15 @@ export const TeamManagementView = ({
 
   return (
     <div className="space-y-6 sm:space-y-8 p-4 sm:p-6 lg:p-8 xl:p-10 max-w-[1600px] mx-auto pb-24 md:pb-10 animate-in fade-in duration-300">
-      
       {/* 1. Header de Vista Ejecutivo */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200 dark:border-slate-700/60">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200 dark:border-slate-800/80">
         <div>
           <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 dark:text-white tracking-tight">
-            Equipo y Coordinadores
+            Equipo y Accesos
           </h1>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+            Gestión de coordinadores, líderes y credenciales de acceso de la campaña.
+          </p>
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3 self-stretch sm:self-auto">
@@ -142,7 +162,7 @@ export const TeamManagementView = ({
         </div>
       </div>
 
-      {/* Alerta de notificación flotante o de estado */}
+      {/* Alerta de notificación de estado */}
       {actionMessage && (
         <div className="p-3.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/50 text-xs text-blue-900 dark:text-blue-200 flex items-center gap-2 animate-in fade-in">
           <CheckCircle2 className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
@@ -157,18 +177,18 @@ export const TeamManagementView = ({
       )}
 
       {/* 2. Métricas del Equipo */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 lg:gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-5">
         <div className="rounded-2xl bg-white dark:bg-slate-800/80 backdrop-blur-md border border-slate-200 dark:border-slate-700/60 p-5 shadow-xs dark:shadow-lg">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Total Personal
+              Total Equipo
             </span>
             <div className="h-8 w-8 rounded-lg bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/40 flex items-center justify-center text-blue-600 dark:text-blue-400">
               <Users className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-2.5">
-            <span className="text-3xl font-semibold text-slate-900 dark:text-[#F8FAFC] font-mono">
+            <span className="text-3xl font-semibold text-slate-900 dark:text-white font-mono">
               {totalMiembros}
             </span>
           </div>
@@ -182,44 +202,62 @@ export const TeamManagementView = ({
             <span className="text-[11px] font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400">
               Coordinadores Activos
             </span>
-            <div className="h-8 w-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-              <CheckCircle2 className="w-4 h-4" />
+            <div className="h-8 w-8 rounded-lg bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/40 flex items-center justify-center text-blue-600 dark:text-blue-400">
+              <Shield className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-2.5">
-            <span className="text-3xl font-semibold text-emerald-600 dark:text-emerald-400 font-mono">
+            <span className="text-3xl font-semibold text-blue-600 dark:text-blue-400 font-mono">
               {coordinadoresActivos}
             </span>
           </div>
           <p className="mt-2 text-xs font-mono text-slate-500 dark:text-slate-400">
-            Operando en territorio
+            Supervisión territorial
           </p>
         </div>
 
         <div className="rounded-2xl bg-white dark:bg-slate-800/80 backdrop-blur-md border border-slate-200 dark:border-slate-700/60 p-5 shadow-xs dark:shadow-lg">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Administradores
+              Líderes Activos
+            </span>
+            <div className="h-8 w-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+              <UserCheck className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-2.5">
+            <span className="text-3xl font-semibold text-emerald-600 dark:text-emerald-400 font-mono">
+              {lideresActivos}
+            </span>
+          </div>
+          <p className="mt-2 text-xs font-mono text-slate-500 dark:text-slate-400">
+            Enrolamiento en terreno
+          </p>
+        </div>
+
+        <div className="rounded-2xl bg-white dark:bg-slate-800/80 backdrop-blur-md border border-slate-200 dark:border-slate-700/60 p-5 shadow-xs dark:shadow-lg">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Votos Reportados
             </span>
             <div className="h-8 w-8 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/40 flex items-center justify-center text-amber-600 dark:text-[#E5B869]">
-              <Shield className="w-4 h-4" />
+              <Award className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-2.5">
             <span className="text-3xl font-semibold text-amber-600 dark:text-[#E5B869] font-mono">
-              {adminsCount}
+              {totalElectoresReportados}
             </span>
           </div>
           <p className="mt-2 text-xs font-mono text-slate-500 dark:text-slate-400">
-            Control y auditoría central
+            Por el equipo en campaña
           </p>
         </div>
       </div>
 
       {/* 3. Tabla Principal de Miembros de Equipo */}
       <div className="rounded-2xl bg-white dark:bg-slate-800/80 backdrop-blur-md border border-slate-200 dark:border-slate-700/60 shadow-xs dark:shadow-xl overflow-hidden">
-        
-        {/* Barra de Filtros de la Tabla */}
+        {/* Barra de Filtros */}
         <div className="p-4 border-b border-slate-200 dark:border-slate-700/60 bg-slate-50/80 dark:bg-slate-900/90 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="relative w-full sm:w-80">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-400 pointer-events-none" />
@@ -240,12 +278,13 @@ export const TeamManagementView = ({
             >
               <option value="all" className="bg-white dark:bg-slate-900">Todos los Roles</option>
               <option value="coordinador" className="bg-white dark:bg-slate-900">Solo Coordinadores</option>
+              <option value="lider" className="bg-white dark:bg-slate-900">Solo Líderes</option>
               <option value="admin" className="bg-white dark:bg-slate-900">Solo Administradores</option>
             </select>
           </div>
         </div>
 
-        {/* Tabla */}
+        {/* Tabla de Miembros */}
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
@@ -253,16 +292,16 @@ export const TeamManagementView = ({
                 <th className="py-3 px-4">Miembro</th>
                 <th className="py-3 px-4">Correo Institucional</th>
                 <th className="py-3 px-4">Rol Asignado</th>
-                <th className="py-3 px-4 text-center">Estado de Acceso</th>
-                <th className="py-3 px-4 text-center">Electores Registrados</th>
+                <th className="py-3 px-4 text-center">Estado</th>
+                <th className="py-3 px-4 text-center">Electores Reportados</th>
                 <th className="py-3 px-4">Última Actividad</th>
-                <th className="py-3 px-4 text-right">Interruptor de Estado</th>
+                <th className="py-3 px-4 text-right">Acciones de Acceso</th>
               </tr>
             </thead>
 
             <tbody className="divide-y divide-slate-200 dark:divide-slate-700/60 text-xs text-slate-700 dark:text-slate-300">
               {loading ? (
-                Array.from({ length: 5 }).map((_, idx) => (
+                Array.from({ length: 4 }).map((_, idx) => (
                   <tr key={idx} className="animate-pulse">
                     <td className="py-3.5 px-4"><div className="h-4 w-36 bg-slate-200 dark:bg-slate-700 rounded" /></td>
                     <td className="py-3.5 px-4"><div className="h-4 w-40 bg-slate-200 dark:bg-slate-700 rounded" /></td>
@@ -270,7 +309,7 @@ export const TeamManagementView = ({
                     <td className="py-3.5 px-4 text-center"><div className="h-5 w-16 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto" /></td>
                     <td className="py-3.5 px-4 text-center"><div className="h-4 w-12 bg-slate-200 dark:bg-slate-700 rounded mx-auto" /></td>
                     <td className="py-3.5 px-4"><div className="h-4 w-20 bg-slate-200 dark:bg-slate-700 rounded" /></td>
-                    <td className="py-3.5 px-4 text-right"><div className="h-6 w-12 bg-slate-200 dark:bg-slate-700 rounded-full ml-auto" /></td>
+                    <td className="py-3.5 px-4 text-right"><div className="h-6 w-16 bg-slate-200 dark:bg-slate-700 rounded-full ml-auto" /></td>
                   </tr>
                 ))
               ) : filteredTeam.length === 0 ? (
@@ -282,7 +321,7 @@ export const TeamManagementView = ({
                         No se encontraron miembros de equipo
                       </p>
                       <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                        Ajuste el criterio de búsqueda o añada un nuevo coordinador.
+                        Ajuste el criterio de búsqueda o cree un nuevo coordinador o líder.
                       </p>
                     </div>
                   </td>
@@ -301,13 +340,15 @@ export const TeamManagementView = ({
                       key={member.id}
                       className="hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors group"
                     >
-                      {/* Miembro / Nombre con Avatar */}
+                      {/* Miembro / Nombre */}
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2.5">
                           <div
                             className={`h-8 w-8 rounded-lg flex items-center justify-center text-xs font-mono font-bold shrink-0 border ${
                               member.role === 'admin'
                                 ? 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-[#E5B869]'
+                                : member.role === 'lider'
+                                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
                                 : 'bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800/40 text-blue-600 dark:text-blue-400'
                             }`}
                           >
@@ -321,7 +362,7 @@ export const TeamManagementView = ({
                         </div>
                       </td>
 
-                      {/* Correo Electrónico */}
+                      {/* Correo */}
                       <td className="py-3 px-4 font-mono text-slate-500 dark:text-slate-400 text-[11px]">
                         <span className="flex items-center gap-1.5">
                           <Mail className="w-3 h-3 text-slate-400 dark:text-slate-500" />
@@ -343,9 +384,14 @@ export const TeamManagementView = ({
                           className={`h-7 px-2.5 rounded-lg text-[11px] font-mono font-semibold uppercase tracking-wider border cursor-pointer focus:outline-none transition-colors ${
                             member.role === 'admin'
                               ? 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-[#E5B869]'
+                              : member.role === 'lider'
+                              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
                               : 'bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800/40 text-blue-600 dark:text-blue-300'
                           }`}
                         >
+                          <option value="lider" className="bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400">
+                            Líder
+                          </option>
                           <option value="coordinador" className="bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-300">
                             Coordinador
                           </option>
@@ -355,7 +401,7 @@ export const TeamManagementView = ({
                         </select>
                       </td>
 
-                      {/* Estado: Activo / Inactivo */}
+                      {/* Estado */}
                       <td className="py-3 px-4 text-center">
                         <span
                           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono font-semibold uppercase tracking-wide border ${
@@ -369,13 +415,15 @@ export const TeamManagementView = ({
                               member.is_active ? 'bg-emerald-500 dark:bg-emerald-400' : 'bg-rose-500 dark:bg-rose-400'
                             }`}
                           />
-                          {member.is_active ? 'Activo' : 'Inactivo'}
+                          {member.is_active ? 'Activo' : 'Suspendido'}
                         </span>
                       </td>
 
-                      {/* Total Electores Registrados */}
+                      {/* Total Electores Reportados */}
                       <td className="py-3 px-4 text-center font-mono font-semibold text-slate-900 dark:text-[#F8FAFC]">
-                        {member.totalElectores.toLocaleString()}
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-900 text-xs font-mono font-bold text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700/60">
+                          {member.totalElectores.toLocaleString()}
+                        </span>
                       </td>
 
                       {/* Última Actividad */}
@@ -383,19 +431,30 @@ export const TeamManagementView = ({
                         {formatActivity(member.lastActivity)}
                       </td>
 
-                      {/* Switch interactivo de activación / revocación */}
+                      {/* Acciones de Acceso: Switch y Botón Resetear Clave */}
                       <td className="py-3 px-4 text-right">
-                        <label className="relative inline-flex items-center cursor-pointer select-none">
-                          <input
-                            type="checkbox"
-                            checked={member.is_active}
-                            onChange={() =>
-                              handleToggle(member.id, member.is_active, member.full_name)
-                            }
-                            className="sr-only peer"
-                          />
-                          <div className="w-10 h-5.5 bg-slate-300 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-emerald-600 transition-colors" />
-                        </label>
+                        <div className="flex items-center justify-end gap-2.5">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedResetMember(member)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:text-slate-400 dark:hover:text-amber-400 dark:hover:bg-amber-950/40 transition-colors cursor-pointer"
+                            title={`Resetear contraseña de ${member.full_name}`}
+                          >
+                            <KeyRound className="w-4 h-4" />
+                          </button>
+
+                          <label className="relative inline-flex items-center cursor-pointer select-none" title={member.is_active ? "Suspender acceso" : "Activar acceso"}>
+                            <input
+                              type="checkbox"
+                              checked={member.is_active}
+                              onChange={() =>
+                                handleToggle(member.id, member.is_active, member.full_name)
+                              }
+                              className="sr-only peer"
+                            />
+                            <div className="w-10 h-5.5 bg-slate-300 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-emerald-600 transition-colors" />
+                          </label>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -412,6 +471,15 @@ export const TeamManagementView = ({
         onClose={() => setIsCreateModalOpen(false)}
         onCreate={createMember}
       />
+
+      {/* Modal de Reseteo de Contraseña */}
+      <ResetPasswordModal
+        isOpen={!!selectedResetMember}
+        member={selectedResetMember}
+        onClose={() => setSelectedResetMember(null)}
+        onResetPassword={resetMemberPassword}
+      />
     </div>
   );
 };
+

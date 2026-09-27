@@ -3,6 +3,7 @@ import {
   UserPlus,
   Users,
   UploadCloud,
+  ShieldCheck,
   Download,
   Shield,
   X,
@@ -46,6 +47,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'register', label: 'Registrar Elector', icon: UserPlus },
   { id: 'electors', label: 'Padrón / Lista de Electores', icon: Users },
   { id: 'bulk-upload', label: 'Carga Masiva', icon: UploadCloud },
+  { id: 'coordinators', label: 'Equipo y Accesos', icon: ShieldCheck },
   { id: 'reports', label: 'Exportar Reportes', icon: Download },
 ];
 
@@ -62,9 +64,14 @@ export const Sidebar = ({
   const { isCollapsed, toggleSidebar } = useSidebar();
   const isOnline = useOnlineStatus();
 
-  // Ocultar la opción de exportar reportes cuando no hay conexión a internet
+  const isAdmin = userRole ? (userRole.toLowerCase().includes('admin') || userRole.toLowerCase().includes('super')) : true;
+
+  // Ocultar reportes sin conexión y módulo de equipo para roles no administrativos
   const effectiveNavItems = NAV_ITEMS.filter((item) => {
     if (item.id === 'reports' && !isOnline) {
+      return false;
+    }
+    if (item.id === 'coordinators' && !isAdmin) {
       return false;
     }
     return true;
