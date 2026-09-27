@@ -82,20 +82,31 @@ export const TenantProvider: React.FC<{ children: React.ReactNode; userRole?: st
       const loadedTenants: Tenant[] = data || [];
 
       if (loadedTenants.length === 0) {
+        // Preservar tenants locales si Supabase devuelve vacío
+        const localData = localStorage.getItem(LOCAL_STORAGE_TENANTS_KEY);
+        const fallbackTenants: Tenant[] = localData ? JSON.parse(localData) : [];
+        if (fallbackTenants.length > 0) {
+          setTenants(fallbackTenants);
+          setCurrentTenantIdState(fallbackTenants[0]?.id || null);
+          return;
+        }
         setTenants([]);
         setCurrentTenantIdState(null);
-        localStorage.removeItem(LOCAL_STORAGE_ACTIVE_TENANT_KEY);
-        localStorage.removeItem(LOCAL_STORAGE_TENANTS_KEY);
       } else {
         setTenants(loadedTenants);
+        localStorage.setItem(LOCAL_STORAGE_TENANTS_KEY, JSON.stringify(loadedTenants));
         const savedTenantId = localStorage.getItem(LOCAL_STORAGE_ACTIVE_TENANT_KEY);
         const activeId = userTenantId || savedTenantId || loadedTenants[0]?.id || null;
         setCurrentTenantIdState(activeId);
       }
     } catch (err) {
-      console.warn('Error al consultar tenants de Supabase:', err);
-      setTenants([]);
-      setCurrentTenantIdState(null);
+      console.warn('Error al consultar tenants de Supabase, usando respaldo local:', err);
+      const localData = localStorage.getItem(LOCAL_STORAGE_TENANTS_KEY);
+      const fallbackTenants: Tenant[] = localData ? JSON.parse(localData) : [];
+      setTenants(fallbackTenants);
+      if (fallbackTenants.length > 0) {
+        setCurrentTenantIdState(fallbackTenants[0]?.id || null);
+      }
     } finally {
       setLoading(false);
     }
@@ -198,11 +209,15 @@ export const TenantProvider: React.FC<{ children: React.ReactNode; userRole?: st
 
   // 4. Crear Campaña con Administrador asignado (Capacidad Ilimitada)
   const createCampaignWithAdmin = async (params: CreateCampaignParams): Promise<Tenant> => {
-    const tempTenantId = `ten_${Date.now()}`;
-    let effectiveTenantId = tempTenantId;
+    const validUuid = crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+      const r = Math.random() * 16 | 0;
+      const v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+    let effectiveTenantId = validUuid;
 
     const newTenant: Tenant = {
-      id: tempTenantId,
+      id: effectiveTenantId,
       name: params.name,
       slug: params.slug.toLowerCase().trim().replace(/[^a-z0-9-]+/g, '-'),
       es_ilimitado: true,
@@ -233,21 +248,31 @@ export const TenantProvider: React.FC<{ children: React.ReactNode; userRole?: st
           effectiveTenantId = rpcRes.tenant_id;
           newTenant.id = effectiveTenantId;
         } else {
+          if (rpcErr) console.warn('Aviso RPC aprovisionar_nueva_campana, usando inserción directa:', rpcErr);
           // Inserción directa en tabla tenants como fallback
-          const { error: insErr } = await (supabase.from('tenants') as any).insert({
+          const { data: insData, error: insErr } = await (supabase.from('tenants') as any).insert({
             id: newTenant.id,
             name: newTenant.name,
             slug: newTenant.slug,
             es_ilimitado: true,
             departamento: params.departamento || null,
             municipio: params.municipio || null,
+            admin_name: params.adminName,
+            admin_email: params.adminEmail,
             is_active: true,
-          });
-          if (insErr) console.warn('Aviso insertando tenant:', insErr);
+          }).select().maybeSingle();
+
+          if (insErr) {
+            console.error('Error insertando tenant en Supabase:', insErr);
+            throw new Error(`Error en base de datos: ${insErr.message}`);
+          }
+          if (insData?.id) {
+            effectiveTenantId = insData.id;
+            newTenant.id = effectiveTenantId;
+          }
         }
 
         // Aprovisionar administrador en Supabase Auth con cliente sin persistencia
-        let adminAuthId = `usr_${effectiveTenantId}_admin`;
         try {
           const nonPersistentClient = createNonPersistentClient();
           const { data: signUpData, error: signUpErr } = await nonPersistentClient.auth.signUp({
@@ -262,22 +287,20 @@ export const TenantProvider: React.FC<{ children: React.ReactNode; userRole?: st
             },
           });
           if (!signUpErr && signUpData?.user?.id) {
-            adminAuthId = signUpData.user.id;
+            await (supabase.from('profiles') as any).upsert({
+              id: signUpData.user.id,
+              full_name: params.adminName.trim(),
+              role: 'admin',
+              tenant_id: effectiveTenantId,
+              is_active: true,
+            });
           }
         } catch (authErr) {
           console.warn('Aviso aprovisionando admin en Auth:', authErr);
         }
-
-        // Registrar / actualizar el perfil en la tabla profiles
-        await (supabase.from('profiles') as any).upsert({
-          id: adminAuthId,
-          full_name: params.adminName.trim(),
-          role: 'admin',
-          tenant_id: effectiveTenantId,
-          is_active: true,
-        });
-      } catch (err) {
-        console.error('Error persistiendo campaña y administrador en Supabase:', err);
+      } catch (err: any) {
+        console.error('Error persistiendo campaña en Supabase:', err);
+        throw err;
       }
     }
 

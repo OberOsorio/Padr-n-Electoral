@@ -94,13 +94,8 @@ export default function App() {
   const [publicView, setPublicView] = useState<'landing' | 'login'>('landing');
 
   useEffect(() => {
-    // 1. Limpiar cualquier almacenamiento residual de sesiones y datos demo previos
+    // 1. Limpiar cualquier almacenamiento residual de sesiones demo previas
     localStorage.removeItem('electoral_demo_auth');
-    localStorage.removeItem('electoral_saas_tenants');
-    localStorage.removeItem('electoral_local_electors');
-    localStorage.removeItem('electoral_local_team');
-    localStorage.removeItem('electoral_saas_access_logs');
-    localStorage.removeItem('electoral_active_tenant_id');
 
     // Limpiar tokens persistentes de Supabase en localStorage para que la sesión no quede preiniciada
     try {
