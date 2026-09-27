@@ -337,7 +337,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                       {/* Límite Censal */}
                       <td className="py-3.5 px-4">
                         <div className="font-mono text-xs text-slate-700 dark:text-slate-200">
-                          <span className="font-bold">{tenant.max_electors.toLocaleString('es-CO')}</span> electores
+                          <span className="font-bold">{tenant.max_electors ? tenant.max_electors.toLocaleString('es-CO') : '∞ Ilimitado'}</span> electores
                         </div>
                       </td>
 

@@ -631,7 +631,7 @@ export const RegisterElectorView = ({
               </p>
               <p className="mt-0.5 leading-relaxed">
                 {planUsage.isLimitReached
-                  ? `Esta campaña ha ocupado sus ${planUsage.totalElectors.toLocaleString()} de ${planUsage.maxElectors.toLocaleString()} registros asignados en su plan ${currentTenant?.plan.toUpperCase()}. Las nuevas inscripciones están bloqueadas hasta ampliar el plan.`
+                  ? `Esta campaña ha ocupado sus ${planUsage.totalElectors.toLocaleString()} de ${planUsage.maxElectors.toLocaleString()} registros asignados en su plan ${currentTenant?.plan?.toUpperCase() || 'ILIMITADO'}. Las nuevas inscripciones están bloqueadas hasta ampliar el plan.`
                   : `Esta campaña ha consumido ${planUsage.totalElectors.toLocaleString()} de ${planUsage.maxElectors.toLocaleString()} registros (${planUsage.percentage}% de capacidad). Considere ampliar el cupo pronto.`}
               </p>
             </div>

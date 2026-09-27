@@ -5,8 +5,11 @@ export interface Tenant {
   id: string;
   name: string;
   slug: string;
-  plan: TenantPlan;
-  max_electors: number;
+  plan?: TenantPlan | string;
+  max_electors?: number;
+  es_ilimitado?: boolean;
+  departamento?: string;
+  municipio?: string;
   is_active: boolean;
   created_at: string;
   admin_name?: string;

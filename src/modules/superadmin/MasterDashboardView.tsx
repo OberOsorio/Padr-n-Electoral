@@ -7,6 +7,8 @@ import {
   ArrowUpRight,
   TrendingUp,
   Server,
+  Infinity,
+  MapPin,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useTenant } from '../../context/TenantContext';
@@ -25,10 +27,8 @@ export const MasterDashboardView: React.FC<MasterDashboardViewProps> = ({
   // Métricas agregadas de todos los tenants
   const activeTenantsCount = tenants.filter((t) => t.is_active).length;
   const suspendedTenantsCount = tenants.filter((t) => !t.is_active).length;
-  const totalCapacity = tenants.reduce((acc, t) => acc + (t.max_electors || 0), 0);
   const totalElectorsGlobal = tenants.reduce((acc, t) => acc + (t.totalElectores || 0), 0);
   const totalUsersGlobal = tenants.reduce((acc, t) => acc + (t.totalUsers || 2), 0);
-  const globalUtilizationPct = totalCapacity > 0 ? Math.round((totalElectorsGlobal / totalCapacity) * 100) : 0;
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -39,7 +39,7 @@ export const MasterDashboardView: React.FC<MasterDashboardViewProps> = ({
             Resumen Global de Plataforma
           </h1>
           <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1">
-            Supervisión centralizada del ecosistema, distribución de cuotas y consumo de recursos
+            Supervisión centralizada del ecosistema, censo electoral y estado operativo de campañas
           </p>
         </div>
 
@@ -112,16 +112,13 @@ export const MasterDashboardView: React.FC<MasterDashboardViewProps> = ({
               <span className="text-3xl font-extrabold text-slate-900 dark:text-white font-mono">
                 {totalElectorsGlobal.toLocaleString()}
               </span>
+              <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">
+                electores
+              </span>
             </div>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 truncate">
-              {totalCapacity.toLocaleString()} capacidad global contratada ({globalUtilizationPct}%)
-            </p>
-            {/* Barra de progreso global */}
-            <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full mt-2 overflow-hidden">
-              <div
-                className="bg-blue-600 dark:bg-blue-500 h-full rounded-full transition-all duration-500"
-                style={{ width: `${Math.min(100, globalUtilizationPct)}%` }}
-              />
+            <div className="mt-2.5 flex items-center gap-1.5 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
+              <Infinity className="w-3.5 h-3.5 shrink-0" />
+              <span>Capacidad Ilimitada Habilitada</span>
             </div>
           </div>
         </motion.div>
@@ -189,16 +186,16 @@ export const MasterDashboardView: React.FC<MasterDashboardViewProps> = ({
         </motion.div>
       </div>
 
-      {/* 3. Tabla de Consumo de Recursos por Campaña */}
+      {/* 3. Tabla de Volumen de Electores por Campaña */}
       <div className="rounded-2xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
         <div className="p-5 sm:p-6 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h2 className="text-base font-semibold text-slate-900 dark:text-white flex items-center gap-2">
               <Server className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-              <span>Consumo de Capacidad y Cuotas por Campaña</span>
+              <span>Distribución y Volumen de Electores por Campaña</span>
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Supervisión de electores registrados frente al tope contractual por inquilino
+              Supervisión de electores registrados y capacidad operacional por inquilino
             </p>
           </div>
 
@@ -217,18 +214,15 @@ export const MasterDashboardView: React.FC<MasterDashboardViewProps> = ({
             <thead className="bg-slate-50 dark:bg-slate-950/60 text-[10px] font-mono uppercase text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
               <tr>
                 <th className="py-3 px-4 font-semibold">Campaña / Cliente</th>
-                <th className="py-3 px-4 font-semibold">Plan Contratado</th>
-                <th className="py-3 px-4 font-semibold">Electores / Límite</th>
-                <th className="py-3 px-4 font-semibold">Consumo de Cuota</th>
+                <th className="py-3 px-4 font-semibold">Jurisdicción</th>
+                <th className="py-3 px-4 font-semibold">Capacidad</th>
+                <th className="py-3 px-4 font-semibold">Electores Registrados</th>
                 <th className="py-3 px-4 font-semibold">Estado</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
               {tenants.map((t) => {
                 const current = t.totalElectores || 0;
-                const max = t.max_electors || 10000;
-                const pct = max > 0 ? Math.min(100, Math.round((current / max) * 100)) : 0;
-                const isNearLimit = pct >= 85;
 
                 return (
                   <tr key={t.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors">
@@ -248,44 +242,27 @@ export const MasterDashboardView: React.FC<MasterDashboardViewProps> = ({
                       </div>
                     </td>
 
+                    <td className="py-3.5 px-4 text-slate-600 dark:text-slate-400">
+                      {t.municipio || t.departamento ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] text-purple-600 dark:text-purple-400">
+                          <MapPin className="w-3 h-3 shrink-0" />
+                          {[t.municipio, t.departamento].filter(Boolean).join(', ')}
+                        </span>
+                      ) : (
+                        <span className="text-[11px] text-slate-400 font-mono italic">Nacional</span>
+                      )}
+                    </td>
+
                     <td className="py-3.5 px-4 font-mono">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                        t.plan === 'enterprise'
-                          ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60'
-                          : t.plan === 'pro'
-                          ? 'bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60'
-                          : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
-                      }`}>
-                        {t.plan}
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">
+                        <Infinity className="w-3 h-3 text-emerald-500 shrink-0" />
+                        Ilimitada
                       </span>
                     </td>
 
-                    <td className="py-3.5 px-4 font-mono font-medium text-slate-700 dark:text-slate-300">
+                    <td className="py-3.5 px-4 font-mono font-medium">
                       <span className="font-bold text-slate-900 dark:text-white">{current.toLocaleString()}</span>
-                      <span className="text-slate-500 dark:text-slate-400"> / {max.toLocaleString()}</span>
-                    </td>
-
-                    <td className="py-3.5 px-4 min-w-[180px]">
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-[10px] font-mono">
-                          <span className={isNearLimit ? 'text-amber-600 dark:text-amber-400 font-bold' : 'text-slate-600 dark:text-slate-400'}>
-                            {pct}% usado
-                          </span>
-                          <span className="text-slate-500 dark:text-slate-400">{(max - current).toLocaleString()} restantes</span>
-                        </div>
-                        <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full rounded-full transition-all duration-300 ${
-                              pct >= 100
-                                ? 'bg-rose-500'
-                                : pct >= 85
-                                ? 'bg-amber-500'
-                                : 'bg-gradient-to-r from-purple-600 to-indigo-600'
-                            }`}
-                            style={{ width: `${Math.min(100, pct)}%` }}
-                          />
-                        </div>
-                      </div>
+                      <span className="text-slate-400 text-[11px] ml-1">electores</span>
                     </td>
 
                     <td className="py-3.5 px-4">

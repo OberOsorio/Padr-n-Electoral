@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { supabase, isSupabaseConfigured, createNonPersistentClient } from '../lib/supabase';
 import type { Tenant, TenantPlan } from '../types';
 
 export const DEFAULT_TENANTS: Tenant[] = [];
@@ -18,8 +18,10 @@ interface PlanUsage {
 interface CreateCampaignParams {
   name: string;
   slug: string;
-  plan: TenantPlan;
-  max_electors: number;
+  plan?: TenantPlan | string;
+  max_electors?: number;
+  departamento?: string;
+  municipio?: string;
   adminName: string;
   adminEmail: string;
   adminPassword?: string;
@@ -30,7 +32,14 @@ interface TenantContextType {
   tenants: Tenant[];
   currentTenantId: string | null;
   setCurrentTenantId: (id: string | null) => void;
-  createTenant: (tenantData: { name: string; slug: string; plan: TenantPlan; max_electors: number }) => Promise<Tenant>;
+  createTenant: (tenantData: {
+    name: string;
+    slug: string;
+    plan?: TenantPlan | string;
+    max_electors?: number;
+    departamento?: string;
+    municipio?: string;
+  }) => Promise<Tenant>;
   createCampaignWithAdmin: (params: CreateCampaignParams) => Promise<Tenant>;
   updateTenant: (id: string, updates: Partial<Tenant>) => Promise<void>;
   toggleTenantStatus: (id: string) => Promise<void>;
@@ -140,19 +149,22 @@ export const TenantProvider: React.FC<{ children: React.ReactNode; userRole?: st
     countElectors();
   }, [currentTenant?.id]);
 
-  // 3. Crear nuevo Tenant (Campaña SaaS)
+  // 3. Crear nuevo Tenant (Campaña con capacidad ilimitada)
   const createTenant = async (tenantData: {
     name: string;
     slug: string;
-    plan: TenantPlan;
-    max_electors: number;
+    plan?: TenantPlan | string;
+    max_electors?: number;
+    departamento?: string;
+    municipio?: string;
   }): Promise<Tenant> => {
     const newTenant: Tenant = {
       id: crypto.randomUUID ? crypto.randomUUID() : `ten_${Date.now()}`,
       name: tenantData.name,
       slug: tenantData.slug.toLowerCase().trim().replace(/[^a-z0-9-]+/g, '-'),
-      plan: tenantData.plan,
-      max_electors: tenantData.max_electors || 10000,
+      es_ilimitado: true,
+      departamento: tenantData.departamento,
+      municipio: tenantData.municipio,
       is_active: true,
       created_at: new Date().toISOString(),
     };
@@ -170,8 +182,9 @@ export const TenantProvider: React.FC<{ children: React.ReactNode; userRole?: st
           id: newTenant.id,
           name: newTenant.name,
           slug: newTenant.slug,
-          plan: newTenant.plan,
-          max_electors: newTenant.max_electors,
+          es_ilimitado: true,
+          departamento: newTenant.departamento,
+          municipio: newTenant.municipio,
           is_active: newTenant.is_active,
         });
         if (error) console.error('Error insertando tenant en Supabase:', error);
@@ -183,15 +196,18 @@ export const TenantProvider: React.FC<{ children: React.ReactNode; userRole?: st
     return newTenant;
   };
 
-  // 4. Crear Campaña con Administrador asignado
+  // 4. Crear Campaña con Administrador asignado (Capacidad Ilimitada)
   const createCampaignWithAdmin = async (params: CreateCampaignParams): Promise<Tenant> => {
-    const tenantId = `ten_${Date.now()}`;
+    const tempTenantId = `ten_${Date.now()}`;
+    let effectiveTenantId = tempTenantId;
+
     const newTenant: Tenant = {
-      id: tenantId,
+      id: tempTenantId,
       name: params.name,
       slug: params.slug.toLowerCase().trim().replace(/[^a-z0-9-]+/g, '-'),
-      plan: params.plan,
-      max_electors: params.max_electors || 10000,
+      es_ilimitado: true,
+      departamento: params.departamento,
+      municipio: params.municipio,
       is_active: true,
       created_at: new Date().toISOString(),
       admin_name: params.adminName,
@@ -200,9 +216,74 @@ export const TenantProvider: React.FC<{ children: React.ReactNode; userRole?: st
       totalUsers: 1,
     };
 
+    if (isSupabaseConfigured) {
+      try {
+        // Intentar invocar función RPC aprovisionar_nueva_campana
+        const { data: rpcRes, error: rpcErr } = await (supabase.rpc as any)('aprovisionar_nueva_campana', {
+          p_nombre: params.name,
+          p_slug: newTenant.slug,
+          p_departamento: params.departamento || null,
+          p_municipio: params.municipio || null,
+          p_admin_nombre: params.adminName,
+          p_admin_email: params.adminEmail,
+          p_admin_password: params.adminPassword || 'Admin2026*',
+        });
+
+        if (!rpcErr && rpcRes?.tenant_id) {
+          effectiveTenantId = rpcRes.tenant_id;
+          newTenant.id = effectiveTenantId;
+        } else {
+          // Inserción directa en tabla tenants como fallback
+          const { error: insErr } = await (supabase.from('tenants') as any).insert({
+            id: newTenant.id,
+            name: newTenant.name,
+            slug: newTenant.slug,
+            es_ilimitado: true,
+            departamento: params.departamento || null,
+            municipio: params.municipio || null,
+            is_active: true,
+          });
+          if (insErr) console.warn('Aviso insertando tenant:', insErr);
+        }
+
+        // Aprovisionar administrador en Supabase Auth con cliente sin persistencia
+        let adminAuthId = `usr_${effectiveTenantId}_admin`;
+        try {
+          const nonPersistentClient = createNonPersistentClient();
+          const { data: signUpData, error: signUpErr } = await nonPersistentClient.auth.signUp({
+            email: params.adminEmail.trim().toLowerCase(),
+            password: params.adminPassword || 'Admin2026*',
+            options: {
+              data: {
+                full_name: params.adminName.trim(),
+                role: 'admin',
+                tenant_id: effectiveTenantId,
+              },
+            },
+          });
+          if (!signUpErr && signUpData?.user?.id) {
+            adminAuthId = signUpData.user.id;
+          }
+        } catch (authErr) {
+          console.warn('Aviso aprovisionando admin en Auth:', authErr);
+        }
+
+        // Registrar / actualizar el perfil en la tabla profiles
+        await (supabase.from('profiles') as any).upsert({
+          id: adminAuthId,
+          full_name: params.adminName.trim(),
+          role: 'admin',
+          tenant_id: effectiveTenantId,
+          is_active: true,
+        });
+      } catch (err) {
+        console.error('Error persistiendo campaña y administrador en Supabase:', err);
+      }
+    }
+
     // Actualizar tenants localmente
     setTenants((prev) => {
-      const updated = [newTenant, ...prev];
+      const updated = [newTenant, ...prev.filter((t) => t.id !== newTenant.id)];
       localStorage.setItem(LOCAL_STORAGE_TENANTS_KEY, JSON.stringify(updated));
       return updated;
     });
@@ -212,11 +293,11 @@ export const TenantProvider: React.FC<{ children: React.ReactNode; userRole?: st
       const storedTeam = localStorage.getItem('electoral_local_team');
       const teamList = storedTeam ? JSON.parse(storedTeam) : [];
       teamList.unshift({
-        id: `usr_${tenantId}_admin`,
+        id: `usr_${effectiveTenantId}_admin`,
         full_name: params.adminName,
         email: params.adminEmail,
         role: 'admin',
-        tenant_id: tenantId,
+        tenant_id: effectiveTenantId,
         is_active: true,
         created_at: new Date().toISOString(),
         totalElectores: 0,
@@ -225,30 +306,6 @@ export const TenantProvider: React.FC<{ children: React.ReactNode; userRole?: st
       localStorage.setItem('electoral_local_team', JSON.stringify(teamList));
     } catch (e) {
       console.warn('Error al respaldar admin local:', e);
-    }
-
-    if (isSupabaseConfigured) {
-      try {
-        await (supabase.from('tenants') as any).insert({
-          id: newTenant.id,
-          name: newTenant.name,
-          slug: newTenant.slug,
-          plan: newTenant.plan,
-          max_electors: newTenant.max_electors,
-          is_active: newTenant.is_active,
-        });
-
-        // Intentar registrar el profile si ya existe el usuario de auth
-        await (supabase.from('profiles') as any).insert({
-          id: `usr_${tenantId}_admin`,
-          full_name: params.adminName,
-          role: 'admin',
-          tenant_id: tenantId,
-          is_active: true,
-        });
-      } catch (err) {
-        console.error('Error persistiendo campaña y administrador en Supabase:', err);
-      }
     }
 
     return newTenant;
@@ -336,19 +393,16 @@ export const TenantProvider: React.FC<{ children: React.ReactNode; userRole?: st
     return { success: true };
   };
 
-  // 7. Cálculo de límites y cuotas del plan
+  // 7. Capacidad del padrón (Modelo Ilimitado)
   const planUsage: PlanUsage = useMemo(() => {
-    const maxElectors = currentTenant?.max_electors || 10000;
-    const total = totalTenantElectors;
-    const percentage = maxElectors > 0 ? Math.min(100, Math.round((total / maxElectors) * 100)) : 0;
     return {
-      totalElectors: total,
-      maxElectors,
-      percentage,
-      isNearLimit: percentage >= 85,
-      isLimitReached: total >= maxElectors,
+      totalElectors: totalTenantElectors,
+      maxElectors: 0,
+      percentage: 0,
+      isNearLimit: false,
+      isLimitReached: false,
     };
-  }, [currentTenant, totalTenantElectors]);
+  }, [totalTenantElectors]);
 
   return (
     <TenantContext.Provider

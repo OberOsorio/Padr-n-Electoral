@@ -9,11 +9,13 @@ import {
   Power,
   Loader2,
   Trash2,
+  Infinity,
+  MapPin,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTenant } from '../../context/TenantContext';
 import { useAccessAuditLogs } from './useAccessAuditLogs';
-import type { Tenant, TenantPlan } from '../../types';
+import type { Tenant } from '../../types';
 
 export const TenantsManagementView: React.FC = () => {
   const { tenants, toggleTenantStatus, createCampaignWithAdmin, deleteTenantPermanently, refetchTenants } = useTenant();
@@ -30,11 +32,11 @@ export const TenantsManagementView: React.FC = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  // Formulario de nueva campaña
+  // Formulario de nueva campaña (Capacidad Ilimitada)
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
-  const [plan, setPlan] = useState<TenantPlan>('pro');
-  const [maxElectors, setMaxElectors] = useState<number>(25000);
+  const [departamento, setDepartamento] = useState('');
+  const [municipio, setMunicipio] = useState('');
   const [adminName, setAdminName] = useState('');
   const [adminEmail, setAdminEmail] = useState('');
   const [adminPassword, setAdminPassword] = useState('Admin2026*');
@@ -143,7 +145,7 @@ export const TenantsManagementView: React.FC = () => {
     }
   };
 
-  // Guardar nueva campaña con su administrador
+  // Guardar nueva campaña con su administrador (Modelo Capacidad Ilimitada)
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
@@ -156,10 +158,6 @@ export const TenantsManagementView: React.FC = () => {
       setFormError('Debe definir un Administrador Responsable (Nombre y Correo).');
       return;
     }
-    if (maxElectors <= 0) {
-      setFormError('El límite de electores debe ser mayor a 0.');
-      return;
-    }
 
     setSubmitting(true);
 
@@ -167,32 +165,32 @@ export const TenantsManagementView: React.FC = () => {
       const created = await createCampaignWithAdmin({
         name: name.trim(),
         slug: slug.trim() || `campana-${Date.now()}`,
-        plan,
-        max_electors: Number(maxElectors),
+        departamento: departamento.trim() || undefined,
+        municipio: municipio.trim() || undefined,
         adminName: adminName.trim(),
         adminEmail: adminEmail.trim().toLowerCase(),
         adminPassword,
       });
 
       recordAccessEvent({
-        user_email: 'superadmin@saas.gov',
-        user_name: 'SuperAdmin Maestro',
+        user_email: 'oberosorio1@gmail.com',
+        user_name: 'Ober Osorio (SuperAdmin)',
         user_role: 'superadmin',
         tenant_name: created.name,
         tenant_id: created.id,
         event_type: 'tenant_created',
-        description: `Aprovisionada nueva campaña ${created.name} con Admin ${adminEmail}`,
+        description: `Aprovisionada nueva campaña ${created.name} (Capacidad Ilimitada) con Admin ${adminEmail}`,
       });
 
-      setToastMessage(`Campaña "${created.name}" creada con éxito.`);
-      setTimeout(() => setToastMessage(null), 4000);
+      setToastMessage(`Campaña "${created.name}" aprovisionada con éxito con Capacidad Ilimitada.`);
+      setTimeout(() => setToastMessage(null), 4500);
       setIsModalOpen(false);
 
       // Limpiar formulario
       setName('');
       setSlug('');
-      setPlan('pro');
-      setMaxElectors(25000);
+      setDepartamento('');
+      setMunicipio('');
       setAdminName('');
       setAdminEmail('');
       setAdminPassword('Admin2026*');
@@ -282,8 +280,8 @@ export const TenantsManagementView: React.FC = () => {
               <tr>
                 <th className="py-3 px-4 font-semibold">Campaña</th>
                 <th className="py-3 px-4 font-semibold">Director / Admin</th>
-                <th className="py-3 px-4 font-semibold">Plan</th>
-                <th className="py-3 px-4 font-semibold">Electores / Límite</th>
+                <th className="py-3 px-4 font-semibold">Capacidad</th>
+                <th className="py-3 px-4 font-semibold">Electores Registrados</th>
                 <th className="py-3 px-4 font-semibold">Contratación</th>
                 <th className="py-3 px-4 font-semibold">Estado</th>
                 <th className="py-3 px-4 font-semibold text-right">Interruptor Servicio</th>
@@ -299,7 +297,6 @@ export const TenantsManagementView: React.FC = () => {
               ) : (
                 filteredTenants.map((t) => {
                   const current = t.totalElectores || 0;
-                  const max = t.max_electors || 10000;
                   const isSuspended = !t.is_active;
 
                   return (
@@ -323,9 +320,18 @@ export const TenantsManagementView: React.FC = () => {
                             <p className="font-semibold text-slate-900 dark:text-white truncate">
                               {t.name}
                             </p>
-                            <p className="text-[10px] font-mono text-slate-400 truncate">
-                              id: {t.slug}
-                            </p>
+                            <div className="flex items-center gap-1.5 text-[10px] text-slate-400">
+                              <span className="font-mono truncate">id: {t.slug}</span>
+                              {(t.departamento || t.municipio) && (
+                                <>
+                                  <span>•</span>
+                                  <span className="inline-flex items-center gap-0.5 text-purple-600 dark:text-purple-400 truncate font-sans">
+                                    <MapPin className="w-2.5 h-2.5" />
+                                    {[t.municipio, t.departamento].filter(Boolean).join(', ')}
+                                  </span>
+                                </>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </td>
@@ -342,25 +348,20 @@ export const TenantsManagementView: React.FC = () => {
                         </div>
                       </td>
 
-                      {/* Plan */}
+                      {/* Capacidad */}
                       <td className="py-3.5 px-4 font-mono">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                          t.plan === 'enterprise'
-                            ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300'
-                            : t.plan === 'pro'
-                            ? 'bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300'
-                            : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
-                        }`}>
-                          {t.plan}
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 shadow-2xs">
+                          <Infinity className="w-3 h-3 text-emerald-500 shrink-0" />
+                          <span>Ilimitada</span>
                         </span>
                       </td>
 
-                      {/* Electores / Límite */}
+                      {/* Electores Registrados */}
                       <td className="py-3.5 px-4 font-mono">
                         <span className="font-semibold text-slate-900 dark:text-white">
                           {current.toLocaleString()}
                         </span>
-                        <span className="text-slate-400"> / {max.toLocaleString()}</span>
+                        <span className="text-slate-400 text-[11px] ml-1">electores</span>
                       </td>
 
                       {/* Fecha de Contratación */}
@@ -497,58 +498,70 @@ export const TenantsManagementView: React.FC = () => {
                   />
                 </div>
 
-                {/* 2. Slug & Plan */}
+                {/* 2. Slug */}
+                <div className="space-y-1">
+                  <label className="text-[11px] font-mono uppercase font-semibold text-slate-600 dark:text-slate-400">
+                    Identificador Único (Slug) *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={slug}
+                    onChange={(e) => setSlug(e.target.value)}
+                    placeholder="monteria-2026"
+                    className="w-full h-10 px-3 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+
+                {/* 3. Jurisdicción Territorial (Opcional) */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <label className="text-[11px] font-mono uppercase font-semibold text-slate-600 dark:text-slate-400">
-                      Identificador (Slug)
+                    <label className="text-[11px] font-mono uppercase font-semibold text-slate-600 dark:text-slate-400 flex items-center gap-1">
+                      <MapPin className="w-3 h-3 text-purple-500" />
+                      <span>Departamento (Opcional)</span>
                     </label>
                     <input
                       type="text"
-                      required
-                      value={slug}
-                      onChange={(e) => setSlug(e.target.value)}
-                      placeholder="monteria-2026"
-                      className="w-full h-10 px-3 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-purple-500"
+                      value={departamento}
+                      onChange={(e) => setDepartamento(e.target.value)}
+                      placeholder="Ej. Córdoba"
+                      className="w-full h-10 px-3 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-purple-500"
                     />
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[11px] font-mono uppercase font-semibold text-slate-600 dark:text-slate-400">
-                      Plan SaaS
+                    <label className="text-[11px] font-mono uppercase font-semibold text-slate-600 dark:text-slate-400 flex items-center gap-1">
+                      <MapPin className="w-3 h-3 text-purple-500" />
+                      <span>Municipio (Opcional)</span>
                     </label>
-                    <select
-                      value={plan}
-                      onChange={(e) => {
-                        const p = e.target.value as TenantPlan;
-                        setPlan(p);
-                        if (p === 'standard') setMaxElectors(10000);
-                        if (p === 'pro') setMaxElectors(25000);
-                        if (p === 'enterprise') setMaxElectors(100000);
-                      }}
-                      className="w-full h-10 px-3 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 cursor-pointer"
-                    >
-                      <option value="standard">Standard (10k)</option>
-                      <option value="pro">Pro (25k)</option>
-                      <option value="enterprise">Enterprise (100k)</option>
-                    </select>
+                    <input
+                      type="text"
+                      value={municipio}
+                      onChange={(e) => setMunicipio(e.target.value)}
+                      placeholder="Ej. Montería"
+                      className="w-full h-10 px-3 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-purple-500"
+                    />
                   </div>
                 </div>
 
-                {/* 3. Límite de Electores Contratados */}
-                <div className="space-y-1">
-                  <label className="text-[11px] font-mono uppercase font-semibold text-slate-600 dark:text-slate-400">
-                    Límite Máximo de Electores *
-                  </label>
-                  <input
-                    type="number"
-                    min="1000"
-                    step="1000"
-                    required
-                    value={maxElectors}
-                    onChange={(e) => setMaxElectors(Number(e.target.value))}
-                    className="w-full h-10 px-3.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-purple-500"
-                  />
+                {/* 4. Tarjeta Ejecutiva: Capacidad Ilimitada */}
+                <div className="p-3.5 rounded-xl bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-purple-500/10 border border-emerald-500/30 flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5">
+                    <Infinity className="w-5 h-5" />
+                  </div>
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-xs font-bold text-slate-900 dark:text-white tracking-tight">
+                        Capacidad Ilimitada de Padrón
+                      </h4>
+                      <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
+                        ∞ Sin Restricciones
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                      Esta campaña cuenta con aprovisionamiento ilimitado para registro manual, importación masiva y exportación de electores sin límites de cupo ni restricciones escalonadas.
+                    </p>
+                  </div>
                 </div>
 
                 {/* 4. Separador: Datos del Administrador Responsable */}
