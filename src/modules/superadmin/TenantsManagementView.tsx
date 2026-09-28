@@ -13,6 +13,8 @@ import {
   MapPin,
   Eye,
   EyeOff,
+  Copy,
+  Check,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTenant } from '../../context/TenantContext';
@@ -34,6 +36,7 @@ export const TenantsManagementView: React.FC = () => {
   const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [copiedConfirmation, setCopiedConfirmation] = useState(false);
 
   // Formulario de nueva campaña (Capacidad Ilimitada)
   const [name, setName] = useState('');
@@ -697,21 +700,79 @@ export const TenantsManagementView: React.FC = () => {
               {/* C. Validación de Seguridad por Texto */}
               <div className="space-y-2 mb-6">
                 <label className="block text-xs font-medium text-slate-300">
-                  Para confirmar, escriba exactamente{' '}
-                  <span className="font-mono font-bold text-red-400 select-all bg-red-950/50 px-1.5 py-0.5 rounded border border-red-900/60">
-                    ELIMINAR MI CAMPAÑA
-                  </span>{' '}
+                  Para confirmar, escriba o haga clic en{' '}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const text = 'ELIMINAR MI CAMPAÑA';
+                      try {
+                        navigator.clipboard.writeText(text);
+                      } catch {
+                        // ignore
+                      }
+                      setDeleteConfirmationText(text);
+                      setCopiedConfirmation(true);
+                      setTimeout(() => setCopiedConfirmation(false), 2500);
+                    }}
+                    title="Haga clic para copiar y pegar en el recuadro"
+                    className="inline-flex items-center gap-1.5 font-mono font-bold text-red-400 hover:text-white bg-red-950/70 hover:bg-red-900 px-2 py-0.5 rounded border border-red-800/80 transition-all cursor-pointer shadow-sm active:scale-95 group"
+                  >
+                    <span>ELIMINAR MI CAMPAÑA</span>
+                    {copiedConfirmation ? (
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    ) : (
+                      <Copy className="w-3.5 h-3.5 text-red-400 group-hover:text-white transition-colors" />
+                    )}
+                  </button>{' '}
                   a continuación:
                 </label>
-                <input
-                  type="text"
-                  value={deleteConfirmationText}
-                  onChange={(e) => setDeleteConfirmationText(e.target.value)}
-                  placeholder='Escriba "ELIMINAR MI CAMPAÑA" para confirmar.'
-                  disabled={isDeleting}
-                  className="w-full bg-slate-950/80 border border-slate-700 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 font-mono tracking-wide transition-all outline-none"
-                  autoFocus
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={deleteConfirmationText}
+                    onChange={(e) => setDeleteConfirmationText(e.target.value)}
+                    placeholder='Escriba o pegue "ELIMINAR MI CAMPAÑA"'
+                    disabled={isDeleting}
+                    className="w-full bg-slate-950/80 border border-slate-700 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 rounded-xl pl-4 pr-24 py-3 text-sm text-white placeholder-slate-500 font-mono tracking-wide transition-all outline-none"
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const text = 'ELIMINAR MI CAMPAÑA';
+                      try {
+                        navigator.clipboard.writeText(text);
+                      } catch {
+                        // ignore
+                      }
+                      setDeleteConfirmationText(text);
+                      setCopiedConfirmation(true);
+                      setTimeout(() => setCopiedConfirmation(false), 2500);
+                    }}
+                    disabled={isDeleting}
+                    title="Pegar automáticamente en el recuadro"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 px-2.5 py-1.5 rounded-lg bg-red-950/80 hover:bg-red-900 border border-red-800/70 text-red-300 hover:text-white text-xs font-mono flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    {copiedConfirmation ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        <span className="text-emerald-400">Pegado</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5 text-red-400" />
+                        <span>Pegar</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {copiedConfirmation && (
+                  <p className="text-[11px] text-emerald-400 flex items-center gap-1 font-medium">
+                    <Check className="w-3 h-3" />
+                    <span>Texto copiado y pegado en el recuadro correctamente.</span>
+                  </p>
+                )}
 
                 {deleteError && (
                   <div className="p-3 rounded-lg bg-red-950/40 border border-red-500/50 text-red-400 text-xs">
