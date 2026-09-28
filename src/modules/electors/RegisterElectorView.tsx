@@ -88,6 +88,31 @@ export const RegisterElectorView = ({
     cedulaInputRef.current?.focus();
   }, []);
 
+  // Cargar datos pre-poblados si vienen desde la Consulta de Lugar de Votación
+  useEffect(() => {
+    try {
+      const pendingRaw = sessionStorage.getItem('electoral_pending_registration');
+      if (pendingRaw) {
+        const pending = JSON.parse(pendingRaw);
+        sessionStorage.removeItem('electoral_pending_registration');
+        if (pending.cedula) {
+          setCedula(pending.cedula);
+          currentCedulaRef.current = pending.cedula;
+        }
+        if (pending.nombres) setNombres(pending.nombres);
+        if (pending.apellidos) setApellidos(pending.apellidos);
+        if (pending.puesto) setPuestoVotacion(pending.puesto);
+        if (pending.mesa) setMesa(Number(pending.mesa) || 1);
+
+        setTimeout(() => {
+          telefonoInputRef.current?.focus();
+        }, 150);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
   const { currentTenant, currentTenantId, planUsage, refetchTenants } = useTenant();
 
   // Actualizar lista de mesas según el puesto seleccionado

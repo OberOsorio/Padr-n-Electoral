@@ -1,379 +1,496 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
-  ExternalLink,
-  RotateCw,
   Search,
+  UserPlus,
+  Loader2,
+  Building2,
+  MapPin,
   CheckCircle2,
   AlertCircle,
   Copy,
   Check,
-  Globe,
-  UserPlus,
-  Loader2,
-  MapPin,
-  Building,
-  Shield,
+  ClipboardPaste,
+  X,
+  ExternalLink,
+  RotateCcw,
+  Sparkles,
   ArrowRight,
+  Vote,
+  Map,
 } from 'lucide-react';
-import { buscarCiudadanoEnCenso } from '../../services/censoService';
+import { motion, AnimatePresence } from 'framer-motion';
+import { consultarLugarVotacion, type CensoLookupResult } from '../../services/censoLookupService';
 
 interface ConsultaLugarVotacionViewProps {
   onNavigateToRegister?: () => void;
 }
 
-const REGISTRADURIA_URL = 'https://consultacenso.registraduria.gov.co/';
-
 export const ConsultaLugarVotacionView: React.FC<ConsultaLugarVotacionViewProps> = ({
   onNavigateToRegister,
 }) => {
-  const [iframeKey, setIframeKey] = useState<number>(Date.now());
-  const [copiedUrl, setCopiedUrl] = useState(false);
-  const [viewMode, setViewMode] = useState<'card' | 'iframe'>('card');
-  const [quickCedula, setQuickCedula] = useState('');
-  const [searchingQuick, setSearchingQuick] = useState(false);
-  const [quickResult, setQuickResult] = useState<{
-    found: boolean;
-    data?: any;
-    message?: string;
-  } | null>(null);
-
-  const handleRefreshIframe = () => {
-    setIframeKey(Date.now());
-  };
-
-  const handleOpenPopup = () => {
-    const width = 1040;
-    const height = 820;
-    const left = window.screenX + (window.outerWidth - width) / 2;
-    const top = window.screenY + (window.outerHeight - height) / 2;
-    window.open(
-      REGISTRADURIA_URL,
-      'RegistraduriaConsultaCenso',
-      `width=${width},height=${height},left=${left},top=${top},status=no,menubar=no,toolbar=no,scrollbars=yes,resizable=yes`
-    );
-  };
-
-  const handleOpenNewTab = () => {
-    window.open(REGISTRADURIA_URL, '_blank', 'noopener,noreferrer');
-  };
-
-  const handleCopyUrl = () => {
+  const [cedula, setCedula] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<CensoLookupResult | null>(null);
+  const [hasSearched, setHasSearched] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [history, setHistory] = useState<CensoLookupResult[]>(() => {
     try {
-      navigator.clipboard.writeText(REGISTRADURIA_URL);
-      setCopiedUrl(true);
-      setTimeout(() => setCopiedUrl(false), 2000);
+      const stored = localStorage.getItem('electoral_lookup_history');
+      return stored ? JSON.parse(stored) : [];
     } catch {
-      // ignore
+      return [];
     }
-  };
+  });
 
-  const handleQuickSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const cleanCedula = quickCedula.trim().replace(/\D/g, '');
-    if (!cleanCedula) return;
+  const inputRef = useRef<HTMLInputElement>(null);
 
-    setSearchingQuick(true);
-    setQuickResult(null);
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  const handleSearch = async (targetCedula?: string) => {
+    const rawVal = targetCedula ?? cedula;
+    const cleanCedula = rawVal.trim().replace(/\D/g, '');
+    if (!cleanCedula || cleanCedula.length < 4) return;
+
+    setLoading(true);
+    setHasSearched(true);
 
     try {
-      const result = await buscarCiudadanoEnCenso(cleanCedula);
-      if (result) {
-        setQuickResult({
-          found: true,
-          data: result,
-        });
-      } else {
-        setQuickResult({
-          found: false,
-          message: 'Cédula no encontrada en el censo local de la campaña. Por favor verifique en el portal oficial de la Registraduría.',
+      const data = await consultarLugarVotacion(cleanCedula);
+      setResult(data);
+
+      if (data.encontrado) {
+        setHistory((prev) => {
+          const filtered = prev.filter((item) => item.cedula !== data.cedula);
+          const updated = [data, ...filtered].slice(0, 10);
+          try {
+            localStorage.setItem('electoral_lookup_history', JSON.stringify(updated));
+          } catch {}
+          return updated;
         });
       }
-    } catch {
-      setQuickResult({
-        found: false,
-        message: 'No fue posible consultar el censo local en este momento.',
-      });
+    } catch (err) {
+      console.error('Error al consultar censo:', err);
+      setResult({ encontrado: false, cedula: cleanCedula });
     } finally {
-      setSearchingQuick(false);
+      setLoading(false);
     }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSearch();
+    }
+  };
+
+  const handlePaste = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      const clean = text.replace(/\D/g, '');
+      if (clean) {
+        setCedula(clean);
+        handleSearch(clean);
+      }
+    } catch {
+      inputRef.current?.focus();
+    }
+  };
+
+  const handleClear = () => {
+    setCedula('');
+    setResult(null);
+    setHasSearched(false);
+    inputRef.current?.focus();
+  };
+
+  const handleCopyText = (text: string, fieldName: string) => {
+    try {
+      navigator.clipboard.writeText(text);
+      setCopiedField(fieldName);
+      setTimeout(() => setCopiedField(null), 1800);
+    } catch {}
+  };
+
+  const handleTransferToRegister = (itemToTransfer: CensoLookupResult) => {
+    try {
+      sessionStorage.setItem(
+        'electoral_pending_registration',
+        JSON.stringify({
+          cedula: itemToTransfer.cedula,
+          nombres: itemToTransfer.nombres || '',
+          apellidos: itemToTransfer.apellidos || '',
+          puesto: itemToTransfer.puesto || '',
+          mesa: itemToTransfer.mesa || 1,
+          departamento: itemToTransfer.departamento || '',
+          municipio: itemToTransfer.municipio || '',
+        })
+      );
+    } catch {}
+
+    if (onNavigateToRegister) {
+      onNavigateToRegister();
+    }
+  };
+
+  const handleOpenRegistraduria = () => {
+    window.open('https://consultacenso.registraduria.gov.co/', '_blank', 'noopener,noreferrer');
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4.25rem)] w-full bg-slate-50 dark:bg-[#0F172A] text-slate-900 dark:text-slate-100 overflow-hidden transition-colors duration-200">
-      {/* 1. Barra de Herramientas y Navegación Superior */}
-      <div className="shrink-0 bg-white dark:bg-[#161F30] border-b border-slate-200 dark:border-slate-700/60 px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-3 shadow-xs transition-colors">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800/60 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
-            <Globe className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-sm font-bold text-slate-900 dark:text-white leading-tight tracking-tight">
-                Consulta Lugar de Votación
-              </h1>
-              <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                Registraduría Nacional
-              </span>
+    <div className="min-h-[calc(100vh-4.25rem)] w-full bg-slate-50 dark:bg-[#0F172A] text-slate-900 dark:text-slate-100 p-4 sm:p-6 lg:p-8 transition-colors duration-200">
+      <div className="max-w-4xl mx-auto space-y-6">
+        {/* 1. Encabezado de la Herramienta Operativa */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-2xl bg-blue-600/10 dark:bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-xs">
+              <Vote className="w-6 h-6" />
             </div>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-              Portal Oficial:{' '}
-              <span className="font-mono text-slate-700 dark:text-slate-300 font-medium">
-                consultacenso.registraduria.gov.co
-              </span>
-            </p>
-          </div>
-        </div>
-
-        {/* Acciones Rápidas */}
-        <div className="flex items-center gap-2">
-          {/* Alternar entre Ficha Institucional y Visor Embebido */}
-          <div className="inline-flex rounded-lg bg-slate-100 dark:bg-slate-800/80 p-0.5 border border-slate-200 dark:border-slate-700/60 text-xs">
-            <button
-              type="button"
-              onClick={() => setViewMode('card')}
-              className={`px-2.5 py-1 rounded-md font-medium transition-all cursor-pointer ${
-                viewMode === 'card'
-                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs font-semibold'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              Ficha Oficial
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('iframe')}
-              className={`px-2.5 py-1 rounded-md font-medium transition-all cursor-pointer ${
-                viewMode === 'iframe'
-                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs font-semibold'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              Visor Web
-            </button>
-          </div>
-
-          {/* Botón Abrir en Ventana Integrada */}
-          <button
-            type="button"
-            onClick={handleOpenPopup}
-            title="Abrir el portal oficial en una ventana integrada paralela sin salir del sistema"
-            className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm shadow-blue-500/20 cursor-pointer"
-          >
-            <ExternalLink className="w-3.5 h-3.5" />
-            <span className="hidden md:inline">Abrir en Ventana Integrada</span>
-            <span className="md:hidden">Abrir Ventana</span>
-          </button>
-
-          {/* Botón Recargar (en modo visor) */}
-          {viewMode === 'iframe' && (
-            <button
-              type="button"
-              onClick={handleRefreshIframe}
-              title="Recargar el visor del portal oficial"
-              className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
-            >
-              <RotateCw className="w-4 h-4" />
-            </button>
-          )}
-
-          {/* Botón Copiar URL */}
-          <button
-            type="button"
-            onClick={handleCopyUrl}
-            title="Copiar enlace oficial de la Registraduría"
-            className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
-          >
-            {copiedUrl ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
-          </button>
-
-          {/* Enlace directo a Registrar Elector */}
-          {onNavigateToRegister && (
-            <button
-              type="button"
-              onClick={onNavigateToRegister}
-              className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-medium transition-colors cursor-pointer border border-slate-200 dark:border-slate-700/60"
-            >
-              <UserPlus className="w-3.5 h-3.5 text-blue-500" />
-              <span>Ir a Registrar Elector</span>
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* 2. Sub-Barra de Búsqueda Rápida Local (Asistente Integrado) */}
-      <div className="shrink-0 bg-slate-100/90 dark:bg-[#131B2B] border-b border-slate-200 dark:border-slate-700/60 px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs transition-colors">
-        <form onSubmit={handleQuickSearch} className="flex items-center gap-2 w-full sm:w-auto">
-          <span className="text-[11px] font-medium text-slate-700 dark:text-slate-300 font-mono hidden md:inline">
-            Consulta Rápida Local:
-          </span>
-          <div className="relative flex-1 sm:w-64">
-            <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
-            <input
-              type="text"
-              value={quickCedula}
-              onChange={(e) => setQuickCedula(e.target.value)}
-              placeholder="Cédula para consulta rápida..."
-              className="w-full h-8.5 pl-8 pr-3 bg-white dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/40 transition-all"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={searchingQuick || !quickCedula.trim()}
-            className="h-8.5 px-3 rounded-lg bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-[11px] font-medium transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-          >
-            {searchingQuick ? <Loader2 className="w-3 h-3 animate-spin" /> : <span>Buscar</span>}
-          </button>
-        </form>
-
-        <div className="text-[11px] text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />
-          <span>Para consultar el censo oficial sin restricciones de navegador, pulse <b>"Abrir en Ventana Integrada"</b>.</span>
-        </div>
-      </div>
-
-      {/* Resultado de Búsqueda Rápida Local si existe */}
-      {quickResult && (
-        <div className="shrink-0 bg-blue-50/90 dark:bg-blue-950/40 border-b border-blue-200 dark:border-blue-800/60 p-3 px-4 sm:px-6 transition-colors">
-          {quickResult.found ? (
-            <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
-              <div className="flex flex-wrap items-center gap-2.5">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                <span className="font-semibold text-slate-900 dark:text-white">
-                  {quickResult.data.nombres} {quickResult.data.apellidos}
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
+                  Consulta de Lugar de Votación
+                </h1>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Censo Oficial
                 </span>
-                <span className="font-mono text-slate-500 dark:text-slate-400">| Cédula: {quickResult.data.cedula}</span>
-                {quickResult.data.puesto_votacion && (
-                  <span className="flex items-center gap-1 text-slate-700 dark:text-slate-300">
-                    <Building className="w-3.5 h-3.5 text-blue-500" />
-                    <b>Puesto:</b> {quickResult.data.puesto_votacion} (Mesa {quickResult.data.mesa || 'Sin asignar'})
-                  </span>
-                )}
-                {quickResult.data.municipio && (
-                  <span className="flex items-center gap-1 text-slate-500 dark:text-slate-400">
-                    <MapPin className="w-3 h-3" />
-                    {quickResult.data.municipio}, {quickResult.data.departamento}
-                  </span>
-                )}
               </div>
-              {onNavigateToRegister && (
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Verificación inmediata de puesto, mesa y municipio para enrolamiento de electores
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleOpenRegistraduria}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-xs font-medium text-slate-600 dark:text-slate-300 transition-colors shadow-2xs self-start sm:self-auto cursor-pointer"
+            title="Abrir portal oficial de la Registraduría Nacional en pestaña externa"
+          >
+            <span>Portal Registraduría</span>
+            <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
+          </button>
+        </div>
+
+        {/* 2. Barra de Búsqueda Principal (Grande y Directa) */}
+        <div className="rounded-2xl bg-white dark:bg-[#161F30] border border-slate-200 dark:border-slate-700/60 p-4 sm:p-6 shadow-md transition-all">
+          <label className="block text-xs font-mono font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-2">
+            Número de Documento / Cédula del Elector
+          </label>
+
+          <div className="flex flex-col sm:flex-row items-stretch gap-2.5">
+            <div className="relative flex-1">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-slate-500 pointer-events-none" />
+              <input
+                ref={inputRef}
+                type="text"
+                inputMode="numeric"
+                value={cedula}
+                onChange={(e) => setCedula(e.target.value.replace(/\D/g, ''))}
+                onKeyDown={handleKeyDown}
+                placeholder="Ingrese número de cédula (ej. 1067984321)..."
+                disabled={loading}
+                className="w-full h-12 pl-11 pr-20 bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/80 rounded-xl text-base font-mono font-medium text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-blue-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-blue-500/20 transition-all"
+              />
+
+              <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                {cedula && (
+                  <button
+                    type="button"
+                    onClick={handleClear}
+                    className="p-1 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                    title="Limpiar campo"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
                 <button
                   type="button"
-                  onClick={onNavigateToRegister}
-                  className="px-3 py-1 rounded-md bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-semibold flex items-center gap-1 transition-colors cursor-pointer shadow-xs"
+                  onClick={handlePaste}
+                  className="px-2 py-1 rounded-md text-xs font-mono font-semibold bg-slate-200/80 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors flex items-center gap-1 cursor-pointer"
+                  title="Pegar desde el portapapeles"
                 >
-                  <UserPlus className="w-3 h-3" />
-                  <span>Enrolar Elector</span>
+                  <ClipboardPaste className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Pegar</span>
                 </button>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => handleSearch()}
+              disabled={loading || !cedula.trim() || cedula.trim().length < 4}
+              className="h-12 px-6 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-semibold uppercase tracking-wider transition-all shadow-md shadow-blue-500/25 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Consultando...</span>
+                </>
+              ) : (
+                <>
+                  <Search className="w-4 h-4" />
+                  <span>Consultar Lugar de Votación</span>
+                </>
               )}
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 text-xs text-amber-800 dark:text-amber-300">
-              <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
-              <span>{quickResult.message}</span>
-            </div>
-          )}
-        </div>
-      )}
+            </button>
+          </div>
 
-      {/* 3. Área Principal */}
-      {viewMode === 'card' ? (
-        /* Modo Ficha Institucional Oficial (Evita bloqueos de SAMEORIGIN en navegadores) */
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-10 flex items-center justify-center">
-          <div className="w-full max-w-2xl bg-white dark:bg-[#161F30] border border-slate-200 dark:border-slate-700/60 rounded-2xl shadow-xl p-6 sm:p-8 relative overflow-hidden transition-colors">
-            {/* Realce decorativo superior */}
-            <div 
-              className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-600 via-indigo-500 to-blue-600"
-              aria-hidden="true" 
-            />
-
-            <div className="flex flex-col items-center text-center mb-6">
-              <div className="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-950/70 border border-blue-200 dark:border-blue-800/60 flex items-center justify-center text-blue-600 dark:text-blue-400 mb-4 shadow-sm">
-                <Globe className="w-7 h-7" />
-              </div>
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
-                Portal Oficial de Consulta Electoral
-              </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md">
-                Registraduría Nacional del Estado Civil — República de Colombia
-              </p>
-            </div>
-
-            {/* Aviso de Seguridad del Estado */}
-            <div className="mb-6 p-4 rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 text-xs space-y-2">
-              <div className="flex items-center gap-2 text-slate-800 dark:text-slate-200 font-semibold font-mono text-[11px] uppercase tracking-wider">
-                <Shield className="w-4 h-4 text-blue-500" />
-                <span>Política de Ciberseguridad Oficial</span>
-              </div>
-              <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                El portal oficial gubernamental (<span className="font-mono text-blue-600 dark:text-blue-400">consultacenso.registraduria.gov.co</span>) cuenta con protecciones anti-bot de Cloudflare y directivas de seguridad del Estado (<code className="font-mono text-[11px] bg-slate-200 dark:bg-slate-800 px-1 py-0.5 rounded">SAMEORIGIN</code>), por lo cual los navegadores restringen su apertura dentro de marcos incrustados.
-              </p>
-              <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                Para consultar el censo oficial sin restricciones y con total seguridad, ábralo con un solo clic a continuación. Se abrirá en una ventana emergente paralela optimizada <b>sin cerrar su sesión ni salir de la campaña</b>.
-              </p>
-            </div>
-
-            {/* Botones de Acción */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+          <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 mt-2.5 px-0.5">
+            <span>Presione Enter o haga clic en Consultar para buscar en la base oficial.</span>
+            {hasSearched && (
               <button
                 type="button"
-                onClick={handleOpenPopup}
-                className="w-full sm:w-auto px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-blue-500/25 transition-all cursor-pointer"
+                onClick={handleClear}
+                className="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 cursor-pointer font-medium"
               >
-                <ExternalLink className="w-4 h-4" />
-                <span>Abrir en Ventana Integrada</span>
+                <RotateCcw className="w-3 h-3" />
+                <span>Nueva consulta</span>
               </button>
-
-              <button
-                type="button"
-                onClick={handleOpenNewTab}
-                className="w-full sm:w-auto px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer border border-slate-200 dark:border-slate-700/60"
-              >
-                <span>Abrir en Nueva Pestaña</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setViewMode('iframe')}
-                className="w-full sm:w-auto px-3.5 py-3 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white text-xs font-medium transition-colors cursor-pointer"
-              >
-                <span>Probar Visor Web</span>
-              </button>
-            </div>
+            )}
           </div>
         </div>
-      ) : (
-        /* Modo Visor Iframe Embebido */
-        <div className="flex-1 relative w-full h-full bg-slate-100 dark:bg-slate-950 overflow-hidden flex flex-col">
-          <iframe
-            key={iframeKey}
-            src={REGISTRADURIA_URL}
-            title="Consulta de Censo y Lugar de Votación - Registraduría Nacional del Estado Civil"
-            className="w-full flex-1 border-0 shadow-inner bg-white"
-            allow="geolocation 'none'; camera 'none'; microphone 'none'"
-            sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-          />
-        </div>
-      )}
 
-      {/* Barra de pie con enlaces de soporte */}
-      <div className="shrink-0 bg-white dark:bg-[#161F30] border-t border-slate-200 dark:border-slate-700/60 px-4 sm:px-6 py-2.5 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 transition-colors">
-        <div className="flex items-center gap-2">
-          <span className="font-semibold text-slate-700 dark:text-slate-300">Registraduría Nacional del Estado Civil</span>
-          <span className="hidden sm:inline">•</span>
-          <span className="hidden sm:inline">República de Colombia</span>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={handleOpenPopup}
-            className="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 cursor-pointer font-medium"
-          >
-            <ExternalLink className="w-3 h-3" />
-            <span>Abrir ventana externa</span>
-          </button>
-        </div>
+        {/* 3. Tarjeta Oficial de Resultados (Limpia, Alta Fidelidad) */}
+        <AnimatePresence mode="wait">
+          {loading && (
+            <motion.div
+              key="loading"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="rounded-2xl bg-white dark:bg-[#161F30] border border-slate-200 dark:border-slate-700/60 p-12 text-center shadow-md flex flex-col items-center justify-center gap-3"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                <Loader2 className="w-6 h-6 animate-spin" />
+              </div>
+              <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                Verificando censo electoral oficial...
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Consultando puesto de votación y mesa asignada
+              </p>
+            </motion.div>
+          )}
+
+          {!loading && result && result.encontrado && (
+            <motion.div
+              key="found"
+              initial={{ opacity: 0, scale: 0.98, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="rounded-2xl bg-white dark:bg-[#161F30] border-2 border-emerald-500/30 dark:border-emerald-500/40 shadow-xl overflow-hidden"
+            >
+              {/* Encabezado del Elector Encontrado */}
+              <div className="bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent p-5 sm:p-6 border-b border-emerald-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-start gap-3.5">
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0 shadow-xs">
+                    <CheckCircle2 className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
+                        Elector Identificado en Censo
+                      </span>
+                    </div>
+                    <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight mt-1">
+                      {result.nombres} {result.apellidos}
+                    </h2>
+                    <p className="text-xs text-slate-600 dark:text-slate-300 font-mono mt-0.5 flex items-center gap-2">
+                      <span>C.C. {Number(result.cedula).toLocaleString('es-CO')}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyText(result.cedula, 'cedula')}
+                        className="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors cursor-pointer"
+                        title="Copiar cédula"
+                      >
+                        {copiedField === 'cedula' ? (
+                          <Check className="w-3.5 h-3.5 text-emerald-500" />
+                        ) : (
+                          <Copy className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                    </p>
+                  </div>
+                </div>
+
+                {/* Botón de Acción Rápida: Vincular a Campaña */}
+                <button
+                  type="button"
+                  onClick={() => handleTransferToRegister(result)}
+                  className="px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-semibold uppercase tracking-wider transition-all shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 shrink-0 cursor-pointer group"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  <span>Vincular / Registrar en Campaña</span>
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                </button>
+              </div>
+
+              {/* Grid Oficial con los 4 Datos de Votación Limpios */}
+              <div className="p-5 sm:p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 bg-slate-50/50 dark:bg-slate-900/40">
+                {/* 1. Departamento */}
+                <div className="p-4 rounded-xl bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/60 shadow-xs">
+                  <div className="flex items-center justify-between text-slate-400 dark:text-slate-500 mb-1.5">
+                    <span className="text-[10px] font-mono uppercase tracking-wider font-semibold">Departamento</span>
+                    <Map className="w-4 h-4 text-blue-500" />
+                  </div>
+                  <p className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                    {result.departamento || 'Córdoba'}
+                  </p>
+                </div>
+
+                {/* 2. Municipio */}
+                <div className="p-4 rounded-xl bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/60 shadow-xs">
+                  <div className="flex items-center justify-between text-slate-400 dark:text-slate-500 mb-1.5">
+                    <span className="text-[10px] font-mono uppercase tracking-wider font-semibold">Municipio</span>
+                    <MapPin className="w-4 h-4 text-indigo-500" />
+                  </div>
+                  <p className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                    {result.municipio || 'Montería'}
+                  </p>
+                </div>
+
+                {/* 3. Lugar / Puesto de Votación */}
+                <div className="p-4 rounded-xl bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/60 shadow-xs">
+                  <div className="flex items-center justify-between text-slate-400 dark:text-slate-500 mb-1.5">
+                    <span className="text-[10px] font-mono uppercase tracking-wider font-semibold">Puesto de Votación</span>
+                    <Building2 className="w-4 h-4 text-emerald-500" />
+                  </div>
+                  <p className="text-sm font-bold text-slate-900 dark:text-white truncate" title={result.puesto}>
+                    {result.puesto || 'Puesto Principal'}
+                  </p>
+                  {result.direccion && (
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                      {result.direccion}
+                    </p>
+                  )}
+                </div>
+
+                {/* 4. Número de Mesa */}
+                <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 shadow-xs">
+                  <div className="flex items-center justify-between text-blue-600 dark:text-blue-400 mb-1.5">
+                    <span className="text-[10px] font-mono uppercase tracking-wider font-bold">Mesa de Votación</span>
+                    <Vote className="w-4 h-4" />
+                  </div>
+                  <p className="text-2xl font-extrabold text-blue-700 dark:text-blue-400 font-mono">
+                    Mesa {result.mesa || 1}
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {!loading && result && !result.encontrado && hasSearched && (
+            <motion.div
+              key="not-found"
+              initial={{ opacity: 0, scale: 0.98, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="rounded-2xl bg-white dark:bg-[#161F30] border border-amber-200 dark:border-amber-900/50 p-6 sm:p-8 shadow-md"
+            >
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-start gap-3.5">
+                  <div className="w-11 h-11 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center shrink-0">
+                    <AlertCircle className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                      Cédula no encontrada en el censo precargado
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      El documento <span className="font-mono font-bold text-slate-700 dark:text-slate-300">{result.cedula}</span> no cuenta con registro previo en la base de censo local.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sessionStorage.setItem(
+                        'electoral_pending_registration',
+                        JSON.stringify({ cedula: result.cedula })
+                      );
+                      onNavigateToRegister?.();
+                    }}
+                    className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-md shadow-blue-500/20 cursor-pointer"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    <span>Registrar Elector Manualmente</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleOpenRegistraduria}
+                    className="px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-xs font-medium text-slate-700 dark:text-slate-200 transition-colors flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <span>Verificar en Registraduría</span>
+                    <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* 4. Historial Reciente de Consultas (Herramienta Operativa) */}
+        {history.length > 0 && (
+          <div className="rounded-2xl bg-white dark:bg-[#161F30] border border-slate-200 dark:border-slate-700/60 p-5 shadow-sm space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-blue-500" />
+                Historial de Consultas de la Sesión ({history.length})
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setHistory([]);
+                  localStorage.removeItem('electoral_lookup_history');
+                }}
+                className="text-[11px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+              >
+                Limpiar historial
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+              {history.map((item) => (
+                <div
+                  key={item.cedula}
+                  className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 hover:border-blue-500/50 transition-all flex items-center justify-between gap-2 group"
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCedula(item.cedula);
+                      setResult(item);
+                      setHasSearched(true);
+                    }}
+                    className="text-left flex-1 min-w-0 cursor-pointer"
+                  >
+                    <p className="text-xs font-semibold text-slate-900 dark:text-white truncate">
+                      {item.nombres} {item.apellidos}
+                    </p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono truncate">
+                      C.C. {item.cedula} • Mesa {item.mesa}
+                    </p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleTransferToRegister(item)}
+                    className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white transition-colors shrink-0 cursor-pointer"
+                    title="Transferir a Registrar Elector"
+                  >
+                    <UserPlus className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
