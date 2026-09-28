@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase, isSupabaseConfigured, createNonPersistentClient } from '../../lib/supabase';
+import { supabaseAdmin } from '../../lib/supabaseAdmin';
 import type { TeamMember, AppRole } from '../../types';
 import { useTenant } from '../../context/TenantContext';
 
@@ -238,29 +239,65 @@ export const useTeamManagement = () => {
 
     let assignedId = `usr-${Date.now()}`;
 
-    // Si Supabase está configurado, aprovisionar credencial de autenticación usando cliente sin persistencia
+    // Si Supabase está configurado, aprovisionar credencial de autenticación usando API Admin con email_confirm: true
     if (isSupabaseConfigured) {
       try {
-        const nonPersistentClient = createNonPersistentClient();
+        let userCreated = false;
 
-        const { data: signUpData, error: signUpError } = await nonPersistentClient.auth.signUp({
-          email: trimmedEmail,
-          password: initialPassword,
-          options: {
-            data: {
-              full_name: trimmedName,
-              role: payload.role,
-              tenant_id: currentTenantId,
-            },
-          },
-        });
+        // 1. Intentar creación directa y auto-confirmada con supabaseAdmin
+        if (supabaseAdmin) {
+          try {
+            const { data: adminData, error: adminErr } = await supabaseAdmin.auth.admin.createUser({
+              email: trimmedEmail,
+              password: initialPassword,
+              email_confirm: true, // Acceso inmediato sin confirmación por correo
+              user_metadata: {
+                full_name: trimmedName,
+                role: payload.role,
+                tenant_id: currentTenantId,
+              },
+            });
 
-        if (signUpError && !signUpError.message?.toLowerCase().includes('already registered')) {
-          throw signUpError;
+            if (!adminErr && adminData?.user?.id) {
+              assignedId = adminData.user.id;
+              userCreated = true;
+            } else if (adminErr && !adminErr.message?.toLowerCase().includes('already registered')) {
+              console.warn('Aviso supabaseAdmin createUser:', adminErr.message);
+            }
+          } catch (admCatch) {
+            console.warn('Aviso invocando supabaseAdmin:', admCatch);
+          }
         }
 
-        if (signUpData?.user?.id) {
-          assignedId = signUpData.user.id;
+        // 2. Si no se creó con supabaseAdmin, usar nonPersistentClient
+        if (!userCreated) {
+          const nonPersistentClient = createNonPersistentClient();
+          const { data: signUpData, error: signUpError } = await nonPersistentClient.auth.signUp({
+            email: trimmedEmail,
+            password: initialPassword,
+            options: {
+              data: {
+                full_name: trimmedName,
+                role: payload.role,
+                tenant_id: currentTenantId,
+              },
+            },
+          });
+
+          if (signUpError && !signUpError.message?.toLowerCase().includes('already registered')) {
+            throw signUpError;
+          }
+
+          if (signUpData?.user?.id) {
+            assignedId = signUpData.user.id;
+          }
+        }
+
+        // 3. Forzar auto-confirmación en la base de datos vía RPC
+        try {
+          await (supabase.rpc as any)('confirmar_usuario_por_email', { p_email: trimmedEmail });
+        } catch {
+          // ignore
         }
 
         // Registrar / sincronizar el perfil con el tenant_id de la campaña

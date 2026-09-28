@@ -96,23 +96,43 @@ export const LoginPage = ({ onSuccess, onBackToLanding }: LoginPageProps) => {
         password,
       });
 
+      let effectiveUser = authData?.user;
+
       if (authError) {
-        if (authError.message.includes('Invalid login credentials')) {
+        if (authError.message.includes('Email not confirmed')) {
+          // Auto-confirmación inmediata mediante función RPC de rescate y reintento
+          try {
+            await (supabase.rpc as any)('confirmar_usuario_por_email', { p_email: trimmedEmail });
+            const { data: retryAuth, error: retryError } = await supabase.auth.signInWithPassword({
+              email: trimmedEmail,
+              password,
+            });
+            if (!retryError && retryAuth.user) {
+              effectiveUser = retryAuth.user;
+            } else {
+              setErrorMessage('Cuenta confirmada con éxito. Por favor ingrese de nuevo.');
+              return;
+            }
+          } catch {
+            setErrorMessage('La dirección de correo no ha sido confirmada.');
+            return;
+          }
+        } else if (authError.message.includes('Invalid login credentials')) {
           setErrorMessage('Credenciales inválidas. Compruebe el correo y la contraseña.');
-        } else if (authError.message.includes('Email not confirmed')) {
-          setErrorMessage('La dirección de correo no ha sido confirmada.');
+          return;
         } else if (
           authError.message.includes('Failed to fetch') ||
           authError.message.includes('Load failed')
         ) {
           setErrorMessage('Error de red al conectar con Supabase. Compruebe su conexión a internet.');
+          return;
         } else {
           setErrorMessage(authError.message);
+          return;
         }
-        return;
       }
 
-      if (!authData.user) {
+      if (!effectiveUser) {
         setErrorMessage('No fue posible recuperar la sesión del usuario.');
         return;
       }
@@ -121,7 +141,7 @@ export const LoginPage = ({ onSuccess, onBackToLanding }: LoginPageProps) => {
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', authData.user.id)
+        .eq('id', effectiveUser.id)
         .maybeSingle();
 
       if (profileError) {
@@ -138,11 +158,11 @@ export const LoginPage = ({ onSuccess, onBackToLanding }: LoginPageProps) => {
       }
 
       // Identificar rol del usuario desde su perfil o metadata
-      const isSuperAdminEmail = (authData.user.email || trimmedEmail).toLowerCase().trim() === 'oberosorio1@gmail.com';
+      const isSuperAdminEmail = (effectiveUser.email || trimmedEmail).toLowerCase().trim() === 'oberosorio1@gmail.com';
       let userRole = (
         (isSuperAdminEmail ? 'superadmin' : null) ||
         profile?.role ||
-        authData.user.user_metadata?.role ||
+        effectiveUser.user_metadata?.role ||
         'admin'
       ).toLowerCase();
 
@@ -151,7 +171,7 @@ export const LoginPage = ({ onSuccess, onBackToLanding }: LoginPageProps) => {
         try {
           await (supabase.from('profiles') as any)
             .update({ role: 'superadmin' })
-            .eq('id', authData.user.id);
+            .eq('id', effectiveUser.id);
         } catch {
           // ignore
         }
@@ -159,19 +179,19 @@ export const LoginPage = ({ onSuccess, onBackToLanding }: LoginPageProps) => {
 
       const userName =
         profile?.full_name ||
-        authData.user.user_metadata?.full_name ||
-        authData.user.email?.split('@')[0] ||
+        effectiveUser.user_metadata?.full_name ||
+        effectiveUser.email?.split('@')[0] ||
         'Ober Osorio';
 
-      const tenantId = profile?.tenant_id || (authData.user.user_metadata?.tenant_id as string) || null;
+      const tenantId = profile?.tenant_id || (effectiveUser.user_metadata?.tenant_id as string) || null;
 
       // Limpiar residuos de datos demo y modos previos en el navegador
       localStorage.removeItem('electoral_demo_auth');
       sessionStorage.removeItem('electoral_superadmin_mode');
 
       const sessionData: ActiveSessionData = {
-        email: authData.user.email || trimmedEmail,
-        id: authData.user.id,
+        email: effectiveUser.email || trimmedEmail,
+        id: effectiveUser.id,
         userName,
         role: userRole,
         tenantId,

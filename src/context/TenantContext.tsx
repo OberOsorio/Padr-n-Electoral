@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase, isSupabaseConfigured, createNonPersistentClient } from '../lib/supabase';
+import { supabaseAdmin } from '../lib/supabaseAdmin';
 import type { Tenant, TenantPlan } from '../types';
 
 export const DEFAULT_TENANTS: Tenant[] = [];
@@ -272,24 +273,67 @@ export const TenantProvider: React.FC<{ children: React.ReactNode; userRole?: st
           }
         }
 
-        // Aprovisionar administrador en Supabase Auth con cliente sin persistencia
+        // Aprovisionar administrador en Supabase Auth con auto-confirmación inmediata (email_confirm: true)
         try {
-          const nonPersistentClient = createNonPersistentClient();
-          const { data: signUpData, error: signUpErr } = await nonPersistentClient.auth.signUp({
-            email: params.adminEmail.trim().toLowerCase(),
-            password: params.adminPassword,
-            options: {
-              data: {
-                full_name: params.adminName.trim(),
-                role: 'admin',
-                tenant_id: effectiveTenantId,
+          const cleanEmail = params.adminEmail.trim().toLowerCase();
+          const cleanName = params.adminName.trim();
+          let adminAuthId: string | null = null;
+
+          // 1. Creación directa y autoverificada vía API Admin (email_confirm: true)
+          if (supabaseAdmin) {
+            try {
+              const { data: adminUser, error: adminError } = await supabaseAdmin.auth.admin.createUser({
+                email: cleanEmail,
+                password: params.adminPassword,
+                email_confirm: true, // <-- Omite confirmación de correo para acceso 100% inmediato
+                user_metadata: {
+                  full_name: cleanName,
+                  tenant_id: effectiveTenantId,
+                  role: 'admin',
+                },
+              });
+
+              if (!adminError && adminUser?.user?.id) {
+                adminAuthId = adminUser.user.id;
+              } else if (adminError && !adminError.message.includes('already')) {
+                console.warn('Aviso supabaseAdmin createUser:', adminError.message);
+              }
+            } catch (admCatch) {
+              console.warn('Aviso invocando supabaseAdmin:', admCatch);
+            }
+          }
+
+          // 2. Si no se usó supabaseAdmin o falló, recurrir a signUp de respaldo
+          if (!adminAuthId) {
+            const nonPersistentClient = createNonPersistentClient();
+            const { data: signUpData, error: signUpErr } = await nonPersistentClient.auth.signUp({
+              email: cleanEmail,
+              password: params.adminPassword,
+              options: {
+                data: {
+                  full_name: cleanName,
+                  role: 'admin',
+                  tenant_id: effectiveTenantId,
+                },
               },
-            },
-          });
-          if (!signUpErr && signUpData?.user?.id) {
+            });
+            if (!signUpErr && signUpData?.user?.id) {
+              adminAuthId = signUpData.user.id;
+            }
+          }
+
+          // 3. Forzar auto-confirmación en base de datos vía RPC para garantizar acceso inmediato
+          try {
+            await (supabase.rpc as any)('confirmar_usuario_por_email', { p_email: cleanEmail });
+          } catch (rpcConfErr) {
+            console.warn('Aviso confirmando email por RPC:', rpcConfErr);
+          }
+
+          // 4. Asegurar perfil del administrador en la tabla profiles
+          if (adminAuthId) {
             await (supabase.from('profiles') as any).upsert({
-              id: signUpData.user.id,
-              full_name: params.adminName.trim(),
+              id: adminAuthId,
+              full_name: cleanName,
               role: 'admin',
               tenant_id: effectiveTenantId,
               is_active: true,
