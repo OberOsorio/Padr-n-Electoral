@@ -19,6 +19,7 @@ import {
   Users,
   SlidersHorizontal,
   RotateCcw,
+  Target,
 } from 'lucide-react';
 
 interface CreateMemberModalProps {
@@ -30,6 +31,7 @@ interface CreateMemberModalProps {
     password?: string;
     role: AppRole;
     permissions?: UserPermissions;
+    meta_electores?: number;
   }) => Promise<boolean>;
 }
 
@@ -43,6 +45,7 @@ export const CreateMemberModal = ({
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState<'lider' | 'coordinador'>('coordinador');
+  const [metaElectores, setMetaElectores] = useState<number>(100);
   const [permissions, setPermissions] = useState<UserPermissions>(
     DEFAULT_ROLE_PERMISSIONS.coordinador
   );
@@ -109,6 +112,7 @@ export const CreateMemberModal = ({
         password: password.trim(),
         role,
         permissions,
+        meta_electores: metaElectores && metaElectores > 0 ? metaElectores : 100,
       });
 
       if (success) {
@@ -117,6 +121,7 @@ export const CreateMemberModal = ({
         setPassword('');
         setShowPassword(false);
         setRole('coordinador');
+        setMetaElectores(100);
         setPermissions(DEFAULT_ROLE_PERMISSIONS.coordinador);
         onClose();
       }
@@ -360,6 +365,53 @@ export const CreateMemberModal = ({
                     </p>
                   </div>
                 </div>
+              </div>
+
+              {/* Fila 5: Meta de Electores (Cuota Operativa) */}
+              <div className="space-y-1.5 pt-1">
+                <div className="flex items-center justify-between">
+                  <label className="block text-[11px] font-mono uppercase tracking-wider text-slate-600 dark:text-slate-400 font-semibold">
+                    Meta de Electores (Cuota) <span className="text-blue-600 dark:text-blue-400">*</span>
+                  </label>
+                  <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500">
+                    No bloqueante
+                  </span>
+                </div>
+
+                <div className="relative">
+                  <Target className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                  <input
+                    type="number"
+                    min={1}
+                    required
+                    value={metaElectores || ''}
+                    onChange={(e) => setMetaElectores(Math.max(1, parseInt(e.target.value) || 0))}
+                    placeholder="100"
+                    className="w-full h-10.5 pl-10 pr-3.5 bg-slate-50/80 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-mono font-bold text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-blue-500 focus:bg-white dark:focus:bg-slate-950 focus:ring-1 focus:ring-blue-500 transition-all"
+                  />
+                </div>
+
+                {/* Botones Presets Rápidos */}
+                <div className="flex items-center gap-1.5 pt-1">
+                  <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 mr-1">Preajuste:</span>
+                  {[50, 100, 200, 500].map((val) => (
+                    <button
+                      key={val}
+                      type="button"
+                      onClick={() => setMetaElectores(val)}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-semibold transition-all cursor-pointer border ${
+                        metaElectores === val
+                          ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                          : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                      }`}
+                    >
+                      {val}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">
+                  Objetivo acordado de enrolamiento. El colaborador podrá superar esta cuota sin restricción.
+                </p>
               </div>
             </div>
 

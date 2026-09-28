@@ -63,6 +63,7 @@ export interface Profile {
   email?: string | null;
   role: AppRole;
   permissions?: UserPermissions;
+  meta_electores?: number;
   tenant_id?: string | null;
   tenant?: Tenant | null;
   is_active: boolean;
@@ -84,6 +85,7 @@ export interface TeamMember {
   email: string;
   role: AppRole;
   permissions?: UserPermissions;
+  meta_electores?: number;
   tenant_id?: string | null;
   is_active: boolean;
   created_at: string;

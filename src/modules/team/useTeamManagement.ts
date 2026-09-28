@@ -55,7 +55,7 @@ export const useTeamManagement = () => {
       // Consultar perfiles pertenecientes al tenant activo
       let profilesQuery = supabase
         .from('profiles')
-        .select('id, full_name, email, role, is_active, created_at, tenant_id, permissions')
+        .select('id, full_name, email, role, is_active, created_at, tenant_id, permissions, meta_electores')
         .order('created_at', { ascending: true });
 
       if (currentTenantId) {
@@ -102,6 +102,9 @@ export const useTeamManagement = () => {
         const realEmail = p.email || localMatch?.email || '';
         const memberRole = p.role as AppRole;
         const memberPermissions = p.permissions || (memberRole === 'lider' || memberRole === 'coordinador' ? DEFAULT_ROLE_PERMISSIONS[memberRole] : undefined);
+        const metaElectores = p.meta_electores !== undefined && p.meta_electores !== null
+          ? p.meta_electores
+          : (memberRole === 'admin' ? 0 : 100);
 
         return {
           id: p.id,
@@ -109,6 +112,7 @@ export const useTeamManagement = () => {
           email: realEmail,
           role: memberRole,
           permissions: memberPermissions,
+          meta_electores: metaElectores,
           tenant_id: p.tenant_id || currentTenantId,
           is_active: p.is_active,
           created_at: p.created_at,
@@ -253,11 +257,13 @@ export const useTeamManagement = () => {
     password?: string;
     role: AppRole;
     permissions?: UserPermissions;
+    meta_electores?: number;
   }): Promise<boolean> => {
     const trimmedEmail = payload.email.trim().toLowerCase();
     const trimmedName = payload.full_name.trim();
     const initialPassword = payload.password || 'Electoral2026*';
     const effectivePermissions = payload.permissions || (payload.role === 'lider' || payload.role === 'coordinador' ? DEFAULT_ROLE_PERMISSIONS[payload.role] : undefined);
+    const effectiveMeta = payload.meta_electores && payload.meta_electores > 0 ? payload.meta_electores : (payload.role === 'admin' ? 0 : 100);
 
     let assignedId = `usr-${Date.now()}`;
 
@@ -277,6 +283,8 @@ export const useTeamManagement = () => {
                 full_name: trimmedName,
                 role: payload.role,
                 tenant_id: currentTenantId,
+                permissions: effectivePermissions,
+                meta_electores: effectiveMeta,
               },
             });
 
@@ -302,6 +310,8 @@ export const useTeamManagement = () => {
                 full_name: trimmedName,
                 role: payload.role,
                 tenant_id: currentTenantId,
+                permissions: effectivePermissions,
+                meta_electores: effectiveMeta,
               },
             },
           });
@@ -331,6 +341,7 @@ export const useTeamManagement = () => {
             email: trimmedEmail,
             role: payload.role,
             permissions: effectivePermissions,
+            meta_electores: effectiveMeta,
             tenant_id: currentTenantId,
             is_active: true,
             updated_at: new Date().toISOString(),
@@ -353,6 +364,7 @@ export const useTeamManagement = () => {
       email: trimmedEmail,
       role: payload.role,
       permissions: effectivePermissions,
+      meta_electores: effectiveMeta,
       tenant_id: currentTenantId,
       is_active: true,
       created_at: new Date().toISOString(),

@@ -309,7 +309,7 @@ export const TeamManagementView = ({
                 <th className="py-3 px-4">Correo Registrado</th>
                 <th className="py-3 px-4">Rol Asignado</th>
                 <th className="py-3 px-4 text-center">Estado</th>
-                <th className="py-3 px-4 text-center">Electores Reportados</th>
+                <th className="py-3 px-4 text-center min-w-[160px]">Electores y Meta</th>
                 <th className="py-3 px-4">Última Actividad</th>
                 <th className="py-3 px-4 text-right">Acciones de Acceso</th>
               </tr>
@@ -323,7 +323,7 @@ export const TeamManagementView = ({
                     <td className="py-3.5 px-4"><div className="h-4 w-40 bg-slate-200 dark:bg-slate-700 rounded" /></td>
                     <td className="py-3.5 px-4"><div className="h-5 w-24 bg-slate-200 dark:bg-slate-700 rounded-full" /></td>
                     <td className="py-3.5 px-4 text-center"><div className="h-5 w-16 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto" /></td>
-                    <td className="py-3.5 px-4 text-center"><div className="h-4 w-12 bg-slate-200 dark:bg-slate-700 rounded mx-auto" /></td>
+                    <td className="py-3.5 px-4 text-center"><div className="h-5 w-28 bg-slate-200 dark:bg-slate-700 rounded mx-auto" /></td>
                     <td className="py-3.5 px-4"><div className="h-4 w-20 bg-slate-200 dark:bg-slate-700 rounded" /></td>
                     <td className="py-3.5 px-4 text-right"><div className="h-6 w-16 bg-slate-200 dark:bg-slate-700 rounded-full ml-auto" /></td>
                   </tr>
@@ -443,11 +443,68 @@ export const TeamManagementView = ({
                         </span>
                       </td>
 
-                      {/* Total Electores Reportados */}
-                      <td className="py-3 px-4 text-center font-mono font-semibold text-slate-900 dark:text-[#F8FAFC]">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-900 text-xs font-mono font-bold text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700/60">
-                          {member.totalElectores.toLocaleString()}
-                        </span>
+                      {/* Total Electores Reportados y Meta */}
+                      <td className="py-3 px-4">
+                        {isAdminMember ? (
+                          <div className="flex flex-col items-center justify-center">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-900 text-xs font-mono font-bold text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700/60 shadow-2xs">
+                              {member.totalElectores.toLocaleString()}
+                            </span>
+                            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono mt-0.5">
+                              General (Sin cuota)
+                            </span>
+                          </div>
+                        ) : (
+                          (() => {
+                            const targetMeta = member.meta_electores && member.meta_electores > 0 ? member.meta_electores : 100;
+                            const count = member.totalElectores || 0;
+                            const pct = Math.round((count / targetMeta) * 100);
+                            const isReached = count >= targetMeta;
+                            const progressWidth = Math.min(100, pct);
+
+                            return (
+                              <div className="flex flex-col items-center justify-center min-w-[130px] max-w-[170px] mx-auto space-y-1.5">
+                                <div className="flex items-center justify-between w-full font-mono text-xs px-0.5">
+                                  <span className="font-bold text-slate-900 dark:text-white">
+                                    {count.toLocaleString()}
+                                    <span className="font-normal text-slate-400 dark:text-slate-500"> / {targetMeta.toLocaleString()}</span>
+                                  </span>
+                                  <span
+                                    className={`text-[10px] font-bold ${
+                                      isReached
+                                        ? 'text-emerald-600 dark:text-emerald-400 font-mono'
+                                        : 'text-slate-500 dark:text-slate-400'
+                                    }`}
+                                  >
+                                    {pct}%
+                                  </span>
+                                </div>
+
+                                {/* Barra de progreso */}
+                                <div className="w-full h-1.5 bg-slate-200/90 dark:bg-slate-800 rounded-full overflow-hidden">
+                                  <div
+                                    className={`h-full rounded-full transition-all duration-500 ${
+                                      isReached
+                                        ? 'bg-emerald-500 shadow-xs shadow-emerald-500/50'
+                                        : pct > 50
+                                        ? 'bg-blue-600'
+                                        : 'bg-amber-500'
+                                    }`}
+                                    style={{ width: `${progressWidth}%` }}
+                                  />
+                                </div>
+
+                                {/* Micro-badge cuando alcanza o supera la meta */}
+                                {isReached && (
+                                  <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-mono font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">
+                                    <CheckCircle2 className="w-2.5 h-2.5 text-emerald-500" />
+                                    <span>Meta Alcanzada</span>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()
+                        )}
                       </td>
 
                       {/* Última Actividad */}
