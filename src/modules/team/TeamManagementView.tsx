@@ -16,7 +16,7 @@ import {
   ShieldAlert,
   Lock,
   UserX,
-  KeyRound,
+  Key,
   UserCheck,
   Award,
   Pencil,
@@ -532,20 +532,20 @@ export const TeamManagementView = ({
                             <button
                               type="button"
                               onClick={() => setSelectedEditMember(member)}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:text-slate-400 dark:hover:text-blue-400 dark:hover:bg-blue-950/40 transition-colors cursor-pointer"
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-blue-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-blue-400 dark:hover:bg-slate-800/80 transition-colors cursor-pointer"
                               title="Editar colaborador y meta"
                             >
                               <Pencil className="w-4 h-4" />
                             </button>
 
-                            {/* 2. Botón de Resetear Clave */}
+                            {/* 2. Botón de Cambiar Contraseña */}
                             <button
                               type="button"
                               onClick={() => setSelectedResetMember(member)}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:text-slate-400 dark:hover:text-amber-400 dark:hover:bg-amber-950/40 transition-colors cursor-pointer"
-                              title={`Resetear contraseña de ${member.full_name}`}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-amber-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-amber-400 dark:hover:bg-slate-800/80 transition-colors cursor-pointer"
+                              title="Cambiar contraseña de acceso"
                             >
-                              <KeyRound className="w-4 h-4" />
+                              <Key className="w-4 h-4" />
                             </button>
 
                             {/* 3. Switch Activo / Suspendido */}

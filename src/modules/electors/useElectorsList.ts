@@ -9,6 +9,98 @@ export interface CoordinatorOption {
   name: string;
 }
 
+export interface GetElectoresPaginadosParams {
+  tenantId: string;
+  pageIndex: number;
+  pageSize: number;
+  searchQuery?: string;
+  puestoFilter?: string;
+  coordinadorFilter?: string;
+}
+
+export interface GetElectoresPaginadosResult {
+  electores: any[];
+  total: number;
+  error: string | null;
+}
+
+/**
+ * Consulta paginada y segura del padrón electoral en Supabase.
+ * Cuando la tabla está vacía (count === 0), retorna error estrictamente null.
+ */
+export async function getElectoresPaginados({
+  tenantId,
+  pageIndex = 0,
+  pageSize = 25,
+  searchQuery = '',
+  puestoFilter = '',
+  coordinadorFilter = '',
+}: GetElectoresPaginadosParams): Promise<GetElectoresPaginadosResult> {
+  try {
+    if (!tenantId) {
+      return { electores: [], total: 0, error: null };
+    }
+
+    const from = pageIndex * pageSize;
+    const to = from + pageSize - 1;
+
+    let query = (supabase.from('electores') as any)
+      .select(
+        `
+        id,
+        cedula,
+        nombres,
+        apellidos,
+        edad,
+        telefono,
+        puesto_votacion,
+        mesa,
+        notas,
+        registrado_por,
+        created_at,
+        registrador:profiles(full_name, role)
+      `,
+        { count: 'exact' }
+      )
+      .eq('tenant_id', tenantId);
+
+    if (searchQuery && searchQuery.trim()) {
+      const clean = searchQuery.trim().replace(/[^\w\s]/gi, '');
+      if (clean) {
+        query = query.or(`cedula.ilike.%${clean}%,nombres.ilike.%${clean}%,apellidos.ilike.%${clean}%`);
+      }
+    }
+
+    if (puestoFilter && !['all', 'todos', ''].includes(puestoFilter.toLowerCase())) {
+      query = query.eq('puesto_votacion', puestoFilter);
+    }
+
+    if (coordinadorFilter && !['all', 'todos', ''].includes(coordinadorFilter.toLowerCase())) {
+      query = query.eq('registrado_por', coordinadorFilter);
+    }
+
+    const { data, count, error } = await query
+      .order('created_at', { ascending: false })
+      .range(from, to);
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return { electores: [], total: 0, error: null };
+      }
+      console.warn('Alerta al consultar padrón:', error.message);
+      return { electores: [], total: 0, error: error.message };
+    }
+
+    return {
+      electores: data || [],
+      total: count || 0,
+      error: null, // Si no hay registros, el error debe ser estrictamente null
+    };
+  } catch (err: any) {
+    return { electores: [], total: 0, error: err.message || 'Error de lectura' };
+  }
+}
+
 const INITIAL_DEMO_ELECTORS: ElectorWithRegistrant[] = [];
 
 
@@ -89,98 +181,52 @@ export const useElectorsList = (
       return;
     }
 
-    // Consulta Server-Side en Supabase con Aislamiento Estricto
+    // Consulta Server-Side en Supabase con Aislamiento Estricto mediante getElectoresPaginados
     try {
-      let query = (supabase.from('electores') as any)
-        .select(
-          `
-          id,
-          cedula,
-          nombres,
-          apellidos,
-          edad,
-          telefono,
-          puesto_votacion,
-          mesa,
-          notas,
-          registrado_por,
-          created_at,
-          registrador:profiles(full_name, role)
-        `,
-          { count: 'exact' }
-        );
+      const pageIndex = Math.max(0, page - 1);
+      const res = await getElectoresPaginados({
+        tenantId: currentTenantId || '',
+        pageIndex,
+        pageSize,
+        searchQuery,
+        puestoFilter,
+        coordinadorFilter,
+      });
 
-      // Aislamiento explícito de Tenant (además de RLS)
-      if (currentTenantId) {
-        query = query.eq('tenant_id', currentTenantId);
+      if (!isMountedRef.current) return;
+
+      if (res.error) {
+        console.error('Error reportado al consultar electores:', res.error);
+        setElectors([]);
+        setTotalCount(0);
+        setError(res.error);
+        return;
       }
 
-      // Filtro por puesto
-      if (puestoFilter && !['all', 'todos', ''].includes(puestoFilter.toLowerCase())) {
-        query = query.eq('puesto_votacion', puestoFilter);
-      }
+      const rows = Array.isArray(res.electores) ? res.electores : [];
+      const formatted: ElectorWithRegistrant[] = rows.map((item: any) => ({
+        id: item.id,
+        cedula: item.cedula || '',
+        nombres: item.nombres || '',
+        apellidos: item.apellidos || '',
+        edad: item.edad !== undefined && item.edad !== null ? Number(item.edad) : null,
+        telefono: item.telefono || '',
+        puesto_votacion: item.puesto_votacion || '',
+        mesa: item.mesa || 0,
+        notas: item.notas || null,
+        registrado_por: item.registrado_por,
+        created_at: item.created_at,
+        registrador: item.registrador
+          ? {
+              full_name: item.registrador.full_name,
+              role: item.registrador.role,
+            }
+          : null,
+      }));
 
-      // Filtro por coordinador / registrador
-      if (coordinadorFilter && !['all', 'todos', ''].includes(coordinadorFilter.toLowerCase())) {
-        query = query.eq('registrado_por', coordinadorFilter);
-      }
-
-      // Búsqueda por Cédula, Nombres o Apellidos con ilike
-      if (searchQuery.trim()) {
-        const term = searchQuery.trim();
-        query = query.or(
-          `cedula.ilike.%${term}%,nombres.ilike.%${term}%,apellidos.ilike.%${term}%`
-        );
-      }
-
-      // Paginación por rangos exactos de Supabase
-      const from = (page - 1) * pageSize;
-      const to = from + pageSize - 1;
-
-      query = query.order('created_at', { ascending: false }).range(from, to);
-
-      const { data, count, error: queryError } = await query;
-
-      if (queryError) {
-        console.error('Error detallado de Supabase al consultar electores:', queryError);
-        // Si el error es por consulta vacía o similar no crítico, retornar seguro
-        if (queryError.code === 'PGRST116') {
-          if (isMountedRef.current) {
-            setElectors([]);
-            setTotalCount(0);
-            setError(null);
-          }
-          return;
-        }
-        throw queryError;
-      }
-
-      if (isMountedRef.current) {
-        const rows = Array.isArray(data) ? data : [];
-        const formatted: ElectorWithRegistrant[] = rows.map((item: any) => ({
-          id: item.id,
-          cedula: item.cedula || '',
-          nombres: item.nombres || '',
-          apellidos: item.apellidos || '',
-          edad: item.edad !== undefined && item.edad !== null ? Number(item.edad) : null,
-          telefono: item.telefono || '',
-          puesto_votacion: item.puesto_votacion || '',
-          mesa: item.mesa || 0,
-          notas: item.notas || null,
-          registrado_por: item.registrado_por,
-          created_at: item.created_at,
-          registrador: item.registrador
-            ? {
-                full_name: item.registrador.full_name,
-                role: item.registrador.role,
-              }
-            : null,
-        }));
-
-        setElectors(formatted);
-        setTotalCount(count ?? rows.length);
-        setError(null);
-      }
+      setElectors(formatted);
+      setTotalCount(res.total ?? rows.length);
+      setError(null);
     } catch (err: unknown) {
       console.error('Error al consultar electores en servidor:', err);
       if (isMountedRef.current) {

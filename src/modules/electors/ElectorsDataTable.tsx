@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-  Phone,
   MessageSquare,
   Pencil,
   Trash2,
@@ -24,6 +23,121 @@ export interface ElectorsDataTableProps {
   emptyMessage?: string;
 }
 
+/**
+ * Aplica formato de miles a la cédula colombiana para facilitar su lectura rápida
+ */
+const formatearCedula = (cc: string | number) => {
+  if (!cc) return '';
+  const num = cc.toString().replace(/\D/g, '');
+  return new Intl.NumberFormat('es-CO').format(Number(num));
+};
+
+/**
+ * Formatea fechas a formato ultra compacto (ej: '28 sep' o '28/09')
+ */
+const formatearFechaUltraCorta = (isoString?: string) => {
+  if (!isoString) return '—';
+  try {
+    const d = new Date(isoString);
+    const months = [
+      'ene', 'feb', 'mar', 'abr', 'may', 'jun',
+      'jul', 'ago', 'sep', 'oct', 'nov', 'dic',
+    ];
+    const day = d.getDate();
+    const month = months[d.getMonth()];
+    return `${day} ${month}`;
+  } catch {
+    return '—';
+  }
+};
+
+/**
+ * Limpia y normaliza el nombre del puesto de votación eliminando sufijos crudos
+ * como "CGTO ... M.D. CL P/PAL" o "(BONGO)" y separando el título del detalle territorial
+ */
+function formatearPuestoSimple(puesto?: string | null): { titulo: string; detalle: string } {
+  if (!puesto) {
+    return { titulo: 'Sin puesto asignado', detalle: 'Cabecera' };
+  }
+
+  let raw = puesto.trim();
+  let titulo = raw;
+  let detalle = '';
+
+  // 1. Separar si contiene guión o barra explícita: "TITULO - DETALLE"
+  if (raw.includes(' - ') || raw.includes(' – ') || raw.includes(' — ')) {
+    const parts = raw.split(/\s*[-–—]\s*/);
+    titulo = parts[0].trim();
+    detalle = parts.slice(1).join(' • ').trim();
+  } else if (raw.includes(' / ')) {
+    const parts = raw.split(/\s*\/\s*/);
+    titulo = parts[0].trim();
+    detalle = parts.slice(1).join(' • ').trim();
+  } else if (/\s+CGTO\b/i.test(raw)) {
+    // Caso especial para puestos sin guión pero con "CGTO" embebido (ej. "LOS GOMEZ CGTO LOS GOMEZ M.D. CL P/PAL")
+    const match = raw.match(/^(.*?)\s+(CGTO\b.*)$/i);
+    if (match) {
+      titulo = match[1].trim();
+      detalle = match[2].trim();
+    }
+  }
+
+  // 2. Limpiar cadenas crudas del título
+  titulo = titulo
+    .replace(/\s*\([^)]*\)\s*/g, ' ')
+    .replace(/\bBONGO\b/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  // 3. Limpiar detalle territorial y reemplazar acrónimos crudos de registraduría
+  if (/M\.?D\.?\s+CL\s+P\/?PAL/i.test(detalle)) {
+    detalle = detalle.replace(/M\.?D\.?\s+CL\s+P\/?PAL/gi, '• Rural');
+  }
+
+  detalle = detalle
+    .replace(/CGTO\b\.?/gi, 'Corregimiento')
+    .replace(/VDA\b\.?/gi, 'Vereda')
+    .replace(/P\/PAL|PPAL\b\.?/gi, 'Principal')
+    .replace(/CAB\b\.?/gi, 'Cabecera')
+    .replace(/\bBONGO\b/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  // Si el detalle repite redundantemente el título principal (ej: "Corregimiento LOS GOMEZ • Rural")
+  if (titulo && detalle.toLowerCase().includes(titulo.toLowerCase())) {
+    detalle = detalle
+      .replace(new RegExp(`\\b${titulo}\\b`, 'gi'), '')
+      .replace(/\s*•\s*•\s*/g, ' • ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  // Normalizar separadores y valores vacíos
+  detalle = detalle.replace(/^•\s*/, '').replace(/\s*•$/, '').trim();
+
+  if (!detalle || detalle.toLowerCase() === titulo.toLowerCase()) {
+    if (/rural|vereda|corregimiento/i.test(titulo)) {
+      detalle = 'Corregimiento • Rural';
+    } else {
+      detalle = 'Cabecera';
+    }
+  }
+
+  return { titulo: titulo || raw, detalle: detalle || 'Cabecera' };
+}
+
+/**
+ * Obtiene iniciales para el avatar del registrador
+ */
+const getInitials = (name: string) => {
+  if (!name) return 'U';
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) {
+    return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  }
+  return (parts[0]?.[0] || 'U').toUpperCase();
+};
+
 export const ElectorsDataTable: React.FC<ElectorsDataTableProps> = ({
   electors,
   loading = false,
@@ -42,25 +156,7 @@ export const ElectorsDataTable: React.FC<ElectorsDataTableProps> = ({
   const fromIndex = totalCount === 0 ? 0 : (currentPage - 1) * pageSize + 1;
   const toIndex = Math.min(currentPage * pageSize, totalCount);
 
-  // Formato compacto y sobrio en español (ej. "24 sept 2026")
-  const formatDateCompact = (isoString?: string) => {
-    if (!isoString) return '—';
-    try {
-      const d = new Date(isoString);
-      const months = [
-        'ene', 'feb', 'mar', 'abr', 'may', 'jun',
-        'jul', 'ago', 'sept', 'oct', 'nov', 'dic',
-      ];
-      const day = d.getDate();
-      const month = months[d.getMonth()];
-      const year = d.getFullYear();
-      return `${day} ${month} ${year}`;
-    } catch {
-      return '—';
-    }
-  };
-
-  // Disparador de WhatsApp predeterminado con mensaje oficial
+  // Disparador de WhatsApp con mensaje oficial
   const handleWhatsAppClick = (elector: ElectorWithRegistrant) => {
     if (onWhatsApp) {
       onWhatsApp(elector);
@@ -74,225 +170,220 @@ export const ElectorsDataTable: React.FC<ElectorsDataTableProps> = ({
   };
 
   return (
-    <div className="rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#0F172A]/70 backdrop-blur-md overflow-hidden shadow-xs dark:shadow-xl transition-colors">
-      {/* Contenedor Adaptable sin Barra de Desplazamiento Forzada */}
-      <div className="overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-        <table className="w-full text-left border-collapse table-auto">
-          {/* Cabecera de la Tabla */}
-          <thead>
-            <tr className="bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800/80">
-              <th scope="col" className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 tracking-wider uppercase px-3 py-3 text-left whitespace-nowrap">
-                Documento
-              </th>
-              <th scope="col" className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 tracking-wider uppercase px-3 py-3 text-left whitespace-nowrap">
-                Nombre Completo
-              </th>
-              <th scope="col" className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 tracking-wider uppercase px-3 py-3 text-left whitespace-nowrap">
-                Teléfono
-              </th>
-              <th scope="col" className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 tracking-wider uppercase px-3 py-3 text-left whitespace-nowrap">
-                Puesto de Votación
-              </th>
-              <th scope="col" className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 tracking-wider uppercase px-2 py-3 text-center whitespace-nowrap">
-                Mesa
-              </th>
-              <th scope="col" className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 tracking-wider uppercase px-3 py-3 text-left whitespace-nowrap">
-                Registrado Por
-              </th>
-              <th scope="col" className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 tracking-wider uppercase px-3 py-3 text-left whitespace-nowrap">
-                Fecha
-              </th>
-              <th scope="col" className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 tracking-wider uppercase px-3 py-3 text-right whitespace-nowrap">
-                Acciones
-              </th>
-            </tr>
-          </thead>
+    <div className="w-full bg-slate-900/60 border border-slate-800/80 rounded-2xl overflow-hidden shadow-xl backdrop-blur-sm">
+      <table className="w-full table-fixed border-collapse">
+        {/* Recalibrado quirúrgico de 8 columnas: 11 + 27 + 10 + 19 + 6 + 15 + 5 + 7 = 100% */}
+        <colgroup>
+          <col className="w-[11%]" />
+          <col className="w-[27%]" />
+          <col className="w-[10%]" />
+          <col className="w-[19%]" />
+          <col className="w-[6%]" />
+          <col className="w-[15%]" />
+          <col className="w-[5%]" />
+          <col className="w-[7%]" />
+        </colgroup>
 
-          {/* Filas de Datos */}
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
-            {loading ? (
-              // Esqueletos de carga
-              Array.from({ length: pageSize > 10 ? 8 : pageSize }).map((_, idx) => (
-                <tr key={idx} className="animate-pulse">
-                  <td className="px-3 py-3"><div className="h-4 w-20 bg-slate-200 dark:bg-slate-800 rounded" /></td>
-                  <td className="px-3 py-3">
-                    <div className="h-4 w-36 bg-slate-200 dark:bg-slate-800 rounded mb-1" />
-                    <div className="h-3 w-24 bg-slate-100 dark:bg-slate-800/60 rounded" />
-                  </td>
-                  <td className="px-3 py-3"><div className="h-4 w-24 bg-slate-200 dark:bg-slate-800 rounded" /></td>
-                  <td className="px-3 py-3"><div className="h-4 w-32 bg-slate-200 dark:bg-slate-800 rounded" /></td>
-                  <td className="px-2 py-3 text-center"><div className="h-5 w-10 bg-slate-200 dark:bg-slate-800 rounded mx-auto" /></td>
-                  <td className="px-3 py-3"><div className="h-4 w-24 bg-slate-200 dark:bg-slate-800 rounded" /></td>
-                  <td className="px-3 py-3"><div className="h-4 w-20 bg-slate-200 dark:bg-slate-800 rounded" /></td>
-                  <td className="px-3 py-3 text-right"><div className="h-7 w-20 bg-slate-200 dark:bg-slate-800 rounded ml-auto" /></td>
-                </tr>
-              ))
-            ) : electors.length === 0 ? (
-              // Estado vacío
-              <tr>
-                <td colSpan={8} className="py-14 px-4 text-center">
-                  <div className="flex flex-col items-center justify-center">
-                    <div className="h-11 w-11 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 flex items-center justify-center text-slate-400 mb-3 shadow-2xs">
-                      <Inbox className="w-5 h-5" />
-                    </div>
-                    <p className="text-sm font-semibold text-slate-800 dark:text-white">
-                      No se encontraron registros
-                    </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm">
-                      {emptyMessage}
-                    </p>
-                  </div>
+        {/* Cabecera de la Tabla */}
+        <thead>
+          <tr className="border-b border-slate-800/80 bg-slate-950/40 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+            <th className="w-[11%] py-3.5 px-3 text-left">Documento</th>
+            <th className="w-[27%] py-3.5 px-3 text-left">Nombre Completo</th>
+            <th className="w-[10%] py-3.5 px-2 text-left">Teléfono</th>
+            <th className="w-[19%] py-3.5 px-3 text-left">Puesto de Votación</th>
+            <th className="w-[6%] py-3.5 px-1 text-center">Mesa</th>
+            <th className="w-[15%] py-3.5 px-3 text-left">Registrado Por</th>
+            <th className="w-[5%] py-3.5 px-1 text-center">Fecha</th>
+            <th className="w-[7%] py-3.5 pr-3 pl-1 text-right">Acciones</th>
+          </tr>
+        </thead>
+
+        {/* Filas de Datos */}
+        <tbody className="divide-y divide-slate-800/40">
+          {loading ? (
+            // Esqueletos con anchos exactos
+            Array.from({ length: pageSize > 10 ? 8 : pageSize }).map((_, idx) => (
+              <tr key={idx} className="animate-pulse">
+                <td className="py-3 px-3"><div className="h-4 w-16 bg-slate-800 rounded" /></td>
+                <td className="py-3 px-3"><div className="h-4 w-40 bg-slate-800 rounded" /></td>
+                <td className="py-3 px-2"><div className="h-4 w-16 bg-slate-800 rounded" /></td>
+                <td className="py-3 px-3">
+                  <div className="h-4 w-28 bg-slate-800 rounded mb-1" />
+                  <div className="h-3 w-16 bg-slate-800/60 rounded" />
                 </td>
+                <td className="py-3 px-1 text-center"><div className="h-5 w-7 bg-slate-800 rounded mx-auto" /></td>
+                <td className="py-3 px-3"><div className="h-4 w-24 bg-slate-800 rounded" /></td>
+                <td className="py-3 px-1 text-center"><div className="h-4 w-10 bg-slate-800 rounded mx-auto" /></td>
+                <td className="py-3 pr-3 pl-1 text-right"><div className="h-5 w-16 bg-slate-800 rounded ml-auto" /></td>
               </tr>
-            ) : (
-              electors.map((elector) => {
-                const fullName = `${elector.nombres} ${elector.apellidos}`;
-                const registradorName =
-                  elector.registrador?.full_name || 'Personal Autorizado';
+            ))
+          ) : electors.length === 0 ? (
+            // Estado vacío
+            <tr>
+              <td colSpan={8} className="py-14 px-4 text-center">
+                <div className="flex flex-col items-center justify-center">
+                  <div className="h-11 w-11 rounded-xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-center text-slate-400 mb-3 shadow-2xs">
+                    <Inbox className="w-5 h-5" />
+                  </div>
+                  <p className="text-sm font-semibold text-white">
+                    No se encontraron registros
+                  </p>
+                  <p className="text-xs text-slate-400 mt-1 max-w-sm">
+                    {emptyMessage}
+                  </p>
+                </div>
+              </td>
+            </tr>
+          ) : (
+            electors.map((e) => {
+              const { titulo, detalle } = formatearPuestoSimple(e.puesto_votacion);
+              const registradorName =
+                e.registrador?.full_name || (e as any).registrado_por_nombre || 'Sistema';
+              const isTitular =
+                e.registrador?.role === 'admin' ||
+                (e as any).registrado_por_rol === 'admin' ||
+                registradorName.toLowerCase().includes('candidato') ||
+                registradorName.toLowerCase().includes('administrador') ||
+                registradorName === 'Ober Osorio';
 
-                return (
-                  <tr
-                    key={elector.id}
-                    className="border-b border-slate-100 dark:border-slate-800/50 hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors group"
-                  >
-                    {/* DOCUMENTO */}
-                    <td className="font-mono text-xs font-semibold text-slate-900 dark:text-white px-3 py-3 whitespace-nowrap">
-                      {elector.cedula}
-                    </td>
+              return (
+                <tr
+                  key={e.id}
+                  className="hover:bg-slate-800/25 transition-colors group"
+                >
+                  {/* DOCUMENTO */}
+                  <td className="py-3 px-3 font-mono font-bold text-xs text-slate-100 whitespace-nowrap">
+                    {formatearCedula(e.cedula)}
+                  </td>
 
-                    {/* NOMBRE COMPLETO + EDAD + NOTA */}
-                    <td className="px-3 py-3">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span
-                          className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white tracking-tight block truncate max-w-[160px] sm:max-w-[200px] lg:max-w-none"
-                          title={fullName}
-                        >
-                          {fullName}
-                        </span>
-                        {elector.edad && (
-                          <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-semibold bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60">
-                            {elector.edad} años
-                          </span>
-                        )}
-                      </div>
-                      {elector.notas && (
-                        <span
-                          className="text-[11px] text-slate-500 dark:text-slate-400 font-normal italic truncate max-w-[160px] sm:max-w-[200px] lg:max-w-none block mt-0.5"
-                          title={elector.notas}
-                        >
-                          {elector.notas}
-                        </span>
-                      )}
-                    </td>
-
-                    {/* TELÉFONO */}
-                    <td className="px-3 py-3 whitespace-nowrap">
-                      {elector.telefono ? (
-                        <div className="font-mono text-xs text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                          <Phone className="h-3 w-3 text-slate-400 dark:text-slate-500 shrink-0" />
-                          <span>{elector.telefono}</span>
-                        </div>
-                      ) : (
-                        <span className="text-slate-400 dark:text-slate-600 font-mono text-xs">—</span>
-                      )}
-                    </td>
-
-                    {/* PUESTO DE VOTACIÓN */}
-                    <td className="text-xs text-slate-700 dark:text-slate-300 font-normal px-3 py-3">
+                  {/* NOMBRE COMPLETO & EDAD */}
+                  <td className="py-3 px-3">
+                    <div className="flex items-center gap-2 min-w-0">
                       <span
-                        className="truncate max-w-[140px] sm:max-w-[180px] lg:max-w-none block"
-                        title={elector.puesto_votacion}
+                        className="font-semibold text-xs sm:text-sm text-slate-100 truncate"
+                        title={`${e.nombres} ${e.apellidos}`}
                       >
-                        {elector.puesto_votacion}
+                        {e.nombres} {e.apellidos}
                       </span>
-                    </td>
+                      {e.edad && (
+                        <span className="shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-500/10 text-blue-300 border border-blue-500/20 whitespace-nowrap">
+                          {e.edad}a
+                        </span>
+                      )}
+                    </div>
+                  </td>
 
-                    {/* MESA */}
-                    <td className="px-2 py-3 text-center whitespace-nowrap">
-                      <span className="bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700/60 px-2 py-0.5 rounded text-[11px] font-mono font-medium inline-block text-center shadow-2xs">
-                        M-{elector.mesa}
+                  {/* TELÉFONO */}
+                  <td className="py-3 px-2 text-xs font-mono">
+                    {e.telefono ? (
+                      <span className="text-slate-300 whitespace-nowrap block truncate" title={e.telefono}>
+                        {e.telefono}
                       </span>
-                    </td>
+                    ) : (
+                      <span className="text-slate-600 italic">Sin reg.</span>
+                    )}
+                  </td>
 
-                    {/* REGISTRADO POR */}
-                    <td className="text-xs text-slate-600 dark:text-slate-400 px-3 py-3 font-medium">
+                  {/* PUESTO LIMPIO */}
+                  <td className="py-3 px-3">
+                    <span
+                      className="font-medium text-xs sm:text-sm text-slate-200 block truncate"
+                      title={titulo}
+                    >
+                      {titulo}
+                    </span>
+                    <span
+                      className="text-[10px] text-slate-500 block truncate"
+                      title={detalle}
+                    >
+                      {detalle || 'Cabecera'}
+                    </span>
+                  </td>
+
+                  {/* MESA */}
+                  <td className="py-3 px-1 text-center">
+                    <span className="inline-block px-1.5 py-0.5 rounded bg-slate-800/90 border border-slate-700/60 font-mono text-xs font-bold text-slate-200">
+                      M-{e.mesa}
+                    </span>
+                  </td>
+
+                  {/* REGISTRADO POR */}
+                  <td className="py-3 px-3">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="w-5 h-5 shrink-0 rounded-full bg-slate-800 text-[10px] font-bold text-slate-300 flex items-center justify-center border border-slate-700">
+                        {getInitials(registradorName)}
+                      </span>
                       <span
-                        className="truncate max-w-[110px] sm:max-w-[140px] lg:max-w-none block"
+                        className="text-xs text-slate-300 truncate"
                         title={registradorName}
                       >
                         {registradorName}
                       </span>
-                    </td>
+                      {isTitular && (
+                        <span className="shrink-0 px-1 py-0.2 rounded text-[9px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30">
+                          T
+                        </span>
+                      )}
+                    </div>
+                  </td>
 
-                    {/* FECHA */}
-                    <td
-                      className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap font-mono px-3 py-3"
-                      title={elector.created_at ? new Date(elector.created_at).toLocaleString('es-CO') : ''}
-                    >
-                      {formatDateCompact(elector.created_at)}
-                    </td>
+                  {/* FECHA */}
+                  <td className="py-3 px-1 text-center text-[11px] font-mono text-slate-400 whitespace-nowrap">
+                    {formatearFechaUltraCorta(e.created_at)}
+                  </td>
 
-                    {/* ACCIONES */}
-                    <td className="px-3 py-3 whitespace-nowrap text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        {/* Botón WhatsApp */}
-                        {elector.telefono ? (
-                          <button
-                            type="button"
-                            onClick={() => handleWhatsAppClick(elector)}
-                            className="h-7.5 w-7.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20 flex items-center justify-center transition-colors cursor-pointer active:scale-95 shadow-2xs"
-                            title={`Enviar mensaje de confirmación a ${elector.nombres}`}
-                          >
-                            <MessageSquare className="h-3.5 w-3.5" />
-                          </button>
-                        ) : (
-                          <span
-                            className="h-7.5 w-7.5 rounded-lg bg-slate-100 dark:bg-slate-800/40 text-slate-300 dark:text-slate-600 border border-slate-200 dark:border-slate-800/60 flex items-center justify-center cursor-not-allowed opacity-40"
-                            title="Sin teléfono registrado"
-                          >
-                            <MessageSquare className="h-3.5 w-3.5" />
-                          </span>
-                        )}
+                  {/* ACCIONES (ANCHO FIJO FLEXIBLE) */}
+                  <td className="py-3 pr-3 pl-1 text-right">
+                    <div className="inline-flex items-center justify-end gap-1 w-full">
+                      {e.telefono ? (
+                        <button
+                          type="button"
+                          onClick={() => handleWhatsAppClick(e)}
+                          className="p-1 rounded text-emerald-400 hover:bg-emerald-500/10 transition-colors cursor-pointer"
+                          title="WhatsApp"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5" />
+                        </button>
+                      ) : (
+                        <span className="w-5.5 h-5.5 inline-block" /> // Espaciador invisible para preservar la grilla
+                      )}
 
-                        {/* Botón Editar */}
-                        {isAdmin && (
-                          <button
-                            type="button"
-                            onClick={() => onEdit?.(elector)}
-                            className="h-7.5 w-7.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-white hover:border-slate-300 dark:hover:bg-slate-700/60 border border-slate-200 dark:border-slate-700/50 flex items-center justify-center transition-colors cursor-pointer active:scale-95 shadow-2xs"
-                            title="Editar elector"
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </button>
-                        )}
+                      {isAdmin && onEdit && (
+                        <button
+                          type="button"
+                          onClick={() => onEdit(e)}
+                          className="p-1 rounded text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 transition-colors cursor-pointer"
+                          title="Editar"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                      )}
 
-                        {/* Botón Eliminar */}
-                        {isAdmin && (
-                          <button
-                            type="button"
-                            onClick={() => onDelete?.(elector)}
-                            className="h-7.5 w-7.5 rounded-lg bg-slate-100 hover:bg-red-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:border-red-200 dark:hover:bg-red-500/10 border border-slate-200 dark:border-slate-700/50 flex items-center justify-center transition-colors cursor-pointer active:scale-95 shadow-2xs"
-                            title="Eliminar elector"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+                      {isAdmin && onDelete && (
+                        <button
+                          type="button"
+                          onClick={() => onDelete(e)}
+                          className="p-1 rounded text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                          title="Eliminar"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })
+          )}
+        </tbody>
+      </table>
 
-      {/* 4. Barra Inferior de Paginación */}
-      <div className="px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-200 dark:border-slate-800/80 bg-slate-50 dark:bg-slate-900/40 text-xs text-slate-500 dark:text-slate-400 font-mono transition-colors">
+      {/* Barra Inferior de Paginación */}
+      <div className="px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-800/80 bg-slate-950/40 text-xs text-slate-400 font-mono transition-colors">
         <div>
-          Mostrando <span className="font-semibold text-slate-900 dark:text-white">{fromIndex}</span> -{' '}
-          <span className="font-semibold text-slate-900 dark:text-white">{toIndex}</span> de{' '}
-          <span className="font-semibold text-slate-900 dark:text-white">{totalCount.toLocaleString()}</span> registros
+          Mostrando <span className="font-semibold text-slate-200">{fromIndex}</span> -{' '}
+          <span className="font-semibold text-slate-200">{toIndex}</span> de{' '}
+          <span className="font-semibold text-slate-200">{totalCount.toLocaleString()}</span> registros
         </div>
 
         <div className="flex items-center gap-2">
@@ -301,15 +392,15 @@ export const ElectorsDataTable: React.FC<ElectorsDataTableProps> = ({
             type="button"
             onClick={() => onPageChange(Math.max(1, currentPage - 1))}
             disabled={currentPage <= 1 || loading}
-            className="p-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700/60 text-slate-600 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer shadow-2xs"
+            className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 border border-slate-700/60 text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer shadow-xs"
             title="Página anterior"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
 
           {/* Pastilla Central */}
-          <span className="px-3 py-1 rounded-lg bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/60 text-slate-700 dark:text-slate-300 shadow-2xs font-medium">
-            Página <strong className="text-slate-900 dark:text-white">{currentPage}</strong> de {totalPages}
+          <span className="px-3 py-1 rounded-lg bg-slate-800/90 border border-slate-700/60 text-slate-300 shadow-xs font-medium">
+            Página <strong className="text-white">{currentPage}</strong> de {totalPages}
           </span>
 
           {/* Botón Siguiente */}
@@ -317,7 +408,7 @@ export const ElectorsDataTable: React.FC<ElectorsDataTableProps> = ({
             type="button"
             onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
             disabled={currentPage >= totalPages || loading}
-            className="p-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700/60 text-slate-600 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer shadow-2xs"
+            className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 border border-slate-700/60 text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer shadow-xs"
             title="Página siguiente"
           >
             <ChevronRight className="w-4 h-4" />

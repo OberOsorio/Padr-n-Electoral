@@ -42,7 +42,6 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
     electors,
     loading,
     personalGoal,
-    saveGoal,
     registerElector,
     deleteElector,
     updateElector,
@@ -92,12 +91,20 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
     mesa: number;
   } | null>(null);
 
+  // Temporizador automático de 5 segundos para descartar la notificación de éxito
+  useEffect(() => {
+    if (!lastRegistered) return;
+
+    const timer = setTimeout(() => {
+      setLastRegistered(null);
+    }, 5000); // Exactamente 5 segundos
+
+    // Limpieza al desmontar o si se registra un nuevo elector antes de culminar los 5s
+    return () => clearTimeout(timer);
+  }, [lastRegistered]);
+
   // List search query
   const [searchQuery, setSearchQuery] = useState('');
-
-  // Goal modal state
-  const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
-  const [tempGoal, setTempGoal] = useState<number>(personalGoal);
 
   // Debounce ref for cédula verification
   const debounceTimerRef = useRef<any>(null);
@@ -409,10 +416,6 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
             <LeaderDashboardView
               stats={stats}
               personalGoal={personalGoal}
-              onOpenGoalModal={() => {
-                setTempGoal(personalGoal);
-                setIsGoalModalOpen(true);
-              }}
               onNavigateToRegister={() => setActiveTab('register')}
               onNavigateToList={() => setActiveTab('list')}
             />
@@ -466,66 +469,6 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
           )}
         </AnimatePresence>
       </main>
-
-      {/* Modal: Ajustar Meta Personal (Executive Slate) */}
-      {isGoalModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md animate-in fade-in duration-200">
-          <div className="w-full max-w-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl text-slate-900 dark:text-white transition-colors">
-            <h3 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">Definir Meta Personal</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-              Establece el número de electores comprometidos para tu censo territorial.
-            </p>
-
-            <div className="mt-4">
-              <label className="block text-xs font-mono font-medium uppercase text-slate-500 dark:text-slate-400 mb-1.5">
-                Número de Electores Meta
-              </label>
-              <input
-                type="number"
-                min="10"
-                max="1000"
-                step="5"
-                value={tempGoal}
-                onChange={(e) => setTempGoal(Number(e.target.value))}
-                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700/80 rounded-xl text-lg font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 transition-all"
-              />
-
-              <div className="grid grid-cols-4 gap-2 mt-3">
-                {[25, 50, 100, 200].map((preset) => (
-                  <button
-                    key={preset}
-                    type="button"
-                    onClick={() => setTempGoal(preset)}
-                    className="py-1.5 rounded-lg text-xs font-mono font-medium bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-700/60 transition-colors cursor-pointer"
-                  >
-                    {preset}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-2.5 mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
-              <button
-                type="button"
-                onClick={() => setIsGoalModalOpen(false)}
-                className="px-4 py-2 text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  saveGoal(tempGoal);
-                  setIsGoalModalOpen(false);
-                }}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-xl transition-all shadow-md shadow-blue-600/25 cursor-pointer active:scale-95"
-              >
-                Guardar Meta
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Modales de Edición y Eliminación para el Líder */}
       <EditElectorModal

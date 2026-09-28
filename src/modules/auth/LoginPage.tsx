@@ -14,6 +14,7 @@ import {
   X,
 } from 'lucide-react';
 import { ThemeToggle } from '../../components/ui/ThemeToggle';
+import { translateAuthError } from '../../utils/authErrorMapper';
 
 interface LoginPageProps {
   onSuccess?: (sessionData: ActiveSessionData) => void;
@@ -99,7 +100,10 @@ export const LoginPage = ({ onSuccess, onBackToLanding }: LoginPageProps) => {
       let effectiveUser = authData?.user;
 
       if (authError) {
-        if (authError.message.includes('Email not confirmed')) {
+        if (
+          authError.message.includes('Email not confirmed') ||
+          (authError as any).code === 'email_not_confirmed'
+        ) {
           // Auto-confirmación inmediata mediante función RPC de rescate y reintento
           try {
             await (supabase.rpc as any)('confirmar_usuario_por_email', { p_email: trimmedEmail });
@@ -114,20 +118,11 @@ export const LoginPage = ({ onSuccess, onBackToLanding }: LoginPageProps) => {
               return;
             }
           } catch {
-            setErrorMessage('La dirección de correo no ha sido confirmada.');
+            setErrorMessage(translateAuthError(authError));
             return;
           }
-        } else if (authError.message.includes('Invalid login credentials')) {
-          setErrorMessage('Credenciales inválidas. Compruebe el correo y la contraseña.');
-          return;
-        } else if (
-          authError.message.includes('Failed to fetch') ||
-          authError.message.includes('Load failed')
-        ) {
-          setErrorMessage('Error de red al conectar con Supabase. Compruebe su conexión a internet.');
-          return;
         } else {
-          setErrorMessage(authError.message);
+          setErrorMessage(translateAuthError(authError));
           return;
         }
       }
@@ -201,12 +196,7 @@ export const LoginPage = ({ onSuccess, onBackToLanding }: LoginPageProps) => {
       onSuccess?.(sessionData);
     } catch (err: unknown) {
       console.error('Error durante autenticación:', err);
-      const rawMsg = err instanceof Error ? err.message : String(err);
-      if (rawMsg.includes('Load failed') || rawMsg.includes('Failed to fetch')) {
-        setErrorMessage('Error de red al conectar con Supabase. Compruebe su conexión a internet.');
-      } else {
-        setErrorMessage(rawMsg || 'Error inesperado durante la autenticación.');
-      }
+      setErrorMessage(translateAuthError(err));
     } finally {
       setLoading(false);
     }

@@ -564,12 +564,12 @@ export const RegisterElectorView = ({
     }
   };
 
-  // Auto-cierre del Toast flotante tras 3.5 segundos
+  // Auto-cierre del Toast flotante tras 5 segundos (5000 ms)
   useEffect(() => {
     if (toastMessage) {
       const timer = setTimeout(() => {
         setToastMessage(null);
-      }, 3500);
+      }, 5000);
       return () => clearTimeout(timer);
     }
   }, [toastMessage]);
