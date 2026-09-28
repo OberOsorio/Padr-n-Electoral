@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import type { ElectorWithRegistrant, Elector } from '../../../types';
-import { PREDEFINED_POLLING_PLACES } from '../constants';
+import { PREDEFINED_POLLING_PLACES, formatearPuestoSimple } from '../constants';
 import { useTenant } from '../../../context/TenantContext';
 import { getPollingPlacesForTenant } from '../../../services/divipoleService';
 import {
@@ -249,14 +249,17 @@ export const EditElectorModal = ({
                 >
                   {!pollingPlaces.some((p) => p.name === puestoVotacion) && puestoVotacion && (
                     <option key="custom-puesto" value={puestoVotacion} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
-                      {puestoVotacion}
+                      {formatearPuestoSimple(puestoVotacion).label || puestoVotacion}
                     </option>
                   )}
-                  {pollingPlaces.map((p) => (
-                    <option key={p.id} value={p.name} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
-                      {p.name} ({p.zone})
-                    </option>
-                  ))}
+                  {pollingPlaces.map((p) => {
+                    const f = formatearPuestoSimple(p.name, p.zone);
+                    return (
+                      <option key={p.id} value={p.name} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+                        {f.titulo} ({f.detalle})
+                      </option>
+                    );
+                  })}
                 </select>
                 <MapPin className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 dark:text-slate-400 pointer-events-none" />
               </div>

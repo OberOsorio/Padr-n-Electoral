@@ -13,7 +13,7 @@ import {
   Clock,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { PREDEFINED_POLLING_PLACES } from '../electors/constants';
+import { PREDEFINED_POLLING_PLACES, formatearPuestoSimple } from '../electors/constants';
 import type { CollisionCheckResult, PollingPlace } from '../../types';
 
 export interface LeaderRegisterViewProps {
@@ -390,7 +390,7 @@ export const LeaderRegisterView: React.FC<LeaderRegisterViewProps> = ({
               <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5 flex items-center justify-between">
                 <span>Puesto de Votación *</span>
                 <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 font-normal">
-                  {currentPollingPlace.zone} · {currentPollingPlace.totalMesas} Mesas
+                  {formatearPuestoSimple(currentPollingPlace.name, currentPollingPlace.zone).detalle} · {currentPollingPlace.totalMesas} Mesas
                 </span>
               </label>
               <select
@@ -402,11 +402,14 @@ export const LeaderRegisterView: React.FC<LeaderRegisterViewProps> = ({
                 }}
                 className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-slate-700/60 focus:bg-white dark:focus:bg-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10 rounded-xl text-base sm:text-xs text-slate-900 dark:text-white focus:outline-none transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {availablePlaces.map((p) => (
-                  <option key={p.id} value={p.name}>
-                    {p.name} ({p.zone})
-                  </option>
-                ))}
+                {availablePlaces.map((p) => {
+                  const f = formatearPuestoSimple(p.name, p.zone);
+                  return (
+                    <option key={p.id} value={p.name}>
+                      {f.titulo} ({f.detalle})
+                    </option>
+                  );
+                })}
               </select>
             </div>
 

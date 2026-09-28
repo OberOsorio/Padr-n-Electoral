@@ -1,5 +1,7 @@
 import { MONTERIA_DIVIPOLE_2026, type PollingPlace } from '../../data/monteriaDivipole2026';
 export { getPollingPlacesForTenant, fetchPollingPlacesForTenantAsync } from '../../services/divipoleService';
+export { formatearPuestoSimple, ElectorLocationSelector } from './components/ElectorLocationSelector';
+export type { PuestoFormateado } from './components/ElectorLocationSelector';
 
 export type { PollingPlace };
 export { MONTERIA_DIVIPOLE_2026 };

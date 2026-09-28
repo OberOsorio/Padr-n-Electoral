@@ -11,10 +11,8 @@ import {
   Loader2,
   CheckCircle2,
   AlertTriangle,
-  BookmarkCheck,
   RotateCcw,
   Check,
-  Layers,
   Lock,
   Clock,
   MessageCircle,
@@ -22,6 +20,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { AnimatedCheck } from '../../components/ui/AnimatedCheck';
 import { PREDEFINED_POLLING_PLACES, getPollingPlacesForTenant } from './constants';
+import { ElectorLocationSelector } from './components/ElectorLocationSelector';
 import { useTenant } from '../../context/TenantContext';
 import { buscarCiudadanoEnCenso } from '../../services/censoService';
 
@@ -94,17 +93,6 @@ export const RegisterElectorView = ({
   const pollingPlaces = useMemo(() => {
     return getPollingPlacesForTenant(currentTenant);
   }, [currentTenant]);
-
-  // Actualizar lista de mesas según el puesto seleccionado
-  const currentPollingPlace = useMemo(() => {
-    return (
-      pollingPlaces.find((p) => p.name === puestoVotacion) ||
-      pollingPlaces[0] ||
-      PREDEFINED_POLLING_PLACES[0]
-    );
-  }, [pollingPlaces, puestoVotacion]);
-
-  const totalMesas = currentPollingPlace.totalMesas;
 
   // Si cambia la circunscripción y el puesto actual no existe en la lista, seleccionar el primero
   useEffect(() => {
@@ -968,97 +956,20 @@ export const RegisterElectorView = ({
           </div>
 
           {/* SECCIÓN 3: SELECTOR EN CASCADA (PUESTO Y MESA) */}
-          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/60 space-y-4 transition-colors">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-mono uppercase tracking-wider text-slate-700 dark:text-slate-300 font-semibold flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                Ubicación Electoral
-              </span>
-              <span className="text-[10px] font-mono text-slate-500 dark:text-slate-300">
-                {currentPollingPlace.zone} · {totalMesas} Mesas Habilitadas
-              </span>
-            </div>
+          <ElectorLocationSelector
+            puestoVotacion={puestoVotacion}
+            onPuestoChange={handlePuestoChange}
+            mesa={mesa}
+            onMesaChange={(newMesa) => setMesa(newMesa)}
+            pollingPlaces={pollingPlaces}
+            disabled={saving || (collisionResult?.exists ?? false)}
+            mesaInputRef={mesaInputRef}
+            rememberLocation={rememberLocation}
+            onRememberLocationChange={(val) => setRememberLocation(val)}
+            showSectionWrapper={true}
+            showRememberCheckbox={true}
+          />
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Selector de Puesto de Votación */}
-              <div className="md:col-span-2 space-y-1.5">
-                <label
-                  htmlFor="puesto"
-                  className="block text-[11px] font-medium uppercase tracking-wider text-slate-700 dark:text-slate-300 font-mono"
-                >
-                  Puesto de Votación
-                </label>
-                <div className="relative">
-                  <select
-                    id="puesto"
-                    value={puestoVotacion}
-                    onChange={(e) => handlePuestoChange(e.target.value)}
-                    disabled={saving || collisionResult?.exists}
-                    className="w-full h-10.5 pl-3.5 pr-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 rounded-xl text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/40 transition-all disabled:opacity-50 appearance-none cursor-pointer"
-                  >
-                    {pollingPlaces.map((p) => (
-                      <option key={p.id} value={p.name} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
-                        {p.name} ({p.zone})
-                      </option>
-                    ))}
-                  </select>
-                  <MapPin className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500 pointer-events-none" />
-                </div>
-              </div>
-
-              {/* Selector de Mesa Dinámico */}
-              <div className="space-y-1.5">
-                <label
-                  htmlFor="mesa"
-                  className="block text-[11px] font-medium uppercase tracking-wider text-slate-700 dark:text-slate-300 font-mono"
-                >
-                  Número de Mesa
-                </label>
-                <div className="relative">
-                  <select
-                    ref={mesaInputRef}
-                    id="mesa"
-                    value={mesa}
-                    onChange={(e) => setMesa(Number(e.target.value))}
-                    disabled={saving || collisionResult?.exists}
-                    className="w-full h-10.5 pl-3.5 pr-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 rounded-xl text-sm font-mono text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/40 transition-all disabled:opacity-50 appearance-none cursor-pointer"
-                  >
-                    {Array.from({ length: totalMesas }, (_, i) => i + 1).map((m) => (
-                      <option key={m} value={m} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-mono">
-                        Mesa {m}
-                      </option>
-                    ))}
-                  </select>
-                  <Layers className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500 pointer-events-none" />
-                </div>
-              </div>
-            </div>
-
-            {/* Checkbox Memoria de Sesión */}
-            <div className="pt-2 flex items-center justify-between border-t border-slate-200 dark:border-slate-700/50">
-              <label className="flex items-center gap-2.5 cursor-pointer select-none group">
-                <input
-                  type="checkbox"
-                  checked={rememberLocation}
-                  onChange={(e) => setRememberLocation(e.target.checked)}
-                  className="sr-only peer"
-                />
-                <div className="w-4 h-4 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 peer-checked:bg-blue-600 peer-checked:border-blue-500 flex items-center justify-center transition-colors">
-                  <Check className="w-3 h-3 text-white opacity-0 peer-checked:opacity-100 stroke-[3]" />
-                </div>
-                <span className="text-xs text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
-                  Recordar puesto y mesa para el siguiente registro (Modo Lote)
-                </span>
-              </label>
-
-              {rememberLocation && (
-                <span className="text-[10px] font-mono text-amber-600 dark:text-[#E5B869] flex items-center gap-1 font-medium">
-                  <BookmarkCheck className="w-3 h-3" />
-                  Memoria activa
-                </span>
-              )}
-            </div>
-          </div>
 
           {/* Notas adicionales opcionales */}
           <div className="space-y-1.5">
