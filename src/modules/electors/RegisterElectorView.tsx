@@ -18,7 +18,6 @@ import {
   Lock,
   Clock,
   MessageCircle,
-  Sparkles,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AnimatedCheck } from '../../components/ui/AnimatedCheck';
@@ -840,20 +839,10 @@ export const RegisterElectorView = ({
 
           {/* SECCIÓN 2: DATOS PERSONALES */}
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
+            <div>
               <span className="text-[11px] font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400 font-mono">
                 Datos Personales del Elector
               </span>
-              {isAutofilledFromCenso && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20"
-                >
-                  <Sparkles className="w-3 h-3 text-blue-500" />
-                  <span>Autocompletado desde Censo Maestro</span>
-                </motion.div>
-              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

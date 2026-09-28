@@ -11,7 +11,6 @@ import {
   Save,
   Lock,
   Clock,
-  Sparkles,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PREDEFINED_POLLING_PLACES } from '../electors/constants';
@@ -63,7 +62,6 @@ export const LeaderRegisterView: React.FC<LeaderRegisterViewProps> = ({
   mesa,
   notas,
   isCheckingCedula,
-  isAutofilledFromCenso = false,
   collisionResult,
   submitting,
   formError,
@@ -301,16 +299,10 @@ export const LeaderRegisterView: React.FC<LeaderRegisterViewProps> = ({
 
           {/* Nombres y Apellidos */}
           <div>
-            <div className="flex items-center justify-between mb-1.5">
+            <div className="mb-1.5">
               <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                 Datos de Identidad del Elector *
               </span>
-              {isAutofilledFromCenso && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shadow-2xs animate-in fade-in">
-                  <Sparkles className="w-3 h-3 text-emerald-500" />
-                  <span>Autocompletado desde Censo Maestro</span>
-                </span>
-              )}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
