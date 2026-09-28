@@ -159,16 +159,29 @@ export interface TopPollingPlace {
   mesasCount?: number;
 }
 
+export interface DashboardTeamMember {
+  id: string;
+  full_name: string;
+  email: string;
+  role: AppRole;
+  meta_electores: number;
+  totalElectores: number;
+  is_active: boolean;
+}
+
 export interface DashboardMetrics {
   totalElectores: number;
+  equipoOperativoActivo: number;
+  coordinadoresActivos: number;
+  lideresActivos: number;
+  metaGlobal: number;
+  cumplimientoGlobalPct: number;
   puestosConElectores: number;
   totalPuestosCampana: number;
   lideresConRegistros: number;
   metaCobertura?: number;
   porcentajeMeta?: number;
   puestosActivos?: number;
-  coordinadoresActivos?: number;
-  lideresActivos?: number;
   contactabilidadPct?: number;
   totalConTelefono?: number;
 }

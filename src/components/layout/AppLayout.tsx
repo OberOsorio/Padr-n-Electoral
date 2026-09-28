@@ -241,6 +241,7 @@ export const AppLayout = ({
                   onNavigateToElectors={() => setActiveTab('electors')}
                   onNavigateToRegister={() => setActiveTab('register')}
                   onNavigateToBulkUpload={() => setActiveTab('bulk-upload')}
+                  onNavigateToTeam={() => setActiveTab('coordinators')}
                   userName={userName}
                 />
               ) : activeTab === 'register' ? (

@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
-import type { DashboardMetrics, TopPollingPlace, ElectorWithRegistrant } from '../../types';
+import type { DashboardMetrics, TopPollingPlace, ElectorWithRegistrant, DashboardTeamMember } from '../../types';
 import { useTenant } from '../../context/TenantContext';
 import { PREDEFINED_POLLING_PLACES } from '../electors/constants';
 
@@ -9,11 +9,17 @@ export const useDashboardData = () => {
 
   const [metrics, setMetrics] = useState<DashboardMetrics>({
     totalElectores: 0,
+    equipoOperativoActivo: 0,
+    coordinadoresActivos: 0,
+    lideresActivos: 0,
+    metaGlobal: 0,
+    cumplimientoGlobalPct: 0,
     puestosConElectores: 0,
     totalPuestosCampana: PREDEFINED_POLLING_PLACES.length,
     lideresConRegistros: 0,
   });
 
+  const [teamMembers, setTeamMembers] = useState<DashboardTeamMember[]>([]);
   const [topPollingPlaces, setTopPollingPlaces] = useState<TopPollingPlace[]>([]);
   const [recentElectors, setRecentElectors] = useState<ElectorWithRegistrant[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,8 +81,27 @@ export const useDashboardData = () => {
         .sort((a, b) => b.total - a.total)
         .slice(0, 6);
 
+      // Local mock team members
+      const parsedTeamMembers: DashboardTeamMember[] = [
+        {
+          id: 'admin-local',
+          full_name: 'Alejandro Doria',
+          email: 'alejodoriall@gmail.com',
+          role: 'admin',
+          meta_electores: 0,
+          totalElectores: total,
+          is_active: true,
+        },
+      ];
+
+      setTeamMembers(parsedTeamMembers);
       setMetrics({
         totalElectores: total,
+        equipoOperativoActivo: 1,
+        coordinadoresActivos: 0,
+        lideresActivos: 1,
+        metaGlobal: 100,
+        cumplimientoGlobalPct: total > 0 ? Math.round((total / 100) * 100) : 0,
         puestosConElectores: distinctPuestosCount,
         totalPuestosCampana: totalPuestos,
         lideresConRegistros: distinctLideres.size,
@@ -104,7 +129,28 @@ export const useDashboardData = () => {
       if (countError) throw countError;
       const totalCount = totalElectores ?? 0;
 
-      // 2. Consulta de Puestos y Registradores Activos
+      // 2. Consulta de Miembros de Equipo (Profiles) y Conteo de Electores
+      let profilesQuery = supabase
+        .from('profiles')
+        .select(`
+          id,
+          full_name,
+          email,
+          role,
+          meta_electores,
+          is_active,
+          electores(count)
+        `)
+        .order('role', { ascending: true });
+
+      if (currentTenantId) {
+        profilesQuery = (profilesQuery as any).eq('tenant_id', currentTenantId);
+      }
+
+      const { data: rawProfiles, error: profilesError } = await profilesQuery;
+      if (profilesError) console.error('Error al consultar profiles:', profilesError);
+
+      // 3. Conteo directo de electores por registrador para máxima exactitud
       let electoresDataQuery = supabase
         .from('electores')
         .select('puesto_votacion, mesa, registrado_por');
@@ -115,6 +161,7 @@ export const useDashboardData = () => {
       const { data: electoresRows, error: dataError } = await electoresDataQuery;
       if (dataError) console.error('Error al consultar datos de electores:', dataError);
 
+      const countByRegistrador: Record<string, number> = {};
       const puestosMap: Record<string, { total: number; mesas: Set<number> }> = {};
       const distinctLideres = new Set<string>();
 
@@ -132,13 +179,54 @@ export const useDashboardData = () => {
         }
         if (item.registrado_por) {
           distinctLideres.add(item.registrado_por);
+          countByRegistrador[item.registrado_por] = (countByRegistrador[item.registrado_por] || 0) + 1;
         }
       });
+
+      // Mapear miembros de equipo consolidando su conteo y meta
+      const parsedTeamMembers: DashboardTeamMember[] = (rawProfiles || []).map((p: any) => {
+        const electoresCount =
+          countByRegistrador[p.id] ??
+          (Array.isArray(p.electores) && p.electores[0]?.count != null ? p.electores[0].count : 0);
+
+        return {
+          id: p.id,
+          full_name: p.full_name || 'Colaborador',
+          email: p.email || 'Sin correo registrado',
+          role: p.role || 'lider',
+          meta_electores: p.role === 'admin' ? 0 : (p.meta_electores && p.meta_electores > 0 ? p.meta_electores : 100),
+          totalElectores: electoresCount,
+          is_active: p.is_active !== false,
+        };
+      });
+
+      // Ordenar: Admin / Candidato primero, luego orden descendente por electores reportados
+      parsedTeamMembers.sort((a, b) => {
+        if (a.role === 'admin') return -1;
+        if (b.role === 'admin') return 1;
+        return b.totalElectores - a.totalElectores;
+      });
+
+      // Métricas de equipo operativo (excluyendo admin si solo es titular directivo)
+      const activeCoordinadores = parsedTeamMembers.filter(
+        (m) => m.is_active && m.role === 'coordinador'
+      ).length;
+      const activeLideres = parsedTeamMembers.filter(
+        (m) => m.is_active && m.role === 'lider'
+      ).length;
+      const equipoOperativoActivo = activeCoordinadores + activeLideres;
+
+      // Meta global: suma de cuotas asignadas a líderes y coordinadores
+      const metaGlobal = parsedTeamMembers
+        .filter((m) => m.role !== 'admin')
+        .reduce((sum, m) => sum + (m.meta_electores || 0), 0);
+
+      const cumplimientoGlobalPct = metaGlobal > 0 ? Math.round((totalCount / metaGlobal) * 100) : 0;
 
       const distinctPuestosCount = Object.keys(puestosMap).length;
       const totalPuestos = Math.max(PREDEFINED_POLLING_PLACES.length, distinctPuestosCount);
 
-      // Top Puestos de Votación con cálculo porcentual real
+      // Top Puestos de Votación (compatibilidad)
       const sortedPuestos: TopPollingPlace[] = Object.entries(puestosMap)
         .map(([puesto, data]) => {
           const matchedZone = pollingZonesMap.current.get(puesto.toLowerCase().trim()) || 'Zona Urbana';
@@ -153,7 +241,7 @@ export const useDashboardData = () => {
         .sort((a, b) => b.total - a.total)
         .slice(0, 6);
 
-      // 3. Últimos 6 Electores Registrados en Tiempo Real
+      // Últimos Electores (compatibilidad)
       let recentQuery = supabase
         .from('electores')
         .select(`
@@ -180,8 +268,14 @@ export const useDashboardData = () => {
       if (recentError) console.error('Error al obtener electores recientes:', recentError);
 
       if (isMountedRef.current) {
+        setTeamMembers(parsedTeamMembers);
         setMetrics({
           totalElectores: totalCount,
+          equipoOperativoActivo,
+          coordinadoresActivos: activeCoordinadores,
+          lideresActivos: activeLideres,
+          metaGlobal,
+          cumplimientoGlobalPct,
           puestosConElectores: distinctPuestosCount,
           totalPuestosCampana: totalPuestos,
           lideresConRegistros: distinctLideres.size,
@@ -217,10 +311,16 @@ export const useDashboardData = () => {
       if (isMountedRef.current) {
         setMetrics({
           totalElectores: 0,
+          equipoOperativoActivo: 0,
+          coordinadoresActivos: 0,
+          lideresActivos: 0,
+          metaGlobal: 0,
+          cumplimientoGlobalPct: 0,
           puestosConElectores: 0,
           totalPuestosCampana: PREDEFINED_POLLING_PLACES.length,
           lideresConRegistros: 0,
         });
+        setTeamMembers([]);
         setTopPollingPlaces([]);
         setRecentElectors([]);
       }
@@ -277,6 +377,7 @@ export const useDashboardData = () => {
 
   return {
     metrics,
+    teamMembers,
     topPollingPlaces,
     recentElectors,
     loading,
