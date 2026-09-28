@@ -32,11 +32,37 @@ export interface AccessAuditLog {
   created_at: string;
 }
 
+export interface UserPermissions {
+  can_register_electors: boolean;     // Registrar Elector manualmente
+  can_view_all_electors: boolean;     // Ver lista completa del padrón (o solo los suyos)
+  can_use_bulk_import: boolean;       // Acceso al módulo de Carga Masiva
+  can_export_reports: boolean;        // Descarga de reportes en Excel
+  can_query_registraduria: boolean;   // Acceso a la consulta oficial de censo
+}
+
+export const DEFAULT_ROLE_PERMISSIONS: Record<'lider' | 'coordinador', UserPermissions> = {
+  lider: {
+    can_register_electors: true,
+    can_view_all_electors: false, // Solo ve sus propios registros
+    can_use_bulk_import: false,
+    can_export_reports: false,
+    can_query_registraduria: true,
+  },
+  coordinador: {
+    can_register_electors: true,
+    can_view_all_electors: true,  // Puede auditar el padrón completo
+    can_use_bulk_import: true,
+    can_export_reports: true,
+    can_query_registraduria: true,
+  },
+};
+
 export interface Profile {
   id: string;
   full_name: string | null;
   email?: string | null;
   role: AppRole;
+  permissions?: UserPermissions;
   tenant_id?: string | null;
   tenant?: Tenant | null;
   is_active: boolean;
@@ -52,12 +78,12 @@ export interface ActiveSessionData {
   isDemo?: boolean;
 }
 
-
 export interface TeamMember {
   id: string;
   full_name: string;
   email: string;
   role: AppRole;
+  permissions?: UserPermissions;
   tenant_id?: string | null;
   is_active: boolean;
   created_at: string;

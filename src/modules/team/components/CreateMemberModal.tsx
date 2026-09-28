@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import type { AppRole } from '../../../types';
+import type { AppRole, UserPermissions } from '../../../types';
+import { DEFAULT_ROLE_PERMISSIONS } from '../../../types';
 import {
   X,
   UserPlus,
@@ -9,6 +10,13 @@ import {
   Shield,
   Loader2,
   CheckCircle2,
+  Eye,
+  EyeOff,
+  Sparkles,
+  FileSpreadsheet,
+  Download,
+  Search,
+  Users,
 } from 'lucide-react';
 
 interface CreateMemberModalProps {
@@ -19,6 +27,7 @@ interface CreateMemberModalProps {
     email: string;
     password?: string;
     role: AppRole;
+    permissions?: UserPermissions;
   }) => Promise<boolean>;
 }
 
@@ -29,17 +38,62 @@ export const CreateMemberModal = ({
 }: CreateMemberModalProps) => {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('Electoral2026*');
-  const [role, setRole] = useState<AppRole>('coordinador');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [role, setRole] = useState<'lider' | 'coordinador'>('coordinador');
+  const [permissions, setPermissions] = useState<UserPermissions>(
+    DEFAULT_ROLE_PERMISSIONS.coordinador
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
+  // Cambiar rol y actualizar matriz de permisos por defecto
+  const handleRoleSelect = (selectedRole: 'lider' | 'coordinador') => {
+    setRole(selectedRole);
+    setPermissions({ ...DEFAULT_ROLE_PERMISSIONS[selectedRole] });
+  };
+
+  // Alternar checkbox individual de permisos
+  const togglePermission = (key: keyof UserPermissions) => {
+    setPermissions((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  };
+
+  // Generador de contraseñas seguras y legibles
+  const generateRandomPassword = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%*';
+    const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+    const numbers = '23456789';
+    const symbols = '!@#$%*';
+
+    let pass = '';
+    pass += upper[Math.floor(Math.random() * upper.length)];
+    pass += numbers[Math.floor(Math.random() * numbers.length)];
+    pass += symbols[Math.floor(Math.random() * symbols.length)];
+
+    for (let i = 0; i < 7; i++) {
+      pass += chars[Math.floor(Math.random() * chars.length)];
+    }
+
+    const shuffled = pass.split('').sort(() => 0.5 - Math.random()).join('');
+    setPassword(shuffled);
+    setShowPassword(true);
+    setError(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fullName.trim() || !email.trim()) {
       setError('Por favor complete el nombre y correo electrónico.');
+      return;
+    }
+
+    if (!password.trim() || password.trim().length < 6) {
+      setError('La contraseña provisional debe tener al menos 6 caracteres.');
       return;
     }
 
@@ -52,13 +106,16 @@ export const CreateMemberModal = ({
         email: email.trim().toLowerCase(),
         password: password.trim(),
         role,
+        permissions,
       });
 
       if (success) {
         setFullName('');
         setEmail('');
-        setPassword('Electoral2026*');
+        setPassword('');
+        setShowPassword(false);
         setRole('coordinador');
+        setPermissions(DEFAULT_ROLE_PERMISSIONS.coordinador);
         onClose();
       }
     } catch (err: unknown) {
@@ -70,14 +127,52 @@ export const CreateMemberModal = ({
     }
   };
 
+  const permissionItems: {
+    key: keyof UserPermissions;
+    title: string;
+    description: string;
+    icon: typeof UserPlus;
+  }[] = [
+    {
+      key: 'can_register_electors',
+      title: 'Registrar Elector manualmente',
+      description: 'Habilita el formulario para inscribir votantes de manera individual.',
+      icon: UserPlus,
+    },
+    {
+      key: 'can_view_all_electors',
+      title: 'Ver lista completa del padrón',
+      description: 'Permite auditar todo el padrón (desactivado: solo ve sus registros propios).',
+      icon: Users,
+    },
+    {
+      key: 'can_use_bulk_import',
+      title: 'Acceso a Carga Masiva',
+      description: 'Permite importar listados y planillas electorales en Excel / CSV.',
+      icon: FileSpreadsheet,
+    },
+    {
+      key: 'can_export_reports',
+      title: 'Descarga de reportes en Excel',
+      description: 'Habilita la exportación y auditoría de electores a hojas de cálculo.',
+      icon: Download,
+    },
+    {
+      key: 'can_query_registraduria',
+      title: 'Consulta oficial de censo',
+      description: 'Permite verificar el puesto y mesa de votación oficial por cédula.',
+      icon: Search,
+    },
+  ];
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 dark:bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-md rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 shadow-2xl p-6 md:p-8 overflow-hidden transition-colors">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 dark:bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="relative w-full max-w-lg max-h-[92vh] flex flex-col rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 shadow-2xl overflow-hidden transition-colors">
         {/* Línea de realce superior */}
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-500/50 to-transparent" />
 
-        {/* Encabezado */}
-        <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-700/60 mb-6">
+        {/* Encabezado fijo */}
+        <div className="flex items-center justify-between p-5 pb-4 border-b border-slate-200 dark:border-slate-700/60 shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="h-8 w-8 rounded-lg bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/40 flex items-center justify-center text-blue-600 dark:text-blue-400">
               <UserPlus className="w-4 h-4" />
@@ -87,7 +182,7 @@ export const CreateMemberModal = ({
                 Nuevo Miembro del Equipo
               </h3>
               <p className="text-[11px] font-mono text-amber-600 dark:text-[#E5B869] font-medium">
-                Aprovisionamiento de Acceso
+                Aprovisionamiento de Acceso Operativo
               </p>
             </div>
           </div>
@@ -102,13 +197,14 @@ export const CreateMemberModal = ({
           </button>
         </div>
 
-        {error && (
-          <div className="mb-4 p-3 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/50 text-xs text-rose-800 dark:text-rose-300">
-            {error}
-          </div>
-        )}
+        {/* Cuerpo desplazable */}
+        <form onSubmit={handleSubmit} className="overflow-y-auto p-5 sm:p-6 space-y-4.5 flex-1">
+          {error && (
+            <div className="p-3 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/50 text-xs text-rose-800 dark:text-rose-300">
+              {error}
+            </div>
+          )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
           {/* Nombre Completo */}
           <div className="space-y-1.5">
             <label className="block text-[11px] font-mono uppercase text-slate-600 dark:text-slate-400">
@@ -147,91 +243,149 @@ export const CreateMemberModal = ({
 
           {/* Contraseña Provisional */}
           <div className="space-y-1.5">
-            <label className="block text-[11px] font-mono uppercase text-slate-600 dark:text-slate-400">
-              Contraseña Provisional <span className="text-blue-600 dark:text-blue-400">*</span>
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="block text-[11px] font-mono uppercase text-slate-600 dark:text-slate-400">
+                Contraseña Provisional <span className="text-blue-600 dark:text-blue-400">*</span>
+              </label>
+              <button
+                type="button"
+                onClick={generateRandomPassword}
+                className="inline-flex items-center gap-1 text-[11px] font-mono text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors cursor-pointer"
+                title="Generar una clave aleatoria segura"
+              >
+                <Sparkles className="w-3 h-3" />
+                <span>Generar aleatoria</span>
+              </button>
+            </div>
+
             <div className="relative">
               <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-400 pointer-events-none" />
               <input
-                type="text"
+                type={showPassword ? 'text' : 'password'}
                 required
+                minLength={6}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full h-10 pl-10 pr-3.5 bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/60 rounded-xl text-xs font-mono text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-1 focus:ring-blue-500"
+                placeholder="Mínimo 6 caracteres"
+                className="w-full h-10 pl-10 pr-10 bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/60 rounded-xl text-xs font-mono text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-blue-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-1 focus:ring-blue-500"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1 cursor-pointer"
+                title={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
             </div>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400">
+              El usuario podrá iniciar sesión inmediatamente con esta clave.
+            </p>
           </div>
 
-          {/* Rol del Miembro */}
-          <div className="space-y-1.5">
+          {/* Rol del Miembro: Excluido Admin, solo Líder y Coordinador */}
+          <div className="space-y-1.5 pt-1">
             <label className="block text-[11px] font-mono uppercase text-slate-600 dark:text-slate-400">
               Rol Asignado
             </label>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2.5">
               <button
                 type="button"
-                onClick={() => setRole('lider')}
-                className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                onClick={() => handleRoleSelect('lider')}
+                className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                   role === 'lider'
-                    ? 'bg-cyan-50 dark:bg-cyan-600/20 border-cyan-500 text-cyan-900 dark:text-white ring-1 ring-cyan-500'
+                    ? 'bg-emerald-50 dark:bg-emerald-600/15 border-emerald-500 text-emerald-950 dark:text-emerald-100 ring-1 ring-emerald-500 shadow-xs'
                     : 'bg-slate-50 dark:bg-slate-900/90 border-slate-200 dark:border-slate-700/60 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                 }`}
               >
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-semibold text-cyan-700 dark:text-cyan-400">Líder</span>
+                  <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                    Líder
+                  </span>
                   {role === 'lider' && (
-                    <CheckCircle2 className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                   )}
                 </div>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">
-                  Enrolamiento en terreno
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight">
+                  Enrolamiento en terreno y registro directo de votantes.
                 </p>
               </button>
 
               <button
                 type="button"
-                onClick={() => setRole('coordinador')}
-                className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                onClick={() => handleRoleSelect('coordinador')}
+                className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                   role === 'coordinador'
-                    ? 'bg-blue-50 dark:bg-blue-600/20 border-blue-500 text-blue-900 dark:text-white ring-1 ring-blue-500'
+                    ? 'bg-blue-50 dark:bg-blue-600/15 border-blue-500 text-blue-950 dark:text-blue-100 ring-1 ring-blue-500 shadow-xs'
                     : 'bg-slate-50 dark:bg-slate-900/90 border-slate-200 dark:border-slate-700/60 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                 }`}
               >
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-semibold">Coordinador</span>
+                  <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">
+                    Coordinador
+                  </span>
                   {role === 'coordinador' && (
-                    <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                    <CheckCircle2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                   )}
                 </div>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">
-                  Gestión de zona / puesto
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight">
+                  Gestión integral de zona, auditoría de padrón y reportes.
                 </p>
               </button>
+            </div>
+          </div>
 
-              <button
-                type="button"
-                onClick={() => setRole('admin')}
-                className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
-                  role === 'admin'
-                    ? 'bg-amber-50 dark:bg-[#E5B869]/20 border-amber-500 dark:border-[#E5B869]/60 text-amber-900 dark:text-white ring-1 ring-amber-500'
-                    : 'bg-slate-50 dark:bg-slate-900/90 border-slate-200 dark:border-slate-700/60 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-semibold text-amber-600 dark:text-[#E5B869]">Admin</span>
-                  {role === 'admin' && (
-                    <CheckCircle2 className="w-3.5 h-3.5 text-amber-600 dark:text-[#E5B869]" />
-                  )}
-                </div>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">
-                  Control total de campaña
-                </p>
-              </button>
+          {/* Matriz de Permisos Habilitados */}
+          <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-slate-700/60">
+            <div className="flex items-center justify-between">
+              <label className="block text-[11px] font-mono uppercase text-slate-700 dark:text-slate-300 font-semibold tracking-wider">
+                Permisos Habilitados en la Plataforma
+              </label>
+              <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
+                Personalizable
+              </span>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 dark:border-slate-700/60 bg-slate-50/70 dark:bg-slate-900/50 divide-y divide-slate-200 dark:divide-slate-800/80 overflow-hidden">
+              {permissionItems.map((item) => {
+                const isChecked = !!permissions[item.key];
+                const IconComponent = item.icon;
+
+                return (
+                  <label
+                    key={item.key}
+                    onClick={() => togglePermission(item.key)}
+                    className="flex items-start gap-3 p-2.5 sm:p-3 hover:bg-white dark:hover:bg-slate-800/80 transition-colors cursor-pointer select-none group"
+                  >
+                    <div className="pt-0.5 shrink-0">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => {}} // Manejado por onClick en label
+                        className="w-4 h-4 rounded text-blue-600 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 focus:ring-blue-500 cursor-pointer"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <IconComponent className={`w-3.5 h-3.5 shrink-0 ${
+                          isChecked ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400'
+                        }`} />
+                        <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                          {item.title}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">
+                        {item.description}
+                      </p>
+                    </div>
+                  </label>
+                );
+              })}
             </div>
           </div>
 
           {/* Botones de acción */}
-          <div className="pt-4 border-t border-slate-200 dark:border-slate-700/60 flex items-center justify-end gap-2.5">
+          <div className="pt-3 border-t border-slate-200 dark:border-slate-700/60 flex items-center justify-end gap-2.5 shrink-0">
             <button
               type="button"
               onClick={onClose}
