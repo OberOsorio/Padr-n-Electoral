@@ -12,6 +12,8 @@ import {
   Search,
   CheckCircle2,
   Shield,
+  ShieldAlert,
+  Lock,
   UserX,
   KeyRound,
   UserCheck,
@@ -75,6 +77,13 @@ export const TeamManagementView = ({
   );
 
   const handleToggle = async (id: string, currentStatus: boolean, name: string) => {
+    const targetMember = team.find((m) => m.id === id);
+    if (targetMember?.role === 'admin') {
+      setActionMessage('Las credenciales y estado del Titular de Campaña son inmutables desde este panel.');
+      setTimeout(() => setActionMessage(null), 3500);
+      return;
+    }
+
     try {
       const ok = await toggleMemberStatus(id, currentStatus);
       if (ok) {
@@ -92,6 +101,13 @@ export const TeamManagementView = ({
   };
 
   const handleRoleChange = async (id: string, newRole: AppRole, name: string) => {
+    const targetMember = team.find((m) => m.id === id);
+    if (targetMember?.role === 'admin') {
+      setActionMessage('El rol del Titular de Campaña no puede ser alterado.');
+      setTimeout(() => setActionMessage(null), 3500);
+      return;
+    }
+
     try {
       const ok = await changeMemberRole(id, newRole);
       if (ok) {
@@ -334,6 +350,7 @@ export const TeamManagementView = ({
                     .slice(0, 2)
                     .join('')
                     .toUpperCase();
+                  const isAdminMember = member.role === 'admin';
 
                   return (
                     <tr
@@ -345,8 +362,8 @@ export const TeamManagementView = ({
                         <div className="flex items-center gap-2.5">
                           <div
                             className={`h-8 w-8 rounded-lg flex items-center justify-center text-xs font-mono font-bold shrink-0 border ${
-                              member.role === 'admin'
-                                ? 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-[#E5B869]'
+                              isAdminMember
+                                ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/30'
                                 : member.role === 'lider'
                                 ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
                                 : 'bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800/40 text-blue-600 dark:text-blue-400'
@@ -358,6 +375,11 @@ export const TeamManagementView = ({
                             <p className="font-semibold text-slate-800 dark:text-white">
                               {member.full_name}
                             </p>
+                            {isAdminMember && (
+                              <span className="text-[10px] text-amber-600 dark:text-amber-400 font-mono block">
+                                Titular de Campaña
+                              </span>
+                            )}
                           </div>
                         </div>
                       </td>
@@ -370,35 +392,37 @@ export const TeamManagementView = ({
                         </span>
                       </td>
 
-                      {/* Selector de Rol */}
+                      {/* Selector / Badge de Rol */}
                       <td className="py-3 px-4">
-                        <select
-                          value={member.role}
-                          onChange={(e) =>
-                            handleRoleChange(
-                              member.id,
-                              e.target.value as AppRole,
-                              member.full_name
-                            )
-                          }
-                          className={`h-7 px-2.5 rounded-lg text-[11px] font-mono font-semibold uppercase tracking-wider border cursor-pointer focus:outline-none transition-colors ${
-                            member.role === 'admin'
-                              ? 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-[#E5B869]'
-                              : member.role === 'lider'
-                              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
-                              : 'bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800/40 text-blue-600 dark:text-blue-300'
-                          }`}
-                        >
-                          <option value="lider" className="bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400">
-                            Líder
-                          </option>
-                          <option value="coordinador" className="bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-300">
-                            Coordinador
-                          </option>
-                          <option value="admin" className="bg-white dark:bg-slate-900 text-amber-600 dark:text-[#E5B869]">
-                            Admin
-                          </option>
-                        </select>
+                        {isAdminMember ? (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20 font-mono">
+                            <ShieldAlert className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                            ADMIN / CANDIDATO
+                          </span>
+                        ) : (
+                          <select
+                            value={member.role}
+                            onChange={(e) =>
+                              handleRoleChange(
+                                member.id,
+                                e.target.value as AppRole,
+                                member.full_name
+                              )
+                            }
+                            className={`h-7 px-2.5 rounded-lg text-[11px] font-mono font-semibold uppercase tracking-wider border cursor-pointer focus:outline-none transition-colors ${
+                              member.role === 'lider'
+                                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+                                : 'bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800/40 text-blue-600 dark:text-blue-300'
+                            }`}
+                          >
+                            <option value="coordinador" className="bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-300">
+                              Coordinador
+                            </option>
+                            <option value="lider" className="bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400">
+                              Líder
+                            </option>
+                          </select>
+                        )}
                       </td>
 
                       {/* Estado */}
@@ -433,28 +457,41 @@ export const TeamManagementView = ({
 
                       {/* Acciones de Acceso: Switch y Botón Resetear Clave */}
                       <td className="py-3 px-4 text-right">
-                        <div className="flex items-center justify-end gap-2.5">
-                          <button
-                            type="button"
-                            onClick={() => setSelectedResetMember(member)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:text-slate-400 dark:hover:text-amber-400 dark:hover:bg-amber-950/40 transition-colors cursor-pointer"
-                            title={`Resetear contraseña de ${member.full_name}`}
+                        {isAdminMember ? (
+                          <div
+                            className="flex items-center justify-end gap-2 text-slate-500 text-xs font-medium cursor-not-allowed select-none"
+                            title="Las credenciales del titular de campaña no pueden ser modificadas desde este panel"
                           >
-                            <KeyRound className="w-4 h-4" />
-                          </button>
+                            <Lock className="w-4 h-4 text-slate-500" />
+                            <span className="text-[11px] text-slate-500">Inmutable</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-end gap-2.5">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedResetMember(member)}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:text-slate-400 dark:hover:text-amber-400 dark:hover:bg-amber-950/40 transition-colors cursor-pointer"
+                              title={`Resetear contraseña de ${member.full_name}`}
+                            >
+                              <KeyRound className="w-4 h-4" />
+                            </button>
 
-                          <label className="relative inline-flex items-center cursor-pointer select-none" title={member.is_active ? "Suspender acceso" : "Activar acceso"}>
-                            <input
-                              type="checkbox"
-                              checked={member.is_active}
-                              onChange={() =>
-                                handleToggle(member.id, member.is_active, member.full_name)
-                              }
-                              className="sr-only peer"
-                            />
-                            <div className="w-10 h-5.5 bg-slate-300 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-emerald-600 transition-colors" />
-                          </label>
-                        </div>
+                            <label
+                              className="relative inline-flex items-center cursor-pointer select-none"
+                              title={member.is_active ? "Suspender acceso" : "Activar acceso"}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={member.is_active}
+                                onChange={() =>
+                                  handleToggle(member.id, member.is_active, member.full_name)
+                                }
+                                className="sr-only peer"
+                              />
+                              <div className="w-10 h-5.5 bg-slate-300 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-emerald-600 transition-colors" />
+                            </label>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   );

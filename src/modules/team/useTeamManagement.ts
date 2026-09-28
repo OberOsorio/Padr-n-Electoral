@@ -141,6 +141,13 @@ export const useTeamManagement = () => {
 
   // 2. Cambiar estado activo/suspendido (Revocación inmediata)
   const toggleMemberStatus = async (id: string, currentStatus: boolean): Promise<boolean> => {
+    // Blindaje de seguridad: el estado del titular / admin es inmutable desde este panel
+    const targetMember = team.find((m) => m.id === id);
+    if (targetMember?.role === 'admin') {
+      console.warn('Operación denegada: El estado del Administrador Principal es inmutable.');
+      return false;
+    }
+
     const newStatus = !currentStatus;
 
     // Actualizar almacenamiento local
@@ -184,8 +191,19 @@ export const useTeamManagement = () => {
     }
   };
 
-  // 3. Cambiar rol entre 'admin', 'coordinador' y 'lider'
+  // 3. Cambiar rol entre 'coordinador' y 'lider'
   const changeMemberRole = async (id: string, newRole: AppRole): Promise<boolean> => {
+    // Blindaje de seguridad: el rol de admin es inmutable y no se permite elevar a admin
+    const targetMember = team.find((m) => m.id === id);
+    if (targetMember?.role === 'admin') {
+      console.warn('Operación denegada: El rol del Administrador Principal es inmutable.');
+      return false;
+    }
+    if (newRole === 'admin') {
+      console.warn('Operación denegada: No se puede asignar rol admin desde este panel.');
+      return false;
+    }
+
     try {
       const stored = localStorage.getItem('electoral_local_team');
       if (stored) {
@@ -352,12 +370,20 @@ export const useTeamManagement = () => {
     return true;
   };
 
-  // 5. Resetear contraseña de acceso para un miembro
+  // 5. Resetear contraseña de acceso para un miembro subordinado
   const resetMemberPassword = async (
     email: string,
     temporaryPassword?: string
   ): Promise<{ success: boolean; message: string }> => {
     const trimmedEmail = email.trim().toLowerCase();
+    const targetMember = team.find((m) => m.email.trim().toLowerCase() === trimmedEmail);
+    if (targetMember?.role === 'admin') {
+      return {
+        success: false,
+        message: 'Las credenciales del Administrador Principal no pueden modificarse desde este panel.',
+      };
+    }
+
     const tempPass = temporaryPassword || 'Electoral2026*';
 
     if (isSupabaseConfigured) {
