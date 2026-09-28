@@ -1,7 +1,6 @@
 import {
   LayoutDashboard,
   UserPlus,
-  SearchCheck,
   Users,
   UploadCloud,
   ShieldCheck,
@@ -20,7 +19,6 @@ import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 export type SidebarTabId =
   | 'dashboard'
   | 'register'
-  | 'consulta-censo'
   | 'electors'
   | 'bulk-upload'
   | 'coordinators'
@@ -47,7 +45,6 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { id: 'dashboard', label: 'Dashboard General', icon: LayoutDashboard },
   { id: 'register', label: 'Registrar Elector', icon: UserPlus },
-  { id: 'consulta-censo', label: 'Consulta Lugar Votación', icon: SearchCheck },
   { id: 'electors', label: 'Padrón / Lista de Electores', icon: Users },
   { id: 'bulk-upload', label: 'Carga Masiva', icon: UploadCloud },
   { id: 'coordinators', label: 'Equipo y Accesos', icon: ShieldCheck },

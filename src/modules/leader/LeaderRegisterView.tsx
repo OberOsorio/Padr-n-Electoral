@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PREDEFINED_POLLING_PLACES } from '../electors/constants';
-import type { CollisionCheckResult } from '../../types';
+import type { CollisionCheckResult, PollingPlace } from '../../types';
 
 export interface LeaderRegisterViewProps {
   cedula: string;
@@ -37,6 +37,7 @@ export interface LeaderRegisterViewProps {
     puesto: string;
     mesa: number;
   } | null;
+  pollingPlaces?: PollingPlace[];
   onCedulaChange: (val: string) => void;
   onCedulaBlur?: () => void;
   setNombres: (val: string) => void;
@@ -66,6 +67,7 @@ export const LeaderRegisterView: React.FC<LeaderRegisterViewProps> = ({
   submitting,
   formError,
   lastRegistered,
+  pollingPlaces,
   onCedulaChange,
   onCedulaBlur,
   setNombres,
@@ -80,8 +82,11 @@ export const LeaderRegisterView: React.FC<LeaderRegisterViewProps> = ({
   formatRegistrationDate,
   getRoleBadge,
 }) => {
+  const availablePlaces = pollingPlaces && pollingPlaces.length > 0 ? pollingPlaces : PREDEFINED_POLLING_PLACES;
+
   const currentPollingPlace =
-    PREDEFINED_POLLING_PLACES.find((p) => p.name === puestoVotacion) ||
+    availablePlaces.find((p) => p.name === puestoVotacion) ||
+    availablePlaces[0] ||
     PREDEFINED_POLLING_PLACES[0];
 
   const isFormLocked = collisionResult?.exists ?? false;
@@ -382,8 +387,11 @@ export const LeaderRegisterView: React.FC<LeaderRegisterViewProps> = ({
           {/* Puesto y Mesa */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="sm:col-span-2">
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5 block">
-                Puesto de Votación *
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                <span>Puesto de Votación *</span>
+                <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 font-normal">
+                  {currentPollingPlace.zone} · {currentPollingPlace.totalMesas} Mesas
+                </span>
               </label>
               <select
                 disabled={submitting || isFormLocked}
@@ -394,9 +402,9 @@ export const LeaderRegisterView: React.FC<LeaderRegisterViewProps> = ({
                 }}
                 className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-slate-700/60 focus:bg-white dark:focus:bg-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10 rounded-xl text-base sm:text-xs text-slate-900 dark:text-white focus:outline-none transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {PREDEFINED_POLLING_PLACES.map((p) => (
+                {availablePlaces.map((p) => (
                   <option key={p.id} value={p.name}>
-                    {p.name}
+                    {p.name} ({p.zone})
                   </option>
                 ))}
               </select>

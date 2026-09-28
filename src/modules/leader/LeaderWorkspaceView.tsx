@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import {
   Target,
   UserPlus,
@@ -8,6 +8,8 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLeaderWorkspace } from './useLeaderWorkspace';
 import { PREDEFINED_POLLING_PLACES } from '../electors/constants';
+import { useTenant } from '../../context/TenantContext';
+import { getPollingPlacesForTenant } from '../../services/divipoleService';
 import { ThemeToggle } from '../../components/ui/ThemeToggle';
 import type { CollisionCheckResult, ElectorWithRegistrant } from '../../types';
 import { LeaderDashboardView } from './LeaderDashboardView';
@@ -34,6 +36,9 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
   tenantName = 'Campaña Electoral',
   onSignOut,
 }) => {
+  const { currentTenant } = useTenant();
+  const pollingPlaces = useMemo(() => getPollingPlacesForTenant(currentTenant), [currentTenant]);
+
   const {
     electors,
     loading,
@@ -60,9 +65,18 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
   const [apellidos, setApellidos] = useState('');
   const [edad, setEdad] = useState<number | ''>('');
   const [telefono, setTelefono] = useState('');
-  const [puestoVotacion, setPuestoVotacion] = useState(PREDEFINED_POLLING_PLACES[0].name);
+  const [puestoVotacion, setPuestoVotacion] = useState(
+    pollingPlaces[0]?.name || PREDEFINED_POLLING_PLACES[0].name
+  );
   const [mesa, setMesa] = useState<number>(1);
   const [notas, setNotas] = useState('');
+
+  // Sincronizar puesto al cambiar circunscripción de campaña
+  useEffect(() => {
+    if (pollingPlaces.length > 0 && !pollingPlaces.some((p) => p.name === puestoVotacion)) {
+      setPuestoVotacion(pollingPlaces[0].name);
+    }
+  }, [pollingPlaces, puestoVotacion]);
 
   // Collision and Censo check state
   const [isCheckingCedula, setIsCheckingCedula] = useState(false);
@@ -188,7 +202,7 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
           if (censo.edad !== undefined && censo.edad !== null) {
             setEdad(censo.edad);
           }
-          if (censo.puesto_sugerido && PREDEFINED_POLLING_PLACES.some((p) => p.name === censo.puesto_sugerido)) {
+          if (censo.puesto_sugerido && pollingPlaces.some((p) => p.name === censo.puesto_sugerido)) {
             setPuestoVotacion(censo.puesto_sugerido);
           }
           if (censo.mesa_sugerida) {
@@ -411,6 +425,7 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
               submitting={submitting}
               formError={formError}
               lastRegistered={lastRegistered}
+              pollingPlaces={pollingPlaces}
               onCedulaChange={handleCedulaChange}
               setNombres={setNombres}
               setApellidos={setApellidos}

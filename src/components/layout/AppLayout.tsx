@@ -6,7 +6,6 @@ import { ElectorsListView } from '../../modules/electors/ElectorsListView';
 import { BulkUploadView } from '../../modules/electors/BulkUploadView';
 import { TeamManagementView } from '../../modules/team/TeamManagementView';
 import { ExportReportsView } from '../../modules/reports/ExportReportsView';
-import { ConsultaLugarVotacionView } from '../../modules/censo/ConsultaLugarVotacionView';
 import { TenantSwitcher } from './TenantSwitcher';
 import { Construction, ArrowLeft, Shield, UserPlus, Sparkles, ShieldCheck } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -34,11 +33,6 @@ const TAB_TITLES: Record<SidebarTabId, { title: string; subtitle: string; phase:
     title: 'Registrar Elector',
     subtitle: 'Formulario de enrolamiento y verificación de mesa',
     phase: 'Fase 3',
-  },
-  'consulta-censo': {
-    title: 'Consulta Lugar de Votación',
-    subtitle: 'Verificación oficial del Censo Electoral en la Registraduría Nacional',
-    phase: 'Portal Oficial',
   },
   electors: {
     title: 'Padrón de Electores',
@@ -252,10 +246,6 @@ export const AppLayout = ({
               ) : activeTab === 'register' ? (
                 <RegisterElectorView
                   onNavigateToDashboard={() => setActiveTab('dashboard')}
-                />
-              ) : activeTab === 'consulta-censo' ? (
-                <ConsultaLugarVotacionView
-                  onNavigateToRegister={() => setActiveTab('register')}
                 />
               ) : activeTab === 'electors' ? (
                 <ElectorsListView

@@ -307,3 +307,5 @@ export interface Database {
     CompositeTypes: Record<string, never>;
   };
 }
+
+export type { PollingPlace } from '../data/monteriaDivipole2026';

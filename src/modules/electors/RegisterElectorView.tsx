@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import type { ElectorWithRegistrant, CollisionCheckResult } from '../../types';
 import {
@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AnimatedCheck } from '../../components/ui/AnimatedCheck';
-import { PREDEFINED_POLLING_PLACES } from './constants';
+import { PREDEFINED_POLLING_PLACES, getPollingPlacesForTenant } from './constants';
 import { useTenant } from '../../context/TenantContext';
 import { buscarCiudadanoEnCenso } from '../../services/censoService';
 
@@ -77,7 +77,7 @@ export const RegisterElectorView = ({
     const savedPuesto = localStorage.getItem('electoral_saved_puesto');
     const savedMesa = localStorage.getItem('electoral_saved_mesa');
 
-    if (savedPuesto && PREDEFINED_POLLING_PLACES.some((p) => p.name === savedPuesto)) {
+    if (savedPuesto) {
       setPuestoVotacion(savedPuesto);
     }
     if (savedMesa && !isNaN(Number(savedMesa))) {
@@ -88,39 +88,30 @@ export const RegisterElectorView = ({
     cedulaInputRef.current?.focus();
   }, []);
 
-  // Cargar datos pre-poblados si vienen desde la Consulta de Lugar de Votación
-  useEffect(() => {
-    try {
-      const pendingRaw = sessionStorage.getItem('electoral_pending_registration');
-      if (pendingRaw) {
-        const pending = JSON.parse(pendingRaw);
-        sessionStorage.removeItem('electoral_pending_registration');
-        if (pending.cedula) {
-          setCedula(pending.cedula);
-          currentCedulaRef.current = pending.cedula;
-        }
-        if (pending.nombres) setNombres(pending.nombres);
-        if (pending.apellidos) setApellidos(pending.apellidos);
-        if (pending.puesto) setPuestoVotacion(pending.puesto);
-        if (pending.mesa) setMesa(Number(pending.mesa) || 1);
-
-        setTimeout(() => {
-          telefonoInputRef.current?.focus();
-        }, 150);
-      }
-    } catch {
-      // ignore
-    }
-  }, []);
-
   const { currentTenant, currentTenantId, planUsage, refetchTenants } = useTenant();
 
+  // Puestos oficiales de votación correspondientes a la circunscripción/municipio de la campaña (Divipole 2026)
+  const pollingPlaces = useMemo(() => {
+    return getPollingPlacesForTenant(currentTenant);
+  }, [currentTenant]);
+
   // Actualizar lista de mesas según el puesto seleccionado
-  const currentPollingPlace = PREDEFINED_POLLING_PLACES.find(
-    (p) => p.name === puestoVotacion
-  ) || PREDEFINED_POLLING_PLACES[0];
+  const currentPollingPlace = useMemo(() => {
+    return (
+      pollingPlaces.find((p) => p.name === puestoVotacion) ||
+      pollingPlaces[0] ||
+      PREDEFINED_POLLING_PLACES[0]
+    );
+  }, [pollingPlaces, puestoVotacion]);
 
   const totalMesas = currentPollingPlace.totalMesas;
+
+  // Si cambia la circunscripción y el puesto actual no existe en la lista, seleccionar el primero
+  useEffect(() => {
+    if (pollingPlaces.length > 0 && !pollingPlaces.some((p) => p.name === puestoVotacion)) {
+      setPuestoVotacion(pollingPlaces[0].name);
+    }
+  }, [pollingPlaces, puestoVotacion]);
 
   // Formato legible de fecha y hora exacta de registro
   const formatRegistrationDate = (isoString?: string) => {
@@ -189,7 +180,7 @@ export const RegisterElectorView = ({
           if (censo.edad !== undefined && censo.edad !== null) {
             setEdad(censo.edad);
           }
-          if (censo.puesto_sugerido && PREDEFINED_POLLING_PLACES.some((p) => p.name === censo.puesto_sugerido)) {
+          if (censo.puesto_sugerido && pollingPlaces.some((p) => p.name === censo.puesto_sugerido)) {
             setPuestoVotacion(censo.puesto_sugerido);
           }
           if (censo.mesa_sugerida) {
@@ -382,7 +373,7 @@ export const RegisterElectorView = ({
   // Manejar cambio de puesto en cascada
   const handlePuestoChange = (newPuesto: string) => {
     setPuestoVotacion(newPuesto);
-    const place = PREDEFINED_POLLING_PLACES.find((p) => p.name === newPuesto);
+    const place = pollingPlaces.find((p) => p.name === newPuesto);
     if (place && mesa > place.totalMesas) {
       setMesa(1);
     }
@@ -1005,7 +996,7 @@ export const RegisterElectorView = ({
                     disabled={saving || collisionResult?.exists}
                     className="w-full h-10.5 pl-3.5 pr-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 rounded-xl text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/40 transition-all disabled:opacity-50 appearance-none cursor-pointer"
                   >
-                    {PREDEFINED_POLLING_PLACES.map((p) => (
+                    {pollingPlaces.map((p) => (
                       <option key={p.id} value={p.name} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
                         {p.name} ({p.zone})
                       </option>

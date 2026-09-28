@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import type { ElectorWithRegistrant, Elector } from '../../../types';
 import { PREDEFINED_POLLING_PLACES } from '../constants';
+import { useTenant } from '../../../context/TenantContext';
+import { getPollingPlacesForTenant } from '../../../services/divipoleService';
 import {
   X,
   User,
@@ -27,11 +29,16 @@ export const EditElectorModal = ({
   onClose,
   onSave,
 }: EditElectorModalProps) => {
+  const { currentTenant } = useTenant();
+  const pollingPlaces = useMemo(() => getPollingPlacesForTenant(currentTenant), [currentTenant]);
+
   const [nombres, setNombres] = useState('');
   const [apellidos, setApellidos] = useState('');
   const [edad, setEdad] = useState<number | ''>('');
   const [telefono, setTelefono] = useState('');
-  const [puestoVotacion, setPuestoVotacion] = useState(PREDEFINED_POLLING_PLACES[0].name);
+  const [puestoVotacion, setPuestoVotacion] = useState(
+    pollingPlaces[0]?.name || PREDEFINED_POLLING_PLACES[0].name
+  );
   const [mesa, setMesa] = useState<number>(1);
   const [notas, setNotas] = useState('');
   const [saving, setSaving] = useState(false);
@@ -50,11 +57,16 @@ export const EditElectorModal = ({
     }
   }, [elector]);
 
-  if (!isOpen || !elector) return null;
+  const currentPlace = useMemo(() => {
+    return (
+      pollingPlaces.find((p) => p.name === puestoVotacion) ||
+      PREDEFINED_POLLING_PLACES.find((p) => p.name === puestoVotacion) ||
+      pollingPlaces[0] ||
+      PREDEFINED_POLLING_PLACES[0]
+    );
+  }, [pollingPlaces, puestoVotacion]);
 
-  const currentPlace =
-    PREDEFINED_POLLING_PLACES.find((p) => p.name === puestoVotacion) ||
-    PREDEFINED_POLLING_PLACES[0];
+  if (!isOpen || !elector) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -226,15 +238,23 @@ export const EditElectorModal = ({
                 <select
                   value={puestoVotacion}
                   onChange={(e) => {
-                    setPuestoVotacion(e.target.value);
-                    const p = PREDEFINED_POLLING_PLACES.find((x) => x.name === e.target.value);
+                    const newPuesto = e.target.value;
+                    setPuestoVotacion(newPuesto);
+                    const p =
+                      pollingPlaces.find((x) => x.name === newPuesto) ||
+                      PREDEFINED_POLLING_PLACES.find((x) => x.name === newPuesto);
                     if (p && mesa > p.totalMesas) setMesa(1);
                   }}
                   className="w-full h-9.5 pl-3 pr-8 bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/60 rounded-xl text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-500 appearance-none cursor-pointer"
                 >
-                  {PREDEFINED_POLLING_PLACES.map((p) => (
+                  {!pollingPlaces.some((p) => p.name === puestoVotacion) && puestoVotacion && (
+                    <option key="custom-puesto" value={puestoVotacion} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+                      {puestoVotacion}
+                    </option>
+                  )}
+                  {pollingPlaces.map((p) => (
                     <option key={p.id} value={p.name} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
-                      {p.name}
+                      {p.name} ({p.zone})
                     </option>
                   ))}
                 </select>
