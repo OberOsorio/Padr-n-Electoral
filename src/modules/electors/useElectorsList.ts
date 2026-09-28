@@ -26,7 +26,7 @@ export const useElectorsList = (
   const [error, setError] = useState<string | null>(null);
 
   const isMountedRef = useRef(true);
-  const { currentTenantId } = useTenant();
+  const { currentTenantId, loading: tenantLoading } = useTenant();
 
   // 1. Obtener lista de coordinadores para los filtros
   useEffect(() => {
@@ -39,6 +39,8 @@ export const useElectorsList = (
         ]);
         return;
       }
+
+      if (tenantLoading) return;
 
       try {
         let coordQuery = supabase
@@ -65,10 +67,15 @@ export const useElectorsList = (
     };
 
     fetchCoordinators();
-  }, [currentTenantId]);
+  }, [currentTenantId, tenantLoading]);
 
   // 2. Consulta de Electores con Paginación Server-Side y Filtros
   const fetchElectors = useCallback(async () => {
+    // Si aún está resolviendo el tenant, esperar
+    if (tenantLoading) {
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -109,12 +116,12 @@ export const useElectorsList = (
       }
 
       // Filtro por puesto
-      if (puestoFilter && puestoFilter !== 'all') {
+      if (puestoFilter && !['all', 'todos', ''].includes(puestoFilter.toLowerCase())) {
         query = query.eq('puesto_votacion', puestoFilter);
       }
 
-      // Filtro por coordinador
-      if (coordinadorFilter && coordinadorFilter !== 'all') {
+      // Filtro por coordinador / registrador
+      if (coordinadorFilter && !['all', 'todos', ''].includes(coordinadorFilter.toLowerCase())) {
         query = query.eq('registrado_por', coordinadorFilter);
       }
 
@@ -134,19 +141,32 @@ export const useElectorsList = (
 
       const { data, count, error: queryError } = await query;
 
-      if (queryError) throw queryError;
+      if (queryError) {
+        console.error('Error detallado de Supabase al consultar electores:', queryError);
+        // Si el error es por consulta vacía o similar no crítico, retornar seguro
+        if (queryError.code === 'PGRST116') {
+          if (isMountedRef.current) {
+            setElectors([]);
+            setTotalCount(0);
+            setError(null);
+          }
+          return;
+        }
+        throw queryError;
+      }
 
       if (isMountedRef.current) {
-        const formatted: ElectorWithRegistrant[] = (data || []).map((item: any) => ({
+        const rows = Array.isArray(data) ? data : [];
+        const formatted: ElectorWithRegistrant[] = rows.map((item: any) => ({
           id: item.id,
-          cedula: item.cedula,
-          nombres: item.nombres,
-          apellidos: item.apellidos,
+          cedula: item.cedula || '',
+          nombres: item.nombres || '',
+          apellidos: item.apellidos || '',
           edad: item.edad !== undefined && item.edad !== null ? Number(item.edad) : null,
-          telefono: item.telefono,
-          puesto_votacion: item.puesto_votacion,
-          mesa: item.mesa,
-          notas: item.notas,
+          telefono: item.telefono || '',
+          puesto_votacion: item.puesto_votacion || '',
+          mesa: item.mesa || 0,
+          notas: item.notas || null,
           registrado_por: item.registrado_por,
           created_at: item.created_at,
           registrador: item.registrador
@@ -158,11 +178,14 @@ export const useElectorsList = (
         }));
 
         setElectors(formatted);
-        setTotalCount(count ?? 0);
+        setTotalCount(count ?? rows.length);
+        setError(null);
       }
     } catch (err: unknown) {
       console.error('Error al consultar electores en servidor:', err);
       if (isMountedRef.current) {
+        setElectors([]);
+        setTotalCount(0);
         setError(
           err instanceof Error
             ? err.message
@@ -174,7 +197,7 @@ export const useElectorsList = (
         setLoading(false);
       }
     }
-  }, [searchQuery, puestoFilter, coordinadorFilter, page, pageSize, currentTenantId]);
+  }, [searchQuery, puestoFilter, coordinadorFilter, page, pageSize, currentTenantId, tenantLoading]);
 
   useEffect(() => {
     isMountedRef.current = true;
