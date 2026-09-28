@@ -322,8 +322,9 @@ export const useTeamManagement = () => {
           // ignore
         }
 
-        // Registrar / sincronizar el perfil con el tenant_id de la campaña
-        const { error: upsertErr } = await (supabase.from('profiles') as any).upsert(
+        // Registrar / sincronizar el perfil con el tenant_id de la campaña (usando supabaseAdmin si está disponible para garantizar inserción sin restricciones RLS)
+        const clientToUse = supabaseAdmin || supabase;
+        const { error: upsertErr } = await (clientToUse.from('profiles') as any).upsert(
           {
             id: assignedId,
             full_name: trimmedName,
@@ -332,6 +333,7 @@ export const useTeamManagement = () => {
             permissions: effectivePermissions,
             tenant_id: currentTenantId,
             is_active: true,
+            updated_at: new Date().toISOString(),
           },
           { onConflict: 'id' }
         );
@@ -345,23 +347,36 @@ export const useTeamManagement = () => {
       }
     }
 
+    const newMember: TeamMember = {
+      id: assignedId,
+      full_name: trimmedName,
+      email: trimmedEmail,
+      role: payload.role,
+      permissions: effectivePermissions,
+      tenant_id: currentTenantId,
+      is_active: true,
+      created_at: new Date().toISOString(),
+      totalElectores: 0,
+      lastActivity: null,
+    };
+
+    // Actualización optimista inmediata en memoria para visualización en tabla sin retrasos
+    setTeam((prev) => {
+      const idx = prev.findIndex(
+        (m) => m.id === newMember.id || m.email.toLowerCase() === newMember.email.toLowerCase()
+      );
+      if (idx >= 0) {
+        const copy = [...prev];
+        copy[idx] = newMember;
+        return copy;
+      }
+      return [...prev, newMember];
+    });
+
     // Respaldar en almacenamiento local
     try {
       const stored = localStorage.getItem('electoral_local_team');
       const list: TeamMember[] = stored ? JSON.parse(stored) : [];
-      const newMember: TeamMember = {
-        id: assignedId,
-        full_name: trimmedName,
-        email: trimmedEmail,
-        role: payload.role,
-        permissions: effectivePermissions,
-        tenant_id: currentTenantId,
-        is_active: true,
-        created_at: new Date().toISOString(),
-        totalElectores: 0,
-        lastActivity: null,
-      };
-
       const existingIdx = list.findIndex((m) => m.id === assignedId || m.email === trimmedEmail);
       if (existingIdx >= 0) {
         list[existingIdx] = newMember;

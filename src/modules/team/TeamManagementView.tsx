@@ -505,8 +505,19 @@ export const TeamManagementView = ({
       {/* Modal de Creación / Invitación */}
       <CreateMemberModal
         isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        onCreate={createMember}
+        onClose={() => {
+          setIsCreateModalOpen(false);
+          refetch();
+        }}
+        onCreate={async (data) => {
+          const ok = await createMember(data);
+          if (ok) {
+            await refetch();
+            setActionMessage(`Miembro ${data.full_name} creado y asignado exitosamente.`);
+            setTimeout(() => setActionMessage(null), 3500);
+          }
+          return ok;
+        }}
       />
 
       {/* Modal de Reseteo de Contraseña */}
