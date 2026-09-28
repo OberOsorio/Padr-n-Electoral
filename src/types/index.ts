@@ -35,6 +35,7 @@ export interface AccessAuditLog {
 export interface Profile {
   id: string;
   full_name: string | null;
+  email?: string | null;
   role: AppRole;
   tenant_id?: string | null;
   tenant?: Tenant | null;

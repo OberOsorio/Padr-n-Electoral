@@ -130,7 +130,7 @@ export const CreateMemberModal = ({
           {/* Correo Electrónico */}
           <div className="space-y-1.5">
             <label className="block text-[11px] font-mono uppercase text-slate-600 dark:text-slate-400">
-              Correo Institucional <span className="text-blue-600 dark:text-blue-400">*</span>
+              Correo Registrado <span className="text-blue-600 dark:text-blue-400">*</span>
             </label>
             <div className="relative">
               <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-400 pointer-events-none" />
@@ -139,7 +139,7 @@ export const CreateMemberModal = ({
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="coordinador@electoral.gov"
+                placeholder="usuario@ejemplo.com"
                 className="w-full h-10 pl-10 pr-3.5 bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/60 rounded-xl text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-blue-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-1 focus:ring-blue-500"
               />
             </div>

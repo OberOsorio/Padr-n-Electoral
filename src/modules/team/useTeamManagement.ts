@@ -54,7 +54,7 @@ export const useTeamManagement = () => {
       // Consultar perfiles pertenecientes al tenant activo
       let profilesQuery = supabase
         .from('profiles')
-        .select('id, full_name, role, is_active, created_at, tenant_id')
+        .select('id, full_name, email, role, is_active, created_at, tenant_id')
         .order('created_at', { ascending: true });
 
       if (currentTenantId) {
@@ -98,14 +98,12 @@ export const useTeamManagement = () => {
 
       const formatted: TeamMember[] = (profilesData || []).map((p: any) => {
         const localMatch = localMap.get(p.id);
-        const fallbackEmail = p.full_name
-          ? `${p.full_name.toLowerCase().replace(/\s+/g, '.')}@electoral.gov`
-          : 'usuario@electoral.gov';
+        const realEmail = p.email || localMatch?.email || '';
 
         return {
           id: p.id,
           full_name: p.full_name || 'Usuario del Sistema',
-          email: localMatch?.email || (p as any).email || fallbackEmail,
+          email: realEmail,
           role: p.role as AppRole,
           tenant_id: p.tenant_id || currentTenantId,
           is_active: p.is_active,
@@ -323,6 +321,7 @@ export const useTeamManagement = () => {
           {
             id: assignedId,
             full_name: trimmedName,
+            email: trimmedEmail,
             role: payload.role,
             tenant_id: currentTenantId,
             is_active: true,

@@ -306,7 +306,7 @@ export const TeamManagementView = ({
             <thead>
               <tr className="border-b border-slate-200 dark:border-slate-700/60 bg-slate-100/70 dark:bg-slate-900/90 text-[11px] font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 <th className="py-3 px-4">Miembro</th>
-                <th className="py-3 px-4">Correo Institucional</th>
+                <th className="py-3 px-4">Correo Registrado</th>
                 <th className="py-3 px-4">Rol Asignado</th>
                 <th className="py-3 px-4 text-center">Estado</th>
                 <th className="py-3 px-4 text-center">Electores Reportados</th>
@@ -387,8 +387,8 @@ export const TeamManagementView = ({
                       {/* Correo */}
                       <td className="py-3 px-4 font-mono text-slate-500 dark:text-slate-400 text-[11px]">
                         <span className="flex items-center gap-1.5">
-                          <Mail className="w-3 h-3 text-slate-400 dark:text-slate-500" />
-                          {member.email}
+                          <Mail className="w-3 h-3 text-slate-400 dark:text-slate-500 shrink-0" />
+                          <span className="truncate">{member.email || 'Sin correo registrado'}</span>
                         </span>
                       </td>
 
