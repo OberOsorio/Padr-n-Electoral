@@ -10,6 +10,8 @@ import {
   AlertCircle,
   Shield,
   ArrowLeft,
+  Clock,
+  X,
 } from 'lucide-react';
 import { ThemeToggle } from '../../components/ui/ThemeToggle';
 
@@ -24,22 +26,37 @@ export const LoginPage = ({ onSuccess, onBackToLanding }: LoginPageProps) => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [timeoutMessage, setTimeoutMessage] = useState<string | null>(null);
 
   useEffect(() => {
     try {
       const params = new URLSearchParams(window.location.search);
       if (params.get('reason') === 'session_timeout') {
-        setErrorMessage('Su sesión ha expirado por inactividad (60 minutos). Por favor, ingrese de nuevo.');
+        setTimeoutMessage('Su sesión ha expirado por inactividad (60 minutos). Por favor, ingrese de nuevo.');
+
+        // Descartar automáticamente el aviso tras 30 segundos
+        const timer = setTimeout(() => {
+          setTimeoutMessage(null);
+          try {
+            const url = new URL(window.location.href);
+            url.searchParams.delete('reason');
+            window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''));
+          } catch {
+            // ignore
+          }
+        }, 30000);
+
+        return () => clearTimeout(timer);
       }
     } catch {
       // ignore
     }
   }, []);
 
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setErrorMessage(null);
+    setTimeoutMessage(null);
 
     const trimmedEmail = email.trim();
     if (!trimmedEmail || !password) {
@@ -198,6 +215,38 @@ export const LoginPage = ({ onSuccess, onBackToLanding }: LoginPageProps) => {
             Registro y Gestión de Electores
           </p>
         </div>
+
+        {/* Alerta de Sesión Expirada por Inactividad (auto-remoción tras 30 segundos) */}
+        {timeoutMessage && (
+          <div className="mb-5 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 px-3.5 py-2.5 text-xs text-amber-800 dark:text-amber-300 flex items-start justify-between gap-2.5 transition-all">
+            <div className="flex items-start gap-2.5">
+              <Clock className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+              <div>
+                <span className="leading-snug font-medium block">{timeoutMessage}</span>
+                <span className="text-[10px] text-amber-600/75 dark:text-amber-400/70 mt-0.5 block">
+                  Este aviso se quitará automáticamente en 30 segundos.
+                </span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setTimeoutMessage(null);
+                try {
+                  const url = new URL(window.location.href);
+                  url.searchParams.delete('reason');
+                  window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''));
+                } catch {
+                  // ignore
+                }
+              }}
+              className="text-amber-600 hover:text-amber-900 dark:text-amber-400 dark:hover:text-amber-200 transition-colors p-0.5 shrink-0"
+              title="Cerrar aviso"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
 
         {/* Alerta de Error Depurada */}
         {errorMessage && (
