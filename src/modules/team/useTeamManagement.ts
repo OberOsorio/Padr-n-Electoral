@@ -250,6 +250,80 @@ export const useTeamManagement = () => {
     }
   };
 
+  // 3.1. Actualizar datos completos del colaborador (Nombre, Rol, Meta de electores, Permisos)
+  const updateMember = async (
+    id: string,
+    updates: {
+      full_name?: string;
+      role?: AppRole;
+      meta_electores?: number;
+      permissions?: UserPermissions;
+    }
+  ): Promise<boolean> => {
+    // Blindaje de seguridad: la cuenta del Administrador / Candidato es inmutable desde este panel
+    const targetMember = team.find((m) => m.id === id);
+    if (targetMember?.role === 'admin') {
+      console.warn('Operación denegada: El Administrador Principal es inmutable.');
+      return false;
+    }
+    if (updates.role === 'admin') {
+      console.warn('Operación denegada: No se puede asignar rol admin desde este panel.');
+      return false;
+    }
+
+    try {
+      const stored = localStorage.getItem('electoral_local_team');
+      if (stored) {
+        const list: TeamMember[] = JSON.parse(stored);
+        const updated = list.map((m) =>
+          m.id === id ? { ...m, ...updates } : m
+        );
+        localStorage.setItem('electoral_local_team', JSON.stringify(updated));
+      }
+    } catch (e) {
+      console.warn('Error al actualizar colaborador local:', e);
+    }
+
+    if (!isSupabaseConfigured) {
+      setTeam((prev) =>
+        prev.map((m) => (m.id === id ? { ...m, ...updates } : m))
+      );
+      return true;
+    }
+
+    try {
+      const payload: Record<string, any> = {
+        updated_at: new Date().toISOString(),
+      };
+      if (updates.full_name !== undefined) payload.full_name = updates.full_name.trim();
+      if (updates.role !== undefined) payload.role = updates.role;
+      if (updates.meta_electores !== undefined) payload.meta_electores = updates.meta_electores;
+      if (updates.permissions !== undefined) payload.permissions = updates.permissions;
+
+      let updQuery = (supabase.from('profiles') as any)
+        .update(payload)
+        .eq('id', id);
+
+      if (currentTenantId) {
+        updQuery = updQuery.eq('tenant_id', currentTenantId);
+      }
+
+      const { error: updError } = await updQuery;
+      if (updError) throw updError;
+
+      // Actualización optimista inmediata en memoria
+      setTeam((prev) =>
+        prev.map((m) => (m.id === id ? { ...m, ...updates } : m))
+      );
+
+      fetchTeam();
+      return true;
+    } catch (err) {
+      console.error('Error al actualizar datos de colaborador:', err);
+      throw err;
+    }
+  };
+
   // 4. Crear nuevo miembro con aislamiento hermético por tenant_id
   const createMember = async (payload: {
     full_name: string;
@@ -443,6 +517,7 @@ export const useTeamManagement = () => {
     error,
     toggleMemberStatus,
     changeMemberRole,
+    updateMember,
     createMember,
     resetMemberPassword,
     refetch: fetchTeam,

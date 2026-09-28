@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTeamManagement } from './useTeamManagement';
 import { CreateMemberModal } from './components/CreateMemberModal';
+import { EditMemberModal } from './components/EditMemberModal';
 import { ResetPasswordModal } from './components/ResetPasswordModal';
 import { AccessDeniedView } from './components/AccessDeniedView';
 import type { AppRole, TeamMember } from '../../types';
@@ -18,6 +19,7 @@ import {
   KeyRound,
   UserCheck,
   Award,
+  Pencil,
 } from 'lucide-react';
 
 interface TeamManagementViewProps {
@@ -31,6 +33,7 @@ export const TeamManagementView = ({
 }: TeamManagementViewProps) => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedResetMember, setSelectedResetMember] = useState<TeamMember | null>(null);
+  const [selectedEditMember, setSelectedEditMember] = useState<TeamMember | null>(null);
   const [searchFilter, setSearchFilter] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | AppRole>('all');
   const [actionMessage, setActionMessage] = useState<string | null>(null);
@@ -42,6 +45,7 @@ export const TeamManagementView = ({
     error,
     toggleMemberStatus,
     changeMemberRole,
+    updateMember,
     createMember,
     resetMemberPassword,
     refetch,
@@ -524,6 +528,17 @@ export const TeamManagementView = ({
                           </div>
                         ) : (
                           <div className="flex items-center justify-end gap-2.5">
+                            {/* 1. Botón de Editar Información y Meta */}
+                            <button
+                              type="button"
+                              onClick={() => setSelectedEditMember(member)}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:text-slate-400 dark:hover:text-blue-400 dark:hover:bg-blue-950/40 transition-colors cursor-pointer"
+                              title="Editar colaborador y meta"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+
+                            {/* 2. Botón de Resetear Clave */}
                             <button
                               type="button"
                               onClick={() => setSelectedResetMember(member)}
@@ -533,6 +548,7 @@ export const TeamManagementView = ({
                               <KeyRound className="w-4 h-4" />
                             </button>
 
+                            {/* 3. Switch Activo / Suspendido */}
                             <label
                               className="relative inline-flex items-center cursor-pointer select-none"
                               title={member.is_active ? "Suspender acceso" : "Activar acceso"}
@@ -571,6 +587,22 @@ export const TeamManagementView = ({
           if (ok) {
             await refetch();
             setActionMessage(`Miembro ${data.full_name} creado y asignado exitosamente.`);
+            setTimeout(() => setActionMessage(null), 3500);
+          }
+          return ok;
+        }}
+      />
+
+      {/* Modal de Edición de Colaborador y Meta */}
+      <EditMemberModal
+        isOpen={!!selectedEditMember}
+        member={selectedEditMember}
+        onClose={() => setSelectedEditMember(null)}
+        onUpdate={async (id, data) => {
+          const ok = await updateMember(id, data);
+          if (ok) {
+            await refetch();
+            setActionMessage(`Información de ${data.full_name} actualizada exitosamente.`);
             setTimeout(() => setActionMessage(null), 3500);
           }
           return ok;
