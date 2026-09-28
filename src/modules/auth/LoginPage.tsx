@@ -27,6 +27,21 @@ export const LoginPage = ({ onSuccess, onBackToLanding }: LoginPageProps) => {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [timeoutMessage, setTimeoutMessage] = useState<string | null>(null);
+  const [savedEmails, setSavedEmails] = useState<string[]>([]);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('electoral_saved_emails');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setSavedEmails(parsed);
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
 
   useEffect(() => {
     try {
@@ -62,6 +77,14 @@ export const LoginPage = ({ onSuccess, onBackToLanding }: LoginPageProps) => {
     if (!trimmedEmail || !password) {
       setErrorMessage('Ingrese su correo electrónico y contraseña.');
       return;
+    }
+
+    try {
+      const updated = Array.from(new Set([trimmedEmail.toLowerCase(), ...savedEmails])).slice(0, 10);
+      setSavedEmails(updated);
+      localStorage.setItem('electoral_saved_emails', JSON.stringify(updated));
+    } catch {
+      // ignore
     }
 
     setLoading(true);
@@ -256,8 +279,8 @@ export const LoginPage = ({ onSuccess, onBackToLanding }: LoginPageProps) => {
           </div>
         )}
 
-        {/* Formulario con políticas estrictas de seguridad */}
-        <form onSubmit={handleSubmit} autoComplete="off" className="space-y-4">
+        {/* Formulario con soporte para autocompletado */}
+        <form onSubmit={handleSubmit} autoComplete="on" className="space-y-4">
           <div className="space-y-1.5">
             <label 
               htmlFor="email" 
@@ -271,7 +294,8 @@ export const LoginPage = ({ onSuccess, onBackToLanding }: LoginPageProps) => {
                 id="email"
                 type="email"
                 name="email"
-                autoComplete="new-password"
+                autoComplete="email username"
+                list="saved-emails-list"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -279,6 +303,11 @@ export const LoginPage = ({ onSuccess, onBackToLanding }: LoginPageProps) => {
                 disabled={loading}
                 className="w-full h-10.5 pl-10 pr-3.5 bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/60 rounded-lg text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-blue-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-1 focus:ring-blue-500/50 transition-all disabled:opacity-50"
               />
+              <datalist id="saved-emails-list">
+                {savedEmails.map((item) => (
+                  <option key={item} value={item} />
+                ))}
+              </datalist>
             </div>
           </div>
 
@@ -295,7 +324,7 @@ export const LoginPage = ({ onSuccess, onBackToLanding }: LoginPageProps) => {
                 id="password"
                 type={showPassword ? 'text' : 'password'}
                 name="password"
-                autoComplete="new-password"
+                autoComplete="current-password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
