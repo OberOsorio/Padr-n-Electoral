@@ -112,8 +112,8 @@ export function formatearPuestoSimple(rawNombre: string, fallbackZone: string = 
 export interface ElectorLocationSelectorProps {
   puestoVotacion: string;
   onPuestoChange: (newPuesto: string) => void;
-  mesa: number;
-  onMesaChange: (newMesa: number) => void;
+  mesa: number | '';
+  onMesaChange: (newMesa: number | '') => void;
   pollingPlaces: PollingPlace[];
   disabled?: boolean;
   mesaInputRef?: React.RefObject<HTMLSelectElement | null>;
@@ -165,22 +165,16 @@ export const ElectorLocationSelector: React.FC<ElectorLocationSelectorProps> = (
 
   // Puesto actual seleccionado
   const currentPollingPlace = useMemo(() => {
-    return (
-      pollingPlaces.find((p) => p.name === puestoVotacion) ||
-      pollingPlaces[0] || {
-        id: 'default',
-        name: puestoVotacion || 'Puesto Principal',
-        totalMesas: 1,
-        zone: 'Cabecera',
-      }
-    );
+    if (!puestoVotacion) return null;
+    return pollingPlaces.find((p) => p.name === puestoVotacion) || null;
   }, [pollingPlaces, puestoVotacion]);
 
   const currentFormatted = useMemo(() => {
+    if (!currentPollingPlace) return null;
     return formatearPuestoSimple(currentPollingPlace.name, currentPollingPlace.zone);
   }, [currentPollingPlace]);
 
-  const totalMesas = currentPollingPlace.totalMesas || 1;
+  const totalMesas = currentPollingPlace?.totalMesas || 0;
 
   // Lista formateada y filtrada por búsqueda rápida
   const formattedPlaces = useMemo(() => {
@@ -220,7 +214,9 @@ export const ElectorLocationSelector: React.FC<ElectorLocationSelectorProps> = (
           Ubicación Electoral
         </span>
         <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 font-medium">
-          {currentFormatted.detalle} · {totalMesas} {totalMesas === 1 ? 'Mesa Habilitada' : 'Mesas Habilitadas'}
+          {currentFormatted
+            ? `${currentFormatted.detalle} · ${totalMesas} ${totalMesas === 1 ? 'Mesa Habilitada' : 'Mesas Habilitadas'}`
+            : 'Seleccione un puesto para ver mesas'}
         </span>
       </div>
 
@@ -243,14 +239,20 @@ export const ElectorLocationSelector: React.FC<ElectorLocationSelectorProps> = (
               onClick={() => setIsOpenCombobox((prev) => !prev)}
               className="w-full min-h-[42px] px-3.5 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 rounded-xl text-left flex items-center justify-between gap-2 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/40 transition-all disabled:opacity-50 cursor-pointer shadow-sm"
             >
-              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 min-w-0">
-                <span className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
-                  {currentFormatted.titulo}
+              {currentFormatted ? (
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 min-w-0">
+                  <span className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
+                    {currentFormatted.titulo}
+                  </span>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 w-fit">
+                    {currentFormatted.detalle}
+                  </span>
+                </div>
+              ) : (
+                <span className="text-sm text-slate-400 dark:text-slate-500 font-normal">
+                  Seleccione un puesto de votación...
                 </span>
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 w-fit">
-                  {currentFormatted.detalle}
-                </span>
-              </div>
+              )}
               <div className="flex items-center gap-1.5 text-slate-400 dark:text-slate-500 shrink-0">
                 <MapPin className="w-4 h-4" />
                 <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isOpenCombobox ? 'rotate-180' : ''}`} />
@@ -290,6 +292,7 @@ export const ElectorLocationSelector: React.FC<ElectorLocationSelectorProps> = (
                           type="button"
                           onClick={() => {
                             onPuestoChange(p.name);
+                            onMesaChange('');
                             setIsOpenCombobox(false);
                           }}
                           className={`w-full px-3 py-2.5 rounded-xl text-left flex items-center justify-between gap-2 text-xs transition-colors cursor-pointer ${
@@ -331,11 +334,14 @@ export const ElectorLocationSelector: React.FC<ElectorLocationSelectorProps> = (
             <select
               ref={mesaInputRef}
               id="mesa"
-              value={mesa}
-              onChange={(e) => onMesaChange(Number(e.target.value))}
-              disabled={disabled}
+              value={mesa || ''}
+              onChange={(e) => onMesaChange(e.target.value ? Number(e.target.value) : '')}
+              disabled={disabled || !puestoVotacion}
               className="w-full h-10.5 pl-3.5 pr-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 rounded-xl text-sm font-mono text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/40 transition-all disabled:opacity-50 appearance-none cursor-pointer"
             >
+              <option value="" disabled className="bg-white dark:bg-slate-900 text-slate-400 dark:text-slate-500 font-sans">
+                {puestoVotacion ? 'Seleccione número de mesa...' : 'Seleccione puesto primero...'}
+              </option>
               {Array.from({ length: totalMesas }, (_, i) => i + 1).map((m) => (
                 <option key={m} value={m} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-mono">
                   Mesa {m}

@@ -7,7 +7,6 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLeaderWorkspace } from './useLeaderWorkspace';
-import { PREDEFINED_POLLING_PLACES } from '../electors/constants';
 import { useTenant } from '../../context/TenantContext';
 import { getPollingPlacesForTenant } from '../../services/divipoleService';
 import { ThemeToggle } from '../../components/ui/ThemeToggle';
@@ -65,16 +64,15 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
   const [apellidos, setApellidos] = useState('');
   const [edad, setEdad] = useState<number | ''>('');
   const [telefono, setTelefono] = useState('');
-  const [puestoVotacion, setPuestoVotacion] = useState(
-    pollingPlaces[0]?.name || PREDEFINED_POLLING_PLACES[0].name
-  );
-  const [mesa, setMesa] = useState<number>(1);
+  const [puestoVotacion, setPuestoVotacion] = useState('');
+  const [mesa, setMesa] = useState<number | ''>('');
   const [notas, setNotas] = useState('');
 
-  // Sincronizar puesto al cambiar circunscripción de campaña
+  // Sincronizar puesto al cambiar circunscripción de campaña (si el puesto seleccionado ya no es válido)
   useEffect(() => {
-    if (pollingPlaces.length > 0 && !pollingPlaces.some((p) => p.name === puestoVotacion)) {
-      setPuestoVotacion(pollingPlaces[0].name);
+    if (puestoVotacion && pollingPlaces.length > 0 && !pollingPlaces.some((p) => p.name === puestoVotacion)) {
+      setPuestoVotacion('');
+      setMesa('');
     }
   }, [pollingPlaces, puestoVotacion]);
 
@@ -229,6 +227,16 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
       return;
     }
 
+    if (!puestoVotacion || !puestoVotacion.trim()) {
+      setFormError('Por favor seleccione un puesto de votación.');
+      return;
+    }
+
+    if (!mesa || Number(mesa) <= 0) {
+      setFormError('Por favor seleccione el número de mesa.');
+      return;
+    }
+
     if (collisionResult?.exists) {
       setFormError('No se puede registrar este elector porque ya existe en el censo.');
       return;
@@ -266,6 +274,8 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
         setApellidos('');
         setEdad('');
         setTelefono('');
+        setPuestoVotacion('');
+        setMesa('');
         setNotas('');
         setCollisionResult(null);
       }

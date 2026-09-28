@@ -75,6 +75,16 @@ export const EditElectorModal = ({
       return;
     }
 
+    if (!puestoVotacion || !puestoVotacion.trim()) {
+      setError('Por favor seleccione un puesto de votación.');
+      return;
+    }
+
+    if (!mesa || Number(mesa) <= 0) {
+      setError('Por favor seleccione una mesa.');
+      return;
+    }
+
     setSaving(true);
     setError(null);
 
@@ -236,7 +246,7 @@ export const EditElectorModal = ({
               </label>
               <div className="relative">
                 <select
-                  value={puestoVotacion}
+                  value={puestoVotacion || ''}
                   onChange={(e) => {
                     const newPuesto = e.target.value;
                     setPuestoVotacion(newPuesto);
@@ -247,6 +257,9 @@ export const EditElectorModal = ({
                   }}
                   className="w-full h-9.5 pl-3 pr-8 bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/60 rounded-xl text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-500 appearance-none cursor-pointer"
                 >
+                  <option value="" disabled className="bg-white dark:bg-slate-900 text-slate-400 dark:text-slate-500">
+                    Seleccione un puesto de votación...
+                  </option>
                   {!pollingPlaces.some((p) => p.name === puestoVotacion) && puestoVotacion && (
                     <option key="custom-puesto" value={puestoVotacion} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
                       {formatearPuestoSimple(puestoVotacion).label || puestoVotacion}
@@ -271,10 +284,14 @@ export const EditElectorModal = ({
               </label>
               <div className="relative">
                 <select
-                  value={mesa}
+                  value={mesa || ''}
                   onChange={(e) => setMesa(Number(e.target.value))}
-                  className="w-full h-9.5 pl-3 pr-8 bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/60 rounded-xl text-xs font-mono text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-500 appearance-none cursor-pointer"
+                  disabled={!puestoVotacion}
+                  className="w-full h-9.5 pl-3 pr-8 bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/60 rounded-xl text-xs font-mono text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-500 appearance-none cursor-pointer disabled:opacity-50"
                 >
+                  <option value="" disabled className="bg-white dark:bg-slate-900 text-slate-400 dark:text-slate-500">
+                    {puestoVotacion ? 'Seleccione mesa...' : 'Seleccione puesto primero...'}
+                  </option>
                   {Array.from({ length: currentPlace.totalMesas }, (_, i) => i + 1).map((m) => (
                     <option key={m} value={m} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
                       Mesa {m}

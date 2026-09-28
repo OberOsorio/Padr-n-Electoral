@@ -23,7 +23,7 @@ export interface LeaderRegisterViewProps {
   edad: number | '';
   telefono: string;
   puestoVotacion: string;
-  mesa: number;
+  mesa: number | '';
   notas: string;
   isCheckingCedula: boolean;
   isAutofilledFromCenso?: boolean;
@@ -45,7 +45,7 @@ export interface LeaderRegisterViewProps {
   setEdad: (val: number | '') => void;
   setTelefono: (val: string) => void;
   setPuestoVotacion: (val: string) => void;
-  setMesa: (val: number) => void;
+  setMesa: (val: number | '') => void;
   setNotas: (val: string) => void;
   onDismissLastRegistered: () => void;
   onSubmit: (e: React.FormEvent) => void;
@@ -84,10 +84,9 @@ export const LeaderRegisterView: React.FC<LeaderRegisterViewProps> = ({
 }) => {
   const availablePlaces = pollingPlaces && pollingPlaces.length > 0 ? pollingPlaces : PREDEFINED_POLLING_PLACES;
 
-  const currentPollingPlace =
-    availablePlaces.find((p) => p.name === puestoVotacion) ||
-    availablePlaces[0] ||
-    PREDEFINED_POLLING_PLACES[0];
+  const currentPollingPlace = puestoVotacion
+    ? availablePlaces.find((p) => p.name === puestoVotacion) || null
+    : null;
 
   const isFormLocked = collisionResult?.exists ?? false;
 
@@ -390,18 +389,23 @@ export const LeaderRegisterView: React.FC<LeaderRegisterViewProps> = ({
               <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5 flex items-center justify-between">
                 <span>Puesto de Votación *</span>
                 <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 font-normal">
-                  {formatearPuestoSimple(currentPollingPlace.name, currentPollingPlace.zone).detalle} · {currentPollingPlace.totalMesas} Mesas
+                  {currentPollingPlace
+                    ? `${formatearPuestoSimple(currentPollingPlace.name, currentPollingPlace.zone).detalle} · ${currentPollingPlace.totalMesas} Mesas`
+                    : 'Seleccione un puesto'}
                 </span>
               </label>
               <select
                 disabled={submitting || isFormLocked}
-                value={puestoVotacion}
+                value={puestoVotacion || ''}
                 onChange={(e) => {
                   setPuestoVotacion(e.target.value);
-                  setMesa(1);
+                  setMesa('');
                 }}
                 className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-slate-700/60 focus:bg-white dark:focus:bg-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10 rounded-xl text-base sm:text-xs text-slate-900 dark:text-white focus:outline-none transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
+                <option value="" disabled className="text-slate-400 dark:text-slate-500">
+                  Seleccione un puesto de votación...
+                </option>
                 {availablePlaces.map((p) => {
                   const f = formatearPuestoSimple(p.name, p.zone);
                   return (
@@ -418,12 +422,15 @@ export const LeaderRegisterView: React.FC<LeaderRegisterViewProps> = ({
                 Mesa *
               </label>
               <select
-                disabled={submitting || isFormLocked}
-                value={mesa}
-                onChange={(e) => setMesa(Number(e.target.value))}
+                disabled={submitting || isFormLocked || !puestoVotacion}
+                value={mesa || ''}
+                onChange={(e) => setMesa(e.target.value ? Number(e.target.value) : '')}
                 className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-slate-700/60 focus:bg-white dark:focus:bg-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10 rounded-xl text-base sm:text-xs font-mono text-slate-900 dark:text-white focus:outline-none transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {Array.from({ length: currentPollingPlace.totalMesas }, (_, i) => i + 1).map((m) => (
+                <option value="" disabled className="text-slate-400 dark:text-slate-500">
+                  {puestoVotacion ? 'Seleccione número de mesa...' : 'Seleccione puesto primero...'}
+                </option>
+                {Array.from({ length: currentPollingPlace?.totalMesas || 0 }, (_, i) => i + 1).map((m) => (
                   <option key={m} value={m}>
                     Mesa {m}
                   </option>

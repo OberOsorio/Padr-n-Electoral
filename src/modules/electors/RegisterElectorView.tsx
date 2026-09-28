@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AnimatedCheck } from '../../components/ui/AnimatedCheck';
-import { PREDEFINED_POLLING_PLACES, getPollingPlacesForTenant } from './constants';
+import { getPollingPlacesForTenant } from './constants';
 import { ElectorLocationSelector } from './components/ElectorLocationSelector';
 import { useTenant } from '../../context/TenantContext';
 import { buscarCiudadanoEnCenso } from '../../services/censoService';
@@ -48,13 +48,13 @@ export const RegisterElectorView = ({
   const [apellidos, setApellidos] = useState('');
   const [edad, setEdad] = useState<number | ''>('');
   const [telefono, setTelefono] = useState('');
-  const [puestoVotacion, setPuestoVotacion] = useState(PREDEFINED_POLLING_PLACES[0].name);
-  const [mesa, setMesa] = useState<number>(1);
+  const [puestoVotacion, setPuestoVotacion] = useState('');
+  const [mesa, setMesa] = useState<number | ''>('');
   const [notas, setNotas] = useState('');
 
   // Memoria de sesión para puesto y mesa
   const [rememberLocation, setRememberLocation] = useState<boolean>(() => {
-    return localStorage.getItem('electoral_remember_location') !== 'false';
+    return localStorage.getItem('electoral_remember_location') === 'true';
   });
 
   // Estados de validación anti-colisión
@@ -71,16 +71,19 @@ export const RegisterElectorView = ({
     description: string;
   } | null>(null);
 
-  // Cargar memoria de sesión de puesto y mesa al montar
+  // Cargar memoria de sesión de puesto y mesa al montar (solo si el usuario tenía activa la memoria)
   useEffect(() => {
-    const savedPuesto = localStorage.getItem('electoral_saved_puesto');
-    const savedMesa = localStorage.getItem('electoral_saved_mesa');
+    const isRemember = localStorage.getItem('electoral_remember_location') === 'true';
+    if (isRemember) {
+      const savedPuesto = localStorage.getItem('electoral_saved_puesto');
+      const savedMesa = localStorage.getItem('electoral_saved_mesa');
 
-    if (savedPuesto) {
-      setPuestoVotacion(savedPuesto);
-    }
-    if (savedMesa && !isNaN(Number(savedMesa))) {
-      setMesa(Number(savedMesa));
+      if (savedPuesto) {
+        setPuestoVotacion(savedPuesto);
+      }
+      if (savedMesa && !isNaN(Number(savedMesa))) {
+        setMesa(Number(savedMesa));
+      }
     }
 
     // Auto-foco inicial en Cédula
@@ -94,10 +97,11 @@ export const RegisterElectorView = ({
     return getPollingPlacesForTenant(currentTenant);
   }, [currentTenant]);
 
-  // Si cambia la circunscripción y el puesto actual no existe en la lista, seleccionar el primero
+  // Si cambia la circunscripción y el puesto actual seleccionado no pertenece a la nueva lista, limpiarlo
   useEffect(() => {
-    if (pollingPlaces.length > 0 && !pollingPlaces.some((p) => p.name === puestoVotacion)) {
-      setPuestoVotacion(pollingPlaces[0].name);
+    if (puestoVotacion && pollingPlaces.length > 0 && !pollingPlaces.some((p) => p.name === puestoVotacion)) {
+      setPuestoVotacion('');
+      setMesa('');
     }
   }, [pollingPlaces, puestoVotacion]);
 
@@ -362,8 +366,8 @@ export const RegisterElectorView = ({
   const handlePuestoChange = (newPuesto: string) => {
     setPuestoVotacion(newPuesto);
     const place = pollingPlaces.find((p) => p.name === newPuesto);
-    if (place && mesa > place.totalMesas) {
-      setMesa(1);
+    if (!mesa || (place && Number(mesa) > place.totalMesas)) {
+      setMesa('');
     }
   };
 
@@ -392,6 +396,16 @@ export const RegisterElectorView = ({
     if (!cleanApellidos) {
       setServerError('El campo de apellidos es obligatorio.');
       apellidosInputRef.current?.focus();
+      return;
+    }
+
+    if (!puestoVotacion || !puestoVotacion.trim()) {
+      setServerError('Por favor seleccione un puesto de votación.');
+      return;
+    }
+
+    if (!mesa || Number(mesa) <= 0) {
+      setServerError('Por favor seleccione el número de mesa correspondiente.');
       return;
     }
 
@@ -514,6 +528,11 @@ export const RegisterElectorView = ({
       setNotas('');
       setCollisionResult(null);
       setIsAutofilledFromCenso(false);
+
+      if (!rememberLocation) {
+        setPuestoVotacion('');
+        setMesa('');
+      }
 
       // Foco automático en el campo cédula para continuar digitando a alta velocidad
       setTimeout(() => {
