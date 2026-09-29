@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import type { AppRole, UserPermissions } from '../../../types';
-import { DEFAULT_ROLE_PERMISSIONS } from '../../../types';
 import {
   X,
   UserPlus,
