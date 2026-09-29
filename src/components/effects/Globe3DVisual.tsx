@@ -1,6 +1,5 @@
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
-import { ShieldCheck, Zap } from 'lucide-react';
 
 export const Globe3DVisual: React.FC = () => {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -240,21 +239,6 @@ export const Globe3DVisual: React.FC = () => {
         ref={containerRef}
         className="w-full h-full cursor-grab active:cursor-grabbing select-none"
       />
-
-      {/* Floating Badges */}
-      <div className="absolute -bottom-2 -left-2 sm:bottom-4 sm:-left-4 z-10 flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-900/85 backdrop-blur-md border border-slate-700/80 shadow-xl shadow-purple-950/20 text-xs text-slate-200 animate-bounce" style={{ animationDuration: '4s' }}>
-        <div className="p-1 rounded-md bg-purple-500/20 text-purple-400">
-          <ShieldCheck className="w-4 h-4" />
-        </div>
-        <span className="font-medium">Cifrado RLS: Activo</span>
-      </div>
-
-      <div className="absolute top-2 -right-2 sm:top-6 sm:-right-4 z-10 flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-900/85 backdrop-blur-md border border-slate-700/80 shadow-xl shadow-cyan-950/20 text-xs text-slate-200 animate-bounce" style={{ animationDuration: '4.5s', animationDelay: '1s' }}>
-        <div className="p-1 rounded-md bg-cyan-500/20 text-cyan-400">
-          <Zap className="w-4 h-4" />
-        </div>
-        <span className="font-medium font-mono">11ms Latencia Edge</span>
-      </div>
     </div>
   );
 };

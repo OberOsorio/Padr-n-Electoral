@@ -14,7 +14,6 @@ import { ThemeToggle } from '../../components/ui/ThemeToggle';
 import { SecurityMetricsSection } from './SecurityMetricsSection';
 import { StarfieldCanvas } from '../../components/effects/StarfieldCanvas';
 import { Globe3DVisual } from '../../components/effects/Globe3DVisual';
-import { TelemetryHUD } from '../../components/effects/TelemetryHUD';
 
 interface LandingPageProps {
   onNavigateToLogin: () => void;
@@ -73,19 +72,6 @@ export const LandingPage = ({ onNavigateToLogin }: LandingPageProps) => {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
             {/* Columna Izquierda: Información Principal y Acciones */}
             <div className="lg:col-span-7 flex flex-col items-center lg:items-start text-center lg:text-left space-y-6">
-              
-              {/* Telemetría y Badge de Estado */}
-              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3">
-                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-500/10 dark:bg-blue-600/15 border border-blue-500/30 text-blue-700 dark:text-blue-300 text-xs font-semibold neon-glow-badge shadow-sm">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500" />
-                  </span>
-                  <span>Red Criptográfica Electoral • Nodos Activos</span>
-                </div>
-                <TelemetryHUD />
-              </div>
-
               {/* Título Principal */}
               <h1 className="text-3xl sm:text-5xl lg:text-5xl xl:text-6xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-[1.12] text-balance">
                 Control territorial, auditoría y censo propio en una{' '}
