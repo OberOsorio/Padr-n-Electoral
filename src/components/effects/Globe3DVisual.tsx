@@ -148,7 +148,7 @@ export const Globe3DVisual: React.FC = () => {
     window.addEventListener('resize', handleResize);
 
     // Animation Loop
-    const clock = new THREE.Clock();
+    const startTime = performance.now();
     let animationId: number | null = null;
     let isTabActive = !document.hidden;
 
@@ -156,7 +156,7 @@ export const Globe3DVisual: React.FC = () => {
       if (!isTabActive) return;
       animationId = requestAnimationFrame(animate);
 
-      const elapsedTime = clock.getElapsedTime();
+      const elapsedTime = (performance.now() - startTime) * 0.001;
 
       // Continuous rotation (0.001 rad/frame)
       sphereGroup.rotation.y += 0.001;
@@ -197,7 +197,6 @@ export const Globe3DVisual: React.FC = () => {
     const handleVisibilityChange = () => {
       isTabActive = !document.hidden;
       if (isTabActive) {
-        clock.start();
         animate();
       } else if (animationId) {
         cancelAnimationFrame(animationId);
