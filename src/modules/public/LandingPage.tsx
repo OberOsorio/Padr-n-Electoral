@@ -12,6 +12,9 @@ import {
 } from 'lucide-react';
 import { ThemeToggle } from '../../components/ui/ThemeToggle';
 import { SecurityMetricsSection } from './SecurityMetricsSection';
+import { StarfieldCanvas } from '../../components/effects/StarfieldCanvas';
+import { Globe3DVisual } from '../../components/effects/Globe3DVisual';
+import { TelemetryHUD } from '../../components/effects/TelemetryHUD';
 
 interface LandingPageProps {
   onNavigateToLogin: () => void;
@@ -20,6 +23,9 @@ interface LandingPageProps {
 export const LandingPage = ({ onNavigateToLogin }: LandingPageProps) => {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0F172A] text-slate-900 dark:text-slate-100 selection:bg-blue-600 selection:text-white relative overflow-x-hidden flex flex-col justify-between transition-colors duration-300">
+      {/* Fondo de Partículas Estelares (Canvas 2D) */}
+      <StarfieldCanvas />
+
       {/* Luces de fondo ambientales sutiles */}
       <div 
         className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[450px] bg-gradient-to-b from-blue-500/10 dark:from-blue-600/15 via-indigo-500/5 to-transparent blur-[140px] pointer-events-none -z-10" 
@@ -60,40 +66,62 @@ export const LandingPage = ({ onNavigateToLogin }: LandingPageProps) => {
         </div>
       </header>
 
-      {/* 2. Sección Hero */}
-      <main className="flex-1">
-        <section className="relative pt-16 pb-20 sm:pt-24 sm:pb-28 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-center space-y-8">
-          {/* Título Principal */}
-          <div className="max-w-4xl mx-auto space-y-5">
-            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-[1.14] text-balance">
-              Control territorial, auditoría y censo propio en una{' '}
-              <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-500 dark:from-blue-400 dark:via-indigo-300 dark:to-blue-400 bg-clip-text text-transparent">
-                sola plataforma
-              </span>
-            </h1>
+      {/* 2. Sección Hero con Globo 3D y Telemetría en Vivo */}
+      <main className="flex-1 z-10">
+        <section className="relative pt-12 pb-16 sm:pt-20 sm:pb-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-12">
+          
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+            {/* Columna Izquierda: Información Principal y Acciones */}
+            <div className="lg:col-span-7 flex flex-col items-center lg:items-start text-center lg:text-left space-y-6">
+              
+              {/* Telemetría y Badge de Estado */}
+              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-500/10 dark:bg-blue-600/15 border border-blue-500/30 text-blue-700 dark:text-blue-300 text-xs font-semibold neon-glow-badge shadow-sm">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500" />
+                  </span>
+                  <span>Red Criptográfica Electoral • Nodos Activos</span>
+                </div>
+                <TelemetryHUD />
+              </div>
 
-            <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto leading-relaxed text-balance">
-              Gestión integral para campañas y organizaciones políticas con registro anti-colisión, procesamiento masivo por lotes y trazabilidad territorial en tiempo real.
-            </p>
-          </div>
+              {/* Título Principal */}
+              <h1 className="text-3xl sm:text-5xl lg:text-5xl xl:text-6xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-[1.12] text-balance">
+                Control territorial, auditoría y censo propio en una{' '}
+                <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-500 dark:from-blue-400 dark:via-indigo-300 dark:to-blue-400 bg-clip-text text-transparent">
+                  sola plataforma
+                </span>
+              </h1>
 
-          {/* Botones de Acción */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onNavigateToLogin}
-              className="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-[0.98] text-white text-sm font-semibold tracking-wide flex items-center justify-center gap-2.5 transition-all shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 cursor-pointer"
-            >
-              <span>Ingresar a la Plataforma</span>
-              <ChevronRight className="w-4 h-4" />
-            </button>
+              <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300 max-w-xl leading-relaxed text-balance">
+                Gestión integral para campañas y organizaciones políticas con registro anti-colisión, procesamiento masivo por lotes y trazabilidad territorial en tiempo real.
+              </p>
 
-            <a
-              href="#pilares"
-              className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-white dark:bg-slate-800/90 hover:bg-slate-100 dark:hover:bg-slate-700/80 border border-slate-200 dark:border-slate-700/60 text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white text-sm font-medium transition-all flex items-center justify-center gap-2 shadow-xs"
-            >
-              <span>Conocer Capacidades</span>
-            </a>
+              {/* Botones de Acción */}
+              <div className="flex flex-col sm:flex-row items-center gap-3 pt-2 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={onNavigateToLogin}
+                  className="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-[0.98] text-white text-sm font-semibold tracking-wide flex items-center justify-center gap-2.5 transition-all shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 cursor-pointer"
+                >
+                  <span>Ingresar a la Plataforma</span>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+
+                <a
+                  href="#pilares"
+                  className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-white dark:bg-slate-800/90 hover:bg-slate-100 dark:hover:bg-slate-700/80 border border-slate-200 dark:border-slate-700/60 text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white text-sm font-medium transition-all flex items-center justify-center gap-2 shadow-xs"
+                >
+                  <span>Conocer Capacidades</span>
+                </a>
+              </div>
+            </div>
+
+            {/* Columna Derecha: Esfera / Globo 3D Holográfico */}
+            <div className="lg:col-span-5 flex items-center justify-center w-full">
+              <Globe3DVisual />
+            </div>
           </div>
 
           {/* 3. Mockup Esquemático del Dashboard */}
@@ -236,9 +264,9 @@ export const LandingPage = ({ onNavigateToLogin }: LandingPageProps) => {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Pilar 1 */}
-            <div className="rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 hover:border-blue-500/50 p-6 sm:p-7 shadow-sm dark:shadow-xl backdrop-blur-xl transition-all duration-300 flex flex-col justify-between group">
+            <div className="rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 hover:border-blue-500/50 p-6 sm:p-7 shadow-sm dark:shadow-xl backdrop-blur-xl transition-all duration-300 hover:-translate-y-2 hover:scale-[1.02] hover:shadow-2xl hover:shadow-blue-500/15 flex flex-col justify-between group">
               <div>
-                <div className="h-12 w-12 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-500/20 dark:border-blue-500/30 flex items-center justify-center text-blue-600 dark:text-blue-400 mb-5 group-hover:scale-105 transition-transform shadow-xs">
+                <div className="h-12 w-12 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-500/20 dark:border-blue-500/30 flex items-center justify-center text-blue-600 dark:text-blue-400 mb-5 group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 shadow-xs">
                   <UserCheck className="w-6 h-6" />
                 </div>
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
@@ -260,9 +288,9 @@ export const LandingPage = ({ onNavigateToLogin }: LandingPageProps) => {
             </div>
 
             {/* Pilar 2 */}
-            <div className="rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 hover:border-emerald-500/50 p-6 sm:p-7 shadow-sm dark:shadow-xl backdrop-blur-xl transition-all duration-300 flex flex-col justify-between group">
+            <div className="rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 hover:border-emerald-500/50 p-6 sm:p-7 shadow-sm dark:shadow-xl backdrop-blur-xl transition-all duration-300 hover:-translate-y-2 hover:scale-[1.02] hover:shadow-2xl hover:shadow-emerald-500/15 flex flex-col justify-between group">
               <div>
-                <div className="h-12 w-12 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-500/20 dark:border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 mb-5 group-hover:scale-105 transition-transform shadow-xs">
+                <div className="h-12 w-12 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-500/20 dark:border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 mb-5 group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 shadow-xs">
                   <Layers className="w-6 h-6" />
                 </div>
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
@@ -284,9 +312,9 @@ export const LandingPage = ({ onNavigateToLogin }: LandingPageProps) => {
             </div>
 
             {/* Pilar 3 */}
-            <div className="rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 hover:border-amber-500/50 p-6 sm:p-7 shadow-sm dark:shadow-xl backdrop-blur-xl transition-all duration-300 flex flex-col justify-between group">
+            <div className="rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 hover:border-amber-500/50 p-6 sm:p-7 shadow-sm dark:shadow-xl backdrop-blur-xl transition-all duration-300 hover:-translate-y-2 hover:scale-[1.02] hover:shadow-2xl hover:shadow-amber-500/15 flex flex-col justify-between group">
               <div>
-                <div className="h-12 w-12 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-[#E5B869]/30 flex items-center justify-center text-[#E5B869] mb-5 group-hover:scale-105 transition-transform shadow-xs">
+                <div className="h-12 w-12 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-[#E5B869]/30 flex items-center justify-center text-[#E5B869] mb-5 group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 shadow-xs">
                   <ShieldCheck className="w-6 h-6" />
                 </div>
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">

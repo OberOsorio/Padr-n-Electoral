@@ -52,3 +52,38 @@
     appearance: textfield;
   }
 }
+
+/* Creative Motion & Visual Effects Layer */
+@keyframes metricValueFlash {
+  0% {
+    transform: scale(1.15);
+    color: #e9d5ff;
+    text-shadow: 0 0 10px rgba(192, 132, 252, 0.9);
+  }
+  50% {
+    transform: scale(1.08);
+    color: #c084fc;
+    text-shadow: 0 0 6px rgba(192, 132, 252, 0.5);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.metric-flash {
+  animation: metricValueFlash 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes neonStatusGlow {
+  0%, 100% {
+    box-shadow: 0 0 12px rgba(59, 130, 246, 0.3), 0 0 20px rgba(139, 92, 246, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.6), 0 0 35px rgba(139, 92, 246, 0.35);
+  }
+}
+
+.neon-glow-badge {
+  animation: neonStatusGlow 2.5s infinite ease-in-out;
+}
+
