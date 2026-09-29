@@ -290,3 +290,47 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
  * Alias explícito para la función RPC buscar_elector_por_cedula
  */
 export const buscarElectorPorCedula = buscarCiudadanoEnCenso;
+
+/**
+ * Consulta un documento en el censo con formato extendido (nombres, apellidos, nombre_completo, edad, fecha_nacimiento)
+ */
+export async function consultarPorCedula(cedula: string): Promise<{
+  encontrado: boolean;
+  found: boolean;
+  nombres?: string | null;
+  apellidos?: string | null;
+  nombre_completo?: string | null;
+  edad?: number | null;
+  fecha_nacimiento?: string | null;
+  puesto_votacion?: string | null;
+  puesto_sugerido?: string | null;
+  mesa?: number | null;
+  mesa_sugerida?: number | null;
+  raw_response?: any;
+}> {
+  const cleanCedula = (cedula || '').toString().trim().replace(/\D/g, '');
+  const res = await buscarCiudadanoEnCenso(cleanCedula);
+  const fullName = `${res.nombres || ''} ${res.apellidos || ''}`.trim();
+  return {
+    encontrado: res.found,
+    found: res.found,
+    nombres: res.nombres,
+    apellidos: res.apellidos,
+    nombre_completo: fullName || null,
+    edad: res.edad,
+    fecha_nacimiento: (res as any).fecha_nacimiento || null,
+    puesto_votacion: res.puesto_sugerido,
+    puesto_sugerido: res.puesto_sugerido,
+    mesa: res.mesa_sugerida,
+    mesa_sugerida: res.mesa_sugerida,
+    raw_response: (res as any).raw_response,
+  };
+}
+
+export const censoService = {
+  consultarPorCedula,
+  buscarCiudadanoEnCenso,
+  consultarDocumentoExterno,
+  toTitleCase,
+};
+

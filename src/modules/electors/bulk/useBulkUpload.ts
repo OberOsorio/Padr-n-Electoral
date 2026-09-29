@@ -12,7 +12,7 @@ import {
   downloadValidationErrorsReport,
 } from './parser';
 import { validateAndNormalizeRows, aplicarResultadoCenso } from './validator';
-import { buscarCiudadanoEnCenso } from '../../../services/censoService';
+import { censoService } from '../../../services/censoService';
 import type { ElectorWithRegistrant } from '../../../types';
 import { useTenant } from '../../../context/TenantContext';
 
@@ -103,23 +103,33 @@ export const useBulkUpload = () => {
       const runId = ++activeEnrichmentRunId.current;
       const rows = [...summary.validRows];
       const CONCURRENCY = 4;
-      let currentIndex = 0;
+      let cursor = 0;
+      let completados = 0;
 
-      const worker = async () => {
-        while (currentIndex < total) {
+      const consultarFila = async () => {
+        while (cursor < total) {
           if (!isMountedRef.current || activeEnrichmentRunId.current !== runId) return;
-          const idx = currentIndex++;
+          const idx = cursor++;
           const rowToQuery = rows[idx];
-          if (!rowToQuery) continue;
+          if (!rowToQuery) {
+            completados++;
+            continue;
+          }
+
+          const cedulaLimpia = (rowToQuery.cedula || '').toString().trim().replace(/\D/g, '');
+          if (!cedulaLimpia) {
+            completados++;
+            continue;
+          }
 
           try {
-            const censoRes = await buscarCiudadanoEnCenso(rowToQuery.cedula);
+            const data = await censoService.consultarPorCedula(cedulaLimpia);
             if (!isMountedRef.current || activeEnrichmentRunId.current !== runId) return;
 
-            const updatedRow = aplicarResultadoCenso(rowToQuery, censoRes);
+            const updatedRow = aplicarResultadoCenso(rowToQuery, data);
             rows[idx] = updatedRow;
 
-            // Actualizar el estado reactivamente fila por fila a medida que se resuelven las promesas
+            // Actualización reactiva instantánea en la tabla para esa fila
             setPreflight((prev) => {
               if (!prev || activeEnrichmentRunId.current !== runId) return prev;
               const nextValid = [...prev.validRows];
@@ -132,28 +142,46 @@ export const useBulkUpload = () => {
                 enrichedCount: currentEnriched,
                 correctedCount: currentCorrected,
                 enrichmentProgress: {
-                  processed: Math.min(idx + 1, total),
+                  processed: completados + 1,
                   total,
                 },
               };
             });
-          } catch (censoErr) {
-            console.warn(`Error consultando censo para fila ${idx} (${rowToQuery.cedula}):`, censoErr);
+          } catch (err) {
+            console.warn(`Error consultando cédula ${cedulaLimpia}:`, err);
+          } finally {
+            completados++;
+            if (isMountedRef.current && activeEnrichmentRunId.current === runId) {
+              setPreflight((prev) => {
+                if (!prev || activeEnrichmentRunId.current !== runId) return prev;
+                return {
+                  ...prev,
+                  enrichmentProgress: {
+                    processed: Math.min(completados, total),
+                    total,
+                  },
+                };
+              });
+            }
           }
         }
       };
 
-      const workers = Array.from({ length: Math.min(CONCURRENCY, total) }, () => worker());
-      Promise.all(workers).then(() => {
-        if (!isMountedRef.current || activeEnrichmentRunId.current !== runId) return;
+      const pool = Array.from({ length: Math.min(CONCURRENCY, total) }, () => consultarFila());
+      await Promise.all(pool);
+      if (isMountedRef.current && activeEnrichmentRunId.current === runId) {
         setPreflight((prev) => {
           if (!prev || activeEnrichmentRunId.current !== runId) return prev;
           return {
             ...prev,
             isEnrichingInProgress: false,
+            enrichmentProgress: {
+              processed: total,
+              total,
+            },
           };
         });
-      });
+      }
     } catch (err: any) {
       if (!isMountedRef.current) return;
       console.error('Error durante la validación previa:', err);

@@ -578,22 +578,40 @@ export const BulkUploadView: React.FC<BulkUploadViewProps> = ({
 
             {/* Vista Previa de Filas Válidas */}
             <div className="mt-6 pt-5 border-t border-slate-200 dark:border-slate-700/60">
+              {/* Barra e Indicador de Progreso Dinámico de Consultas en Segundo Plano */}
+              {preflight.isEnrichingInProgress && (
+                <div className="mb-4 p-3.5 rounded-xl bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200/80 dark:border-blue-800/60 shadow-xs">
+                  <div className="flex items-center justify-between text-xs font-mono mb-2">
+                    <span className="font-semibold text-blue-700 dark:text-blue-300 flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-blue-500 animate-ping" />
+                      Consultando censo oficial y calculando edades: {(preflight.enrichmentProgress?.processed || 0).toLocaleString('es-CO')} / {preflight.validRows.length.toLocaleString('es-CO')} ({Math.round(((preflight.enrichmentProgress?.processed || 0) / (preflight.validRows.length || 1)) * 100)}%)...
+                    </span>
+                    <span className="font-bold text-blue-800 dark:text-blue-200">
+                      {Math.round(((preflight.enrichmentProgress?.processed || 0) / (preflight.validRows.length || 1)) * 100)}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-blue-200/60 dark:bg-blue-900/60 rounded-full h-2 overflow-hidden">
+                    <div
+                      className="bg-blue-600 dark:bg-blue-500 h-2 rounded-full transition-all duration-200 ease-out shadow-xs"
+                      style={{
+                        width: `${Math.min(100, Math.round(((preflight.enrichmentProgress?.processed || 0) / (preflight.validRows.length || 1)) * 100))}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
               <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
                 <div className="flex items-center gap-2.5 flex-wrap">
                   <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 uppercase tracking-wider font-mono">
                     Muestra Preliminar (Primeras 5 filas a procesar):
                   </span>
-                  {preflight.isEnrichingInProgress ? (
-                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono font-medium bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/40">
-                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-ping" />
-                      Consultando Censo en background ({preflight.enrichmentProgress?.processed || 0}/{preflight.validRows.length})...
-                    </span>
-                  ) : preflight.enrichedCount && preflight.enrichedCount > 0 ? (
-                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono font-medium bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40">
+                  {!preflight.isEnrichingInProgress && (preflight.enrichedCount || 0) > 0 && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-medium bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40">
                       <Sparkles className="w-3 h-3" />
-                      Censo verificado ({preflight.enrichedCount} confirmados{preflight.correctedCount ? `, ${preflight.correctedCount} corregidos` : ''})
+                      Censo verificado: {preflight.enrichedCount} confirmados{preflight.correctedCount ? `, ${preflight.correctedCount} corregidos` : ''}
                     </span>
-                  ) : null}
+                  )}
                 </div>
                 {preflight.invalidRows.length > 0 && (
                   <button
@@ -633,7 +651,7 @@ export const BulkUploadView: React.FC<BulkUploadViewProps> = ({
                                 title={row.nombre_original_archivo ? `Original en archivo: "${row.nombre_original_archivo}"` : 'Nombre corregido según Censo Oficial'}
                                 className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50 shrink-0"
                               >
-                                ✦ Corregido por Censo
+                                ✦ Corregido
                               </span>
                             ) : row.verificado_censo ? (
                               <span

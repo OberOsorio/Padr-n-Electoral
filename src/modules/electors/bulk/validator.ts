@@ -322,18 +322,18 @@ export const validateAndNormalizeRows = (
 };
 
 /**
- * Normaliza cadenas de nombres para comparación libre de acentos y caracteres especiales
+ * Normaliza cadenas de texto para comparación exacta de nombres (sin diacríticos, mayúsculas, espacios colapsados)
  */
-export const normalizeForComparison = (str?: string | null): string => {
-  if (!str) return '';
-  return str
-    .toLowerCase()
+export function normalizar(s: string): string {
+  return (s || '')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-};
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, ' ');
+}
+
+export const normalizeForComparison = normalizar;
 
 /**
  * Calcula la edad precisa en años a partir de una fecha de nacimiento (ISO / DD/MM/YYYY)
@@ -357,9 +357,9 @@ export const calcularEdad = (fechaNacimientoStr?: string | null): number | null 
  */
 export const aplicarResultadoCenso = (
   row: NormalizedElectorRow,
-  censo: CensoLookupResult & { raw_response?: any }
+  censo: (CensoLookupResult & { raw_response?: any; fecha_nacimiento?: string | null; nombre_completo?: string | null; puesto_votacion?: string | null }) | any
 ): NormalizedElectorRow => {
-  if (!censo.found) {
+  if (!censo || (!censo.found && !censo.encontrado)) {
     return {
       ...row,
       isEnriching: false,
@@ -376,16 +376,16 @@ export const aplicarResultadoCenso = (
 
   const censoNombres = censo.nombres ? censo.nombres.trim() : '';
   const censoApellidos = censo.apellidos ? censo.apellidos.trim() : '';
-  const censoFullName = `${censoNombres} ${censoApellidos}`.trim();
+  const nombreOficial = (censo.nombre_completo || `${censoNombres} ${censoApellidos}`).trim();
 
   const fileFullName = row.nombre_original_archivo || `${row.nombres || ''} ${row.apellidos || ''}`.trim();
-  const fileNorm = normalizeForComparison(fileFullName);
-  const censoNorm = normalizeForComparison(censoFullName);
+  const coincide = normalizar(fileFullName) === normalizar(nombreOficial);
 
   // 1. Verificación y autocorrección de nombre completo
-  if (censoFullName && (!fileFullName || fileNorm !== censoNorm)) {
-    updated.nombres = censoNombres || updated.nombres;
-    updated.apellidos = censoApellidos || updated.apellidos;
+  if (!coincide && !!nombreOficial) {
+    const parsed = parseNombreCompleto(nombreOficial);
+    updated.nombres = parsed.nombres || censoNombres || updated.nombres;
+    updated.apellidos = parsed.apellidos || censoApellidos || updated.apellidos;
     updated.nombre_fue_corregido = true;
     updated.isAutofilled = true;
     updated.autofillSource = 'censo_maestro';
@@ -393,14 +393,12 @@ export const aplicarResultadoCenso = (
     updated.nombre_fue_corregido = false;
   }
 
-  // 2. Cálculo y asignación de edad (reemplaza N/A por edad real)
+  // 2. Cálculo preciso de edad
   let finalEdad: number | null =
     censo.edad !== undefined && censo.edad !== null ? Number(censo.edad) : null;
-  if (!finalEdad && censo.raw_response) {
-    const rawFecha = censo.raw_response.fechaNacimiento || censo.raw_response.fecha_nacimiento;
-    if (rawFecha) {
-      finalEdad = calcularEdad(rawFecha);
-    }
+  const rawFecha = censo.fecha_nacimiento || censo.raw_response?.fechaNacimiento || censo.raw_response?.fecha_nacimiento;
+  if (!finalEdad && rawFecha) {
+    finalEdad = calcularEdad(rawFecha);
   }
 
   if (finalEdad !== null && finalEdad > 0) {
@@ -409,12 +407,11 @@ export const aplicarResultadoCenso = (
   }
 
   // 3. Preservación de datos: Puesto y mesa asignados del archivo se mantienen intactos.
-  // Únicamente si el archivo no traía puesto (es el valor por defecto) se complementa con la sugerencia.
   if (
     (!updated.puesto_votacion || updated.puesto_votacion === 'Sede Principal (Por Asignar)') &&
-    censo.puesto_sugerido
+    (censo.puesto_sugerido || censo.puesto_votacion)
   ) {
-    updated.puesto_votacion = censo.puesto_sugerido;
+    updated.puesto_votacion = censo.puesto_sugerido || censo.puesto_votacion;
   }
 
   return updated;
