@@ -26,15 +26,15 @@ interface LandingPageProps {
   onNavigateToLogin: () => void;
 }
 
-// Variantes reutilizables para animaciones de scroll fluidas y premium
+// Variantes fluidas y elegantes para animaciones de scroll
 const fadeInUp: Variants = {
-  hidden: { opacity: 0, y: 30 },
+  hidden: { opacity: 0, y: 28 },
   visible: (custom: number = 0) => ({
     opacity: 1,
     y: 0,
     transition: {
       duration: 0.65,
-      delay: custom * 0.12,
+      delay: custom * 0.1,
       ease: [0.21, 0.47, 0.32, 0.98] as const,
     },
   }),
@@ -45,14 +45,13 @@ const staggerContainer: Variants = {
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.14,
-      delayChildren: 0.1,
+      staggerChildren: 0.12,
+      delayChildren: 0.08,
     },
   },
 };
 
 export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) => {
-  // Estado para acordeón de preguntas frecuentes
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
   const toggleFaq = (index: number) => {
@@ -61,24 +60,24 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0B1120] text-slate-900 dark:text-slate-100 selection:bg-blue-600 selection:text-white relative overflow-x-hidden flex flex-col justify-between transition-colors duration-300">
-      {/* Luces de fondo ambientales sutiles (Gradients CSS ultraligeros) */}
+      {/* Resplandores ambientales sutiles */}
       <div
-        className="absolute top-0 left-1/2 -translate-x-1/2 w-[1100px] h-[500px] bg-gradient-to-b from-blue-500/10 dark:from-blue-600/15 via-indigo-500/5 to-transparent blur-[140px] pointer-events-none -z-10"
+        className="absolute top-0 left-1/2 -translate-x-1/2 w-[1100px] h-[480px] bg-gradient-to-b from-blue-500/10 dark:from-blue-600/15 via-indigo-500/5 to-transparent blur-[140px] pointer-events-none -z-10"
         aria-hidden="true"
       />
       <div
-        className="absolute top-[800px] right-0 w-[600px] h-[500px] bg-indigo-500/5 dark:bg-indigo-600/10 blur-[130px] pointer-events-none -z-10"
+        className="absolute top-[850px] right-0 w-[550px] h-[480px] bg-indigo-500/5 dark:bg-indigo-600/10 blur-[130px] pointer-events-none -z-10"
         aria-hidden="true"
       />
       <div
-        className="absolute top-[1800px] left-0 w-[550px] h-[450px] bg-emerald-500/5 dark:bg-emerald-600/10 blur-[130px] pointer-events-none -z-10"
+        className="absolute top-[1900px] left-0 w-[500px] h-[420px] bg-emerald-500/5 dark:bg-emerald-600/10 blur-[130px] pointer-events-none -z-10"
         aria-hidden="true"
       />
 
-      {/* 1. Header / Navbar Superior Sticky */}
+      {/* 1. Header Sticky de Navegación */}
       <header className="sticky top-0 z-40 w-full bg-white/85 dark:bg-[#0F172A]/85 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-800/80 transition-colors">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between">
-          {/* Logo y Marca */}
+          {/* Isotipo & Nombre */}
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-blue-500/25 ring-1 ring-blue-400/30 shrink-0">
               <Shield className="w-5.5 h-5.5 sm:w-6 sm:h-6 text-white" strokeWidth={2.2} />
@@ -93,22 +92,22 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
             </div>
           </div>
 
-          {/* Menú de Navegación Rápida (Desktop) */}
+          {/* Menú Rápido */}
           <nav className="hidden lg:flex items-center gap-7 text-xs font-semibold text-slate-600 dark:text-slate-300">
-            <a href="#capacidades" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-              Capacidades
+            <a href="#modulos" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+              Módulos del Sistema
             </a>
-            <a href="#flujo-operativo" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+            <a href="#flujo" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
               Flujo Operativo
             </a>
             <a href="#comparativa" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-              Por Qué Nosotros
+              Padrón vs. Excel
             </a>
-            <a href="#seguridad" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-              Seguridad & RLS
+            <a href="#roles" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+              Gobernanza & Roles
             </a>
             <a href="#faq" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-              Preguntas
+              Preguntas Frecuentes
             </a>
           </nav>
 
@@ -122,7 +121,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
               className="inline-flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-[0.98] text-white text-xs sm:text-sm font-semibold transition-all shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 cursor-pointer"
             >
               <Lock className="w-3.5 h-3.5" />
-              <span>Acceso al Sistema</span>
+              <span>Acceso al Comando</span>
               <ArrowRight className="w-4 h-4 ml-0.5" />
             </button>
           </div>
@@ -131,18 +130,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
 
       <main className="flex-1 z-10">
         {/* =========================================================================
-            2. HERO SECTION: TITULAR DE IMPACTO, PROPUESTA DE VALOR Y PREVIEW DE APP
+            2. HERO SECTION: PROPUESTA DE VALOR AUTÓNOMA Y CONTUNDENTE
             ========================================================================= */}
         <section className="relative pt-14 pb-20 sm:pt-24 sm:pb-28 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-center">
-          {/* Pill Badge Superior Animado */}
+          {/* Pill Badge Superior */}
           <motion.div
             initial={{ opacity: 0, y: -15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: 'easeOut' }}
             className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50/80 dark:bg-blue-950/60 border border-blue-200/80 dark:border-blue-800/80 text-blue-700 dark:text-blue-300 text-xs font-semibold shadow-xs mb-6 backdrop-blur-md"
           >
-            <Sparkles className="w-3.5 h-3.5 text-blue-500 animate-spin" style={{ animationDuration: '8s' }} />
-            <span>Inteligencia Electoral y Censo Auditado 2026</span>
+            <Sparkles className="w-3.5 h-3.5 text-blue-500" />
+            <span>Centro de Operaciones Electorales & Censo Propio</span>
           </motion.div>
 
           {/* Titular Principal */}
@@ -152,20 +151,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
             transition={{ duration: 0.6, delay: 0.1, ease: [0.21, 0.47, 0.32, 0.98] }}
             className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight text-slate-900 dark:text-white leading-[1.12] max-w-4xl mx-auto text-balance"
           >
-            Control territorial absoluto, blindaje de votos y{' '}
+            El centro de mando para auditar, organizar y{' '}
             <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-500 dark:from-blue-400 dark:via-indigo-300 dark:to-blue-400 bg-clip-text text-transparent">
-              auditoría en tiempo real
+              blindar tu estructura electoral
             </span>
           </motion.h1>
 
-          {/* Subtítulo Descriptivo */}
+          {/* Subtítulo Descriptivo del Sistema */}
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2, ease: [0.21, 0.47, 0.32, 0.98] }}
             className="mt-6 text-base sm:text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto leading-relaxed text-balance"
           >
-            La infraestructura tecnológica definitiva para directores de campaña, candidatos y coordinadores. Enriquecimiento automático de censo, detección inmediata de duplicados territoriales y control de testigos electorales para el Día D.
+            Sustituye la incertidumbre de las planillas de Excel por precisión territorial: cruce automático con el censo oficial, detección instantánea de doble registro entre líderes, metas en tiempo real y trazabilidad puesto a puesto.
           </motion.p>
 
           {/* Botones de Acción */}
@@ -180,61 +179,64 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
               onClick={onNavigateToLogin}
               className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-[0.98] text-white text-sm font-semibold tracking-wide flex items-center justify-center gap-2.5 transition-all shadow-xl shadow-blue-500/25 hover:shadow-blue-500/40 cursor-pointer"
             >
-              <span>Ingresar a la Plataforma</span>
+              <span>Ingresar al Comando de Campaña</span>
               <ChevronRight className="w-4 h-4" />
             </button>
 
             <a
-              href="#capacidades"
+              href="#modulos"
               className="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-white dark:bg-slate-800/90 hover:bg-slate-100 dark:hover:bg-slate-700/80 border border-slate-200 dark:border-slate-700/60 text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white text-sm font-semibold transition-all flex items-center justify-center gap-2 shadow-xs"
             >
-              <span>Explorar Capacidades</span>
+              <span>Ver Módulos del Sistema</span>
             </a>
           </motion.div>
 
-          {/* Métricas de Alto Impacto (Key Performance Strip) */}
+          {/* Cuatro Pilares Fundamentales de la Plataforma */}
           <motion.div
             initial={{ opacity: 0, y: 25 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.65, delay: 0.4, ease: [0.21, 0.47, 0.32, 0.98] }}
-            className="mt-14 max-w-4xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 backdrop-blur-xl shadow-sm"
+            className="mt-14 max-w-4xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 backdrop-blur-xl shadow-sm text-center"
           >
-            <div className="p-3 text-center">
-              <span className="block text-2xl sm:text-3xl font-black font-mono text-blue-600 dark:text-blue-400">
-                +500K
+            <div className="p-3">
+              <span className="block text-xl sm:text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400">
+                100% Blindado
               </span>
               <span className="text-xs text-slate-600 dark:text-slate-400 font-medium mt-1 block">
-                Cédulas Auditadas
+                Motor Anti-Colisión
               </span>
             </div>
-            <div className="p-3 text-center border-l border-slate-200/60 dark:border-slate-800/60">
-              <span className="block text-2xl sm:text-3xl font-black font-mono text-emerald-600 dark:text-emerald-400">
-                100%
+
+            <div className="p-3 border-l border-slate-200/60 dark:border-slate-800/60">
+              <span className="block text-xl sm:text-2xl font-black font-mono text-blue-600 dark:text-blue-400">
+                Censo Oficial
               </span>
               <span className="text-xs text-slate-600 dark:text-slate-400 font-medium mt-1 block">
-                Blindaje Anti-Colisión
+                Enriquecimiento en Vivo
               </span>
             </div>
-            <div className="p-3 text-center border-t sm:border-t-0 sm:border-l border-slate-200/60 dark:border-slate-800/60">
-              <span className="block text-2xl sm:text-3xl font-black font-mono text-indigo-600 dark:text-indigo-400">
-                &lt; 0.1s
+
+            <div className="p-3 border-t sm:border-t-0 sm:border-l border-slate-200/60 dark:border-slate-800/60">
+              <span className="block text-xl sm:text-2xl font-black font-mono text-indigo-600 dark:text-indigo-400">
+                DIVIPOLE
               </span>
               <span className="text-xs text-slate-600 dark:text-slate-400 font-medium mt-1 block">
-                Cruce en Censo
+                Puestos & Mesas Exactas
               </span>
             </div>
-            <div className="p-3 text-center border-t sm:border-t-0 sm:border-l border-slate-200/60 dark:border-slate-800/60">
-              <span className="block text-2xl sm:text-3xl font-black font-mono text-amber-600 dark:text-amber-400">
-                99.99%
+
+            <div className="p-3 border-t sm:border-t-0 sm:border-l border-slate-200/60 dark:border-slate-800/60">
+              <span className="block text-xl sm:text-2xl font-black font-mono text-amber-600 dark:text-amber-400">
+                Realtime
               </span>
               <span className="text-xs text-slate-600 dark:text-slate-400 font-medium mt-1 block">
-                SLA en el Día D
+                Sincronización WebSocket
               </span>
             </div>
           </motion.div>
 
           {/* =========================================================================
-              SHOWCASE INTERACTIVO DE LA PLATAFORMA (PREVIEW ESTILO APPLE / STRIPE)
+              SHOWCASE INTERACTIVO: VISTA REAL DE LA APLICACIÓN
               ========================================================================= */}
           <motion.div
             initial={{ opacity: 0, y: 40 }}
@@ -250,80 +252,80 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
                   <span className="w-3 h-3 rounded-full bg-amber-400 dark:bg-amber-500/80 inline-block" />
                   <span className="w-3 h-3 rounded-full bg-emerald-400 dark:bg-emerald-500/80 inline-block" />
                   <span className="ml-3 text-[11px] font-mono text-slate-500 dark:text-slate-400 hidden sm:inline">
-                    padron.centrodemando.electoral/censo-live
+                    padron.centrodemando.electoral/dashboard-territorial
                   </span>
                 </div>
 
                 <div className="flex items-center gap-2">
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-[11px] font-mono font-semibold text-emerald-600 dark:text-emerald-400">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    Sincronización WebSocket Activa
+                    Supabase Realtime: Conectado
                   </span>
                 </div>
               </div>
 
               {/* Contenido Interior del Mockup */}
               <div className="p-4 sm:p-6 space-y-5 bg-gradient-to-b from-white to-slate-50/50 dark:from-slate-900 dark:to-[#0B1120]">
-                {/* Métricas Rápidas de la Vista */}
+                {/* Métricas Reales del Dashboard */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
                     <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
-                      Electores Registrados
+                      Padrón Consolidado
                     </span>
                     <span className="text-xl font-bold font-mono text-slate-900 dark:text-white mt-0.5 block">
                       142.850
                     </span>
                     <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
-                      +14.8% sobre meta
+                      Meta: 180.000 (79.3%)
                     </span>
                   </div>
 
                   <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
                     <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
-                      Puestos Georreferenciados
+                      Puestos DIVIPOLE
                     </span>
                     <span className="text-xl font-bold font-mono text-blue-600 dark:text-blue-400 mt-0.5 block">
-                      24 / 24
+                      28 / 28
                     </span>
                     <span className="text-[10px] text-blue-600 dark:text-blue-400 font-medium">
-                      100% Cobertura
+                      100% Cobertura Municipal
                     </span>
                   </div>
 
                   <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
                     <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
-                      Coordinadores en Terreno
+                      Estructura Territorial
                     </span>
                     <span className="text-xl font-bold font-mono text-indigo-600 dark:text-indigo-400 mt-0.5 block">
-                      38 Activos
+                      4 Coord · 38 Líderes
                     </span>
                     <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
-                      Trazabilidad RLS
+                      Control RLS por Usuario
                     </span>
                   </div>
 
                   <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
                     <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
-                      Testigos Electorales
+                      Censo & Auto-corrección
                     </span>
                     <span className="text-xl font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-0.5 block">
-                      194 Mesas
+                      100% Validados
                     </span>
                     <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
-                      Listos para Día D
+                      0 Cédulas en Colisión
                     </span>
                   </div>
                 </div>
 
-                {/* Tabla de Demostración de Censo Enriquecido */}
+                {/* Tabla de Demostración del Padrón Electoral */}
                 <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900/90 shadow-xs">
                   <div className="px-4 py-2.5 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
                     <span className="font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                       <Database className="w-3.5 h-3.5 text-blue-500" />
-                      Muestra en Vivo de Electores Auditados
+                      Listado en Vivo del Padrón Electoral
                     </span>
                     <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">
-                      Auto-corrección DNP activa
+                      Enriquecimiento DNP / Censo activo
                     </span>
                   </div>
 
@@ -334,9 +336,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
                           <th className="py-2.5 px-3">Cédula</th>
                           <th className="py-2.5 px-3">Elector Oficial</th>
                           <th className="py-2.5 px-3">Edad Calculada</th>
-                          <th className="py-2.5 px-3">Puesto & Mesa</th>
-                          <th className="py-2.5 px-3">Asignación</th>
-                          <th className="py-2.5 px-3 text-right">Estado Censo</th>
+                          <th className="py-2.5 px-3">Puesto & Mesa (DIVIPOLE)</th>
+                          <th className="py-2.5 px-3">Registrado Por</th>
+                          <th className="py-2.5 px-3 text-right">Auditoría</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 font-mono text-[11px]">
@@ -349,10 +351,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
                           <td className="py-2.5 px-3 font-sans text-slate-600 dark:text-slate-300">
                             Normal Superior <span className="text-blue-500 font-mono font-bold">(Mesa 04)</span>
                           </td>
-                          <td className="py-2.5 px-3 font-sans text-slate-500">Coord. Zona Norte</td>
+                          <td className="py-2.5 px-3 font-sans text-slate-500">Líder Andrés Castro (Zona Norte)</td>
                           <td className="py-2.5 px-3 text-right">
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 text-[10px] font-semibold">
-                              <CheckCircle2 className="w-3 h-3" /> Verificado DNP
+                              <CheckCircle2 className="w-3 h-3" /> Censo Verificado
                             </span>
                           </td>
                         </tr>
@@ -366,7 +368,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
                           <td className="py-2.5 px-3 font-sans text-slate-600 dark:text-slate-300">
                             Coliseo Municipal <span className="text-blue-500 font-mono font-bold">(Mesa 12)</span>
                           </td>
-                          <td className="py-2.5 px-3 font-sans text-slate-500">Coord. Zona Centro</td>
+                          <td className="py-2.5 px-3 font-sans text-slate-500">Líder Paola Morales (Zona Centro)</td>
                           <td className="py-2.5 px-3 text-right">
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 text-[10px] font-semibold">
                               <ShieldCheck className="w-3 h-3" /> Sin Colisión
@@ -383,10 +385,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
                           <td className="py-2.5 px-3 font-sans text-slate-600 dark:text-slate-300">
                             I.E. Santander Central <span className="text-blue-500 font-mono font-bold">(Mesa 01)</span>
                           </td>
-                          <td className="py-2.5 px-3 font-sans text-slate-500">Coord. Zona Sur</td>
+                          <td className="py-2.5 px-3 font-sans text-slate-500">Líder Fernando Ruiz (Zona Sur)</td>
                           <td className="py-2.5 px-3 text-right">
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 text-[10px] font-semibold">
-                              <CheckCircle2 className="w-3 h-3" /> Verificado DNP
+                              <CheckCircle2 className="w-3 h-3" /> Censo Verificado
                             </span>
                           </td>
                         </tr>
@@ -400,9 +402,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
         </section>
 
         {/* =========================================================================
-            3. SECCIÓN: ARQUITECTURA DE CAPACIDADES (BENTO GRID MODERNO CON ANIMACIONES)
+            3. SECCIÓN: MÓDULOS DEL SISTEMA (BENTO GRID CON ANIMACIONES EN SCROLL)
             ========================================================================= */}
-        <section id="capacidades" className="py-20 sm:py-28 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-slate-200/80 dark:border-slate-800/80">
+        <section id="modulos" className="py-20 sm:py-28 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-slate-200/80 dark:border-slate-800/80">
           <motion.div
             initial="hidden"
             whileInView="visible"
@@ -412,13 +414,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
           >
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 text-xs font-semibold">
               <Layers className="w-3.5 h-3.5" />
-              <span>Tecnología Especializada</span>
+              <span>Módulos Nativos de la Plataforma</span>
             </div>
             <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-              Seis Módulos Diseñados para Ganar Elecciones
+              Arquitectura Integral para el Comando de Campaña
             </h2>
             <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300">
-              Cada funcionalidad ha sido concebida bajo las exigencias reales de las contiendas electorales: velocidad extrema, cero duplicados y certeza total de cada voto.
+              Cada módulo resuelve un cuello de botella crítico en la operación electoral: desde la ingesta de bases de datos hasta el escrutinio de votos.
             </p>
           </motion.div>
 
@@ -429,34 +431,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
             variants={staggerContainer}
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
           >
-            {/* Tarjeta 1: Enriquecimiento Automático */}
-            <motion.div
-              variants={fadeInUp}
-              className="rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 hover:border-blue-500/50 p-6 sm:p-7 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between group"
-            >
-              <div>
-                <div className="h-12 w-12 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 flex items-center justify-center text-blue-600 dark:text-blue-400 mb-5 group-hover:scale-105 transition-transform">
-                  <Database className="w-6 h-6" />
-                </div>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
-                  Enriquecimiento Automático en Censo
-                </h3>
-                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                  Al ingresar una cédula o cargar un archivo masivo, el sistema consulta en segundo plano la base de censo oficial (DNP / Registraduría). Calcula la edad exacta, auto-corrige nombres mal escritos y descarta automáticamente menores de edad o cédulas canceladas.
-                </p>
-              </div>
-
-              <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2 text-[11px] font-mono text-blue-600 dark:text-blue-400 font-semibold">
-                <span className="px-2.5 py-1 rounded bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800/40">
-                  Pool Concurrente
-                </span>
-                <span className="px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                  Auto-corrección Realtime
-                </span>
-              </div>
-            </motion.div>
-
-            {/* Tarjeta 2: Motor Anti-Colisión */}
+            {/* Módulo 1: Motor Anti-Colisión */}
             <motion.div
               variants={fadeInUp}
               className="rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 hover:border-emerald-500/50 p-6 sm:p-7 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between group"
@@ -466,10 +441,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
                   <ShieldCheck className="w-6 h-6" />
                 </div>
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
-                  Blindaje Anti-Colisión Territorial
+                  Motor Anti-Colisión Territorial
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                  Evita que dos o más coordinadores registren al mismo elector como propio. Si una cédula ya fue ingresada previamente en la campaña, el sistema genera una alerta instantánea preservando la trazabilidad del primer registro y eliminando los votos ficticios.
+                  Evita que dos o más líderes registren al mismo votante en sus listas de apoyo. El sistema valida la cédula en milisegundos; si ya existe, bloquea la duplicación y muestra exactamente quién la registró primero, en qué fecha y en qué mesa.
                 </p>
               </div>
 
@@ -483,7 +458,61 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
               </div>
             </motion.div>
 
-            {/* Tarjeta 3: Carga Masiva Inteligente */}
+            {/* Módulo 2: Enriquecimiento Oficial de Censo */}
+            <motion.div
+              variants={fadeInUp}
+              className="rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 hover:border-blue-500/50 p-6 sm:p-7 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between group"
+            >
+              <div>
+                <div className="h-12 w-12 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 flex items-center justify-center text-blue-600 dark:text-blue-400 mb-5 group-hover:scale-105 transition-transform">
+                  <Database className="w-6 h-6" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
+                  Enriquecimiento Automático de Censo
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                  Al digitar la cédula o cargar lotes, el servicio en background consulta el censo oficial. Resuelve nombres completos, corrige errores ortográficos, calcula la edad exacta y sugiere automáticamente el puesto y mesa de votación oficial.
+                </p>
+              </div>
+
+              <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2 text-[11px] font-mono text-blue-600 dark:text-blue-400 font-semibold">
+                <span className="px-2.5 py-1 rounded bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800/40">
+                  Pool Concurrente
+                </span>
+                <span className="px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                  Cálculo de Edad en Vivo
+                </span>
+              </div>
+            </motion.div>
+
+            {/* Módulo 3: DIVIPOLE Integrado */}
+            <motion.div
+              variants={fadeInUp}
+              className="rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 hover:border-amber-500/50 p-6 sm:p-7 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between group"
+            >
+              <div>
+                <div className="h-12 w-12 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 flex items-center justify-center text-amber-600 dark:text-amber-400 mb-5 group-hover:scale-105 transition-transform">
+                  <MapPin className="w-6 h-6" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
+                  División Político-Administrativa (DIVIPOLE)
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                  Catálogo oficial de Departamentos, Municipios, Zonas, Puestos de Votación y Mesas. Monitorea la saturación por recinto electoral, identifica mesas desatendidas y asigna metas territoriales con base en el potencial electoral real.
+                </p>
+              </div>
+
+              <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2 text-[11px] font-mono text-amber-600 dark:text-amber-400 font-semibold">
+                <span className="px-2.5 py-1 rounded bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800/40">
+                  Puestos & Mesas
+                </span>
+                <span className="px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                  Control de Saturación
+                </span>
+              </div>
+            </motion.div>
+
+            {/* Módulo 4: Carga Masiva Inteligente */}
             <motion.div
               variants={fadeInUp}
               className="rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 hover:border-indigo-500/50 p-6 sm:p-7 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between group"
@@ -493,10 +522,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
                   <UploadCloud className="w-6 h-6" />
                 </div>
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
-                  Carga Masiva de Electores por Lotes
+                  Carga Masiva Inteligente por Lotes
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                  Importa archivos Excel (.xlsx) y CSV de hasta miles de registros en pocos segundos. Cuenta con mapeo automático de columnas, normalización de formatos de teléfono, limpieza de espacios y previsualización con enriquecimiento reactivo antes de confirmar.
+                  Importa archivos Excel (.xlsx) y CSV de miles de electores. Mapea columnas automáticamente, normaliza formatos de teléfono, depura espacios en blanco y ejecuta pre-auditoría con enriquecimiento reactivo antes de consolidar en base de datos.
                 </p>
               </div>
 
@@ -510,34 +539,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
               </div>
             </motion.div>
 
-            {/* Tarjeta 4: Gestión Territorial, Puestos y Mesas */}
-            <motion.div
-              variants={fadeInUp}
-              className="rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 hover:border-amber-500/50 p-6 sm:p-7 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between group"
-            >
-              <div>
-                <div className="h-12 w-12 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 flex items-center justify-center text-amber-600 dark:text-amber-400 mb-5 group-hover:scale-105 transition-transform">
-                  <MapPin className="w-6 h-6" />
-                </div>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
-                  Zonificación y Puestos de Votación
-                </h3>
-                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                  Estructuración jerárquica por Departamento, Municipio, Comuna/Corregimiento, Puesto y Mesa. Permite visualizar la distribución porcentual de electores por puesto y calcular la meta de sufragios requerida para alcanzar el umbral de victoria.
-                </p>
-              </div>
-
-              <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2 text-[11px] font-mono text-amber-600 dark:text-amber-400 font-semibold">
-                <span className="px-2.5 py-1 rounded bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800/40">
-                  Puestos & Mesas
-                </span>
-                <span className="px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                  Metas Electorales
-                </span>
-              </div>
-            </motion.div>
-
-            {/* Tarjeta 5: Centro de Mando del Día D */}
+            {/* Módulo 5: Espacio de Trabajo del Líder */}
             <motion.div
               variants={fadeInUp}
               className="rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 hover:border-purple-500/50 p-6 sm:p-7 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between group"
@@ -547,24 +549,24 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
                   <Vote className="w-6 h-6" />
                 </div>
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
-                  Testigos Electorales & Día D
+                  Espacio del Líder Móvil (Enrolamiento)
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                  Asignación y acreditación digital de testigos electorales mesa por mesa. Durante la jornada, reporta en vivo la instalación de mesas, la afluencia de votantes por franja horaria y la transmisión fotográfica de actas E-14 para escrutinio anti-fraude.
+                  Interfaz móvil optimizada para líderes en territorio. Permite enrolar votantes en segundos, visualizar el porcentaje de cumplimiento hacia su meta personal y cuenta con memoria de lote que recuerda el último puesto y mesa para registro ágil en campo.
                 </p>
               </div>
 
               <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2 text-[11px] font-mono text-purple-600 dark:text-purple-400 font-semibold">
                 <span className="px-2.5 py-1 rounded bg-purple-50 dark:bg-purple-950/50 border border-purple-200 dark:border-purple-800/40">
-                  Actas E-14
+                  Mobile-First
                 </span>
                 <span className="px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                  Escrutinio en Vivo
+                  Memoria de Lote
                 </span>
               </div>
             </motion.div>
 
-            {/* Tarjeta 6: Seguridad RLS & Auditoría Forense */}
+            {/* Módulo 6: Seguridad RLS & Auditoría */}
             <motion.div
               variants={fadeInUp}
               className="rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 hover:border-sky-500/50 p-6 sm:p-7 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between group"
@@ -574,10 +576,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
                   <Lock className="w-6 h-6" />
                 </div>
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
-                  Aislamiento Multi-Tenant & RLS
+                  Seguridad RLS & Auditoría Forense
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                  Políticas criptográficas de Seguridad a Nivel de Fila (PostgreSQL Row Level Security). Cada campaña política opera en su propio espacio estanco aislado. Registro forense inalterable de cada consulta, edición o exportación de datos.
+                  Aislamiento criptográfico estricto por campaña mediante Row-Level Security en PostgreSQL. Los líderes solo ven sus votantes; los coordinadores auditan su zona; bitácora inalterable de accesos y exportaciones en Excel con codificación UTF-8 BOM.
                 </p>
               </div>
 
@@ -586,7 +588,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
                   PostgreSQL RLS
                 </span>
                 <span className="px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                  Logs Forenses
+                  UTF-8 BOM Excel
                 </span>
               </div>
             </motion.div>
@@ -594,9 +596,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
         </section>
 
         {/* =========================================================================
-            4. SECCIÓN: FLUJO OPERATIVO DE CAMPAÑA (PASO A PASO ANIMADO)
+            4. SECCIÓN: FLUJO OPERATIVO DE CAMPAÑA (PASO A PASO)
             ========================================================================= */}
-        <section id="flujo-operativo" className="py-20 sm:py-28 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-slate-200/80 dark:border-slate-800/80">
+        <section id="flujo" className="py-20 sm:py-28 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-slate-200/80 dark:border-slate-800/80">
           <motion.div
             initial="hidden"
             whileInView="visible"
@@ -606,18 +608,17 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
           >
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 text-xs font-semibold">
               <Activity className="w-3.5 h-3.5" />
-              <span>Metodología Probada</span>
+              <span>Metodología de Campaña</span>
             </div>
             <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-              Cómo se Estructura la Campaña Paso a Paso
+              Flujo Operativo de la Campaña Electoral
             </h2>
             <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300">
-              Un ciclo de gestión claro que lleva a la organización política desde la consolidación inicial de simpatizantes hasta la victoria certificada en las urnas.
+              Un ciclo de gestión estructurado para llevar la campaña desde el censo inicial hasta la defensa del voto en el escrutinio.
             </p>
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 relative">
-            {/* Paso 1 */}
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -629,14 +630,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
                 01
               </span>
               <h4 className="text-base font-bold text-slate-900 dark:text-white mb-2">
-                Ingesta & Cruce
+                Configuración DIVIPOLE
               </h4>
               <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                Carga masiva de listas territoriales con resolución automática de cédulas, verificación de edad y asignación al censo oficial.
+                El comando de campaña define municipio, puestos de votación y asigna metas numéricas a coordinadores y líderes barriales.
               </p>
             </motion.div>
 
-            {/* Paso 2 */}
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -648,14 +648,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
                 02
               </span>
               <h4 className="text-base font-bold text-slate-900 dark:text-white mb-2">
-                Estructura Territorial
+                Enrolamiento & Censo
               </h4>
               <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                Asignación de coordinadores de zona, capitanes de puesto y metas numéricas por mesa con control estricto anti-duplicados.
+                Los líderes registran votantes desde su celular o cargan archivos Excel. El censo oficial valida edad y nombres en tiempo real.
               </p>
             </motion.div>
 
-            {/* Paso 3 */}
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -667,14 +666,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
                 03
               </span>
               <h4 className="text-base font-bold text-slate-900 dark:text-white mb-2">
-                Auditoría en Tiempo Real
+                Auditoría en Realtime
               </h4>
               <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                Tableros ejecutivos en vivo con suscripción WebSocket. El candidato y su comité conocen exactamente el avance hacia la meta cada segundo.
+                El tablero central se actualiza vía WebSockets: detecta puestos con déficit de electores y audita el cumplimiento por líder.
               </p>
             </motion.div>
 
-            {/* Paso 4 */}
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -686,17 +684,17 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
                 04
               </span>
               <h4 className="text-base font-bold text-slate-900 dark:text-white mb-2">
-                Defensa del Voto (Día D)
+                Movilización Día D
               </h4>
               <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                Movilización coordinada hacia los puestos de votación y cotejo fotográfico de actas E-14 para asegurar que ningún voto sea alterado.
+                Listados organizados mesa a mesa con teléfonos y direcciones validadas para movilizar el voto efectivo con precisión militar.
               </p>
             </motion.div>
           </div>
         </section>
 
         {/* =========================================================================
-            5. SECCIÓN: MATRIZ COMPARATIVA (PADRÓN ELECTORAL VS EXCEL TRADICIONAL)
+            5. SECCIÓN: MATRIZ COMPARATIVA (PADRÓN ELECTORAL VS EXCEL)
             ========================================================================= */}
         <section id="comparativa" className="py-20 sm:py-28 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto border-t border-slate-200/80 dark:border-slate-800/80">
           <motion.div
@@ -708,13 +706,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
           >
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 text-xs font-semibold">
               <FileCheck className="w-3.5 h-3.5" />
-              <span>Diferenciador Estratégico</span>
+              <span>Diferenciador Tecnológico</span>
             </div>
             <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-              Padrón Electoral vs. Hojas de Cálculo Tradicionales
+              Padrón Electoral vs. Planillas en Excel / Drive
             </h2>
             <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300">
-              ¿Por qué las campañas modernas ya no confían sus elecciones a archivos compartidos de Excel o Drive?
+              ¿Por qué las campañas electorales que buscan la victoria abandonan las hojas de cálculo tradicionales?
             </p>
           </motion.div>
 
@@ -729,78 +727,78 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
               <table className="w-full text-left text-xs sm:text-sm border-collapse">
                 <thead>
                   <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/70 text-slate-700 dark:text-slate-300 font-semibold">
-                    <th className="py-4 px-4 sm:px-6 w-1/3">Capacidad Operativa</th>
+                    <th className="py-4 px-4 sm:px-6 w-1/3">Capacidad Crítica</th>
                     <th className="py-4 px-4 sm:px-6 w-1/3 text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-950/30">
-                      Padrón Electoral
+                      Padrón Electoral (SaaS)
                     </th>
                     <th className="py-4 px-4 sm:px-6 w-1/3 text-slate-400 dark:text-slate-500">
-                      Hojas de Cálculo / Excel
+                      Planillas en Excel / Google Sheets
                     </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
                   <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
                     <td className="py-3.5 px-4 sm:px-6 font-medium text-slate-900 dark:text-white">
-                      Detección de Electores Duplicados
+                      Doble Registro entre Líderes
                     </td>
                     <td className="py-3.5 px-4 sm:px-6 font-semibold text-emerald-600 dark:text-emerald-400 bg-blue-50/20 dark:bg-blue-950/10 flex items-center gap-2">
                       <Check className="w-4 h-4 text-emerald-500 shrink-0" />
-                      Instantánea en milisegundos
+                      Bloqueo anti-colisión en milisegundos
                     </td>
                     <td className="py-3.5 px-4 sm:px-6 text-slate-500 dark:text-slate-400">
-                      Inexistente entre múltiples archivos
+                      Inexistente (listados inflados con duplicados)
                     </td>
                   </tr>
 
                   <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
                     <td className="py-3.5 px-4 sm:px-6 font-medium text-slate-900 dark:text-white">
-                      Validación de Censo y Edad Oficial
+                      Validación de Censo y Edad
                     </td>
                     <td className="py-3.5 px-4 sm:px-6 font-semibold text-emerald-600 dark:text-emerald-400 bg-blue-50/20 dark:bg-blue-950/10 flex items-center gap-2">
                       <Check className="w-4 h-4 text-emerald-500 shrink-0" />
-                      Automática vía API de Censo
+                      Autocorrección y cálculo automático
                     </td>
                     <td className="py-3.5 px-4 sm:px-6 text-slate-500 dark:text-slate-400">
-                      Manual, lenta y propensa a error
+                      Manual, lenta y plagada de erratas
                     </td>
                   </tr>
 
                   <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
                     <td className="py-3.5 px-4 sm:px-6 font-medium text-slate-900 dark:text-white">
-                      Seguridad y Control de Acceso (RLS)
+                      Privacidad y Roles (RLS)
                     </td>
                     <td className="py-3.5 px-4 sm:px-6 font-semibold text-emerald-600 dark:text-emerald-400 bg-blue-50/20 dark:bg-blue-950/10 flex items-center gap-2">
                       <Check className="w-4 h-4 text-emerald-500 shrink-0" />
-                      Cada coordinador ve solo sus votantes
+                      Cada líder solo ve sus propios electores
                     </td>
                     <td className="py-3.5 px-4 sm:px-6 text-slate-500 dark:text-slate-400">
-                      Acceso total o filtraciones accidentales
+                      Riesgo de robo de bases o borrado accidental
                     </td>
                   </tr>
 
                   <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
                     <td className="py-3.5 px-4 sm:px-6 font-medium text-slate-900 dark:text-white">
-                      Sincronización en Tiempo Real
+                      Actualización en Tiempo Real
                     </td>
                     <td className="py-3.5 px-4 sm:px-6 font-semibold text-emerald-600 dark:text-emerald-400 bg-blue-50/20 dark:bg-blue-950/10 flex items-center gap-2">
                       <Check className="w-4 h-4 text-emerald-500 shrink-0" />
-                      WebSockets & Realtime Reactivo
+                      Suscripción WebSocket instantánea
                     </td>
                     <td className="py-3.5 px-4 sm:px-6 text-slate-500 dark:text-slate-400">
-                      Conflictos de sobrescritura de archivo
+                      Conflictos de versiones desincronizadas
                     </td>
                   </tr>
 
                   <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
                     <td className="py-3.5 px-4 sm:px-6 font-medium text-slate-900 dark:text-white">
-                      Monitoreo de Testigos el Día D
+                      Georreferenciación DIVIPOLE
                     </td>
                     <td className="py-3.5 px-4 sm:px-6 font-semibold text-emerald-600 dark:text-emerald-400 bg-blue-50/20 dark:bg-blue-950/10 flex items-center gap-2">
                       <Check className="w-4 h-4 text-emerald-500 shrink-0" />
-                      Módulo integrado con actas E-14
+                      Puestos y mesas oficiales precargadas
                     </td>
                     <td className="py-3.5 px-4 sm:px-6 text-slate-500 dark:text-slate-400">
-                      Llamadas telefónicas y caos de WhatsApp
+                      Nombres de puestos escritos de 10 formas distintas
                     </td>
                   </tr>
                 </tbody>
@@ -810,9 +808,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
         </section>
 
         {/* =========================================================================
-            6. SECCIÓN: SEGURIDAD, DISPONIBILIDAD Y CUMPLIMIENTO CRIPTOGRÁFICO
+            6. SECCIÓN: GOBERNANZA & ESTRUCTURA DE ROLES DE CAMPAÑA
             ========================================================================= */}
-        <section id="seguridad" className="py-20 sm:py-28 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-slate-200/80 dark:border-slate-800/80">
+        <section id="roles" className="py-20 sm:py-28 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-slate-200/80 dark:border-slate-800/80">
           <motion.div
             initial="hidden"
             whileInView="visible"
@@ -822,13 +820,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
           >
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 text-xs font-semibold">
               <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Infraestructura Blindada</span>
+              <span>Gobernanza Electoral</span>
             </div>
             <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-              Seguridad de Grado Gubernamental
+              Jerarquía de Permisos y Control de Acceso
             </h2>
             <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300">
-              La confidencialidad de tu padrón electoral es el activo más valioso de tu campaña política.
+              Cada integrante de la campaña tiene acceso estricto únicamente a la información requerida para su nivel de responsabilidad.
             </p>
           </motion.div>
 
@@ -840,15 +838,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
               transition={{ duration: 0.6, delay: 0.1 }}
               className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm"
             >
-              <div className="p-3 w-fit rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 mb-4">
-                <Server className="w-6 h-6" />
+              <div className="p-3 w-fit rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 mb-4">
+                <Shield className="w-6 h-6" />
               </div>
               <h4 className="text-base font-bold text-slate-900 dark:text-white mb-1">
-                Disponibilidad Edge 99.99%
+                Administrador de Campaña
               </h4>
-              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                Despliegue distribuido de alto rendimiento en Cloudflare Workers y Edge Networks. Resistencia absoluta contra caídas de red durante el pico masivo de consultas del Día D.
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed mb-3">
+                Candidato y Gerente General. Visión total del padrón, fijación de metas electorales por puesto, asignación de coordinadores y descarga de reportes consolidados.
               </p>
+              <span className="text-[11px] font-mono text-blue-600 dark:text-blue-400 font-semibold">
+                Control Total · Gestión de Campaña
+              </span>
             </motion.div>
 
             <motion.div
@@ -858,15 +859,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
               transition={{ duration: 0.6, delay: 0.2 }}
               className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm"
             >
-              <div className="p-3 w-fit rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 mb-4">
-                <Lock className="w-6 h-6" />
+              <div className="p-3 w-fit rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 mb-4">
+                <Layers className="w-6 h-6" />
               </div>
               <h4 className="text-base font-bold text-slate-900 dark:text-white mb-1">
-                Cifrado AES-256 & TLS 1.3
+                Coordinador de Zona
               </h4>
-              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                Cifrado criptográfico tanto en reposo como en tránsito. Ningún dato sensible de electores viaja sin protección criptográfica avanzada de extremo a extremo.
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed mb-3">
+                Supervisa los puestos asignados a su comuna o sector, ejecuta cargas masivas de listados territoriales y audita el avance de sus líderes subordinados.
               </p>
+              <span className="text-[11px] font-mono text-indigo-600 dark:text-indigo-400 font-semibold">
+                Carga Masiva · Auditoría Territorial
+              </span>
             </motion.div>
 
             <motion.div
@@ -876,21 +880,24 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
               transition={{ duration: 0.6, delay: 0.3 }}
               className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm"
             >
-              <div className="p-3 w-fit rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 mb-4">
-                <Shield className="w-6 h-6" />
+              <div className="p-3 w-fit rounded-xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 mb-4">
+                <Vote className="w-6 h-6" />
               </div>
               <h4 className="text-base font-bold text-slate-900 dark:text-white mb-1">
-                Aislamiento RLS en PostgreSQL
+                Líder Territorial
               </h4>
-              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                Cada registro está protegido por Row-Level Security en el motor de base de datos. Ningún usuario puede acceder a datos ajenos a su nivel de autorización.
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed mb-3">
+                Enrola votantes en territorio desde su smartphone, monitorea su porcentaje de meta personal y solo tiene visibilidad de sus propios electores registrados.
               </p>
+              <span className="text-[11px] font-mono text-purple-600 dark:text-purple-400 font-semibold">
+                Enrolamiento Móvil · Cero Fugas
+              </span>
             </motion.div>
           </div>
         </section>
 
         {/* =========================================================================
-            7. SECCIÓN: PREGUNTAS FRECUENTES (FAQ ACORDEÓN INTERACTIVO FLUIDO)
+            7. SECCIÓN: PREGUNTAS FRECUENTES (FAQ ACORDEÓN INTERACTIVO)
             ========================================================================= */}
         <section id="faq" className="py-20 sm:py-28 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto border-t border-slate-200/80 dark:border-slate-800/80">
           <motion.div
@@ -908,31 +915,31 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
               Preguntas Frecuentes
             </h2>
             <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300">
-              Respuestas a las consultas habituales de gerentes de campaña, candidatos y auditores electorales.
+              Todo lo que directores de campaña, candidatos y coordinadores necesitan saber sobre la plataforma.
             </p>
           </motion.div>
 
           <div className="space-y-4">
             {[
               {
-                q: '¿Cómo evita la plataforma que dos coordinadores registren al mismo elector?',
-                a: 'El sistema incorpora un motor anti-colisión a nivel de base de datos con índice único por cédula dentro de la campaña activa. Si un segundo coordinador intenta ingresar una cédula existente, la plataforma bloquea la inserción y muestra exactamente qué coordinador la registró primero y en qué fecha.',
+                q: '¿Cómo evita el motor anti-colisión que dos líderes registren al mismo elector?',
+                a: 'El sistema mantiene un índice único por documento de identidad dentro del tenant de la campaña en PostgreSQL. Si un segundo líder intenta registrar una cédula ya existente, el sistema bloquea la inserción y le indica de forma transparente qué líder la inscribió primero, en qué fecha y en qué mesa.',
               },
               {
-                q: '¿Cómo funciona la consulta automática en segundo plano del censo oficial?',
-                a: 'Al subir un archivo masivo en Excel o registrar un votante de forma manual, un servicio en background consulta la cédula contra la base oficial de censo (DNP / Registraduría). De forma instantánea calcula la edad precisa, corrige errores ortográficos en los nombres y confirma si la persona está habilitada para sufragar.',
+                q: '¿Cómo funciona la consulta y enriquecimiento con el censo oficial?',
+                a: 'Al ingresar una cédula o cargar un archivo masivo en Excel, un servicio en background consulta el censo oficial (DNP / Registraduría). De forma instantánea calcula la edad precisa del ciudadano, normaliza sus nombres oficiales y sugiere el puesto y mesa de votación asignados.',
               },
               {
-                q: '¿Los coordinadores de zona pueden ver los datos de los demás líderes?',
-                a: 'No. Gracias a las directivas de Seguridad a Nivel de Fila (RLS) en PostgreSQL, cada usuario coordinador solo tiene permisos de lectura y escritura sobre los electores y mesas asignadas a su estructura territorial. Solo el Administrador Central tiene visibilidad global de toda la campaña.',
+                q: '¿Los líderes de barrio pueden ver los electores registrados por otros líderes?',
+                a: 'No. Mediante políticas de Seguridad a Nivel de Fila (PostgreSQL Row Level Security), cada líder tiene una vista hermética y aislada donde solo puede ver y gestionar sus propios simpatizantes. Solo los coordinadores y el administrador general poseen visibilidad ampliada.',
               },
               {
-                q: '¿Qué sucede si se cae el internet en un puesto de votación el Día D?',
-                a: 'La plataforma cuenta con almacenamiento local en caché de sesión en el navegador (Local Storage & Service Workers). Los testigos pueden continuar verificando electores de su mesa y, en cuanto el dispositivo recupera señal móvil o Wi-Fi, los registros se sincronizan automáticamente con el servidor central.',
+                q: '¿Qué formato deben tener los archivos para la Carga Masiva?',
+                a: 'La plataforma acepta archivos Excel (.xlsx) y CSV. No requiere una plantilla rígida: el sistema mapea de forma inteligente las columnas (Cédula, Nombres, Teléfono, Puesto, Mesa) y ejecuta una pre-auditoría reactiva antes de confirmar la importación.',
               },
               {
-                q: '¿Cómo se transmiten y verifican las actas E-14 de escrutinio?',
-                a: 'A través del módulo móvil para testigos electorales, el testigo captura una fotografía del acta E-14 física al cierre de las urnas y digita los votos obtenidos. La central electoral compara los datos reportados contra los boletines oficiales para detectar discrepancias en tiempo récord.',
+                q: '¿La plataforma soporta miles de conexiones simultáneas el Día D?',
+                a: 'Sí. La infraestructura está montada sobre una arquitectura serverless distribuida en Edge (Cloudflare Workers y Supabase PostgreSQL) con alta resiliencia y réplicas de lectura preparadas para absorber el pico masivo de consultas de la jornada electoral.',
               },
             ].map((faq, index) => {
               const isOpen = openFaq === index;
@@ -979,7 +986,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
         </section>
 
         {/* =========================================================================
-            8. BANNER DE LLAMADO A LA ACCIÓN FINAL (ESTILO SAAS EJECUTIVO)
+            8. BANNER DE LLAMADO A LA ACCIÓN FINAL
             ========================================================================= */}
         <section className="py-20 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto text-center">
           <motion.div
@@ -991,16 +998,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
           >
             <div className="max-w-2xl mx-auto space-y-4">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 text-xs font-semibold">
-                <ShieldCheck className="w-3.5 h-3.5 text-blue-500" />
-                Acceso Exclusivo para Campañas Registradas
+                <Server className="w-3.5 h-3.5 text-blue-500" />
+                Acceso Exclusivo para Comités de Campaña Autorizados
               </span>
 
               <h2 className="text-2xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-                Protege tu Elección con Tecnología Certificada
+                Toma el Control Estratégico de tu Campaña Electoral
               </h2>
 
               <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                Ingresa al sistema con tus credenciales de Administrador o Coordinador de Zona y consolida tu estructura electoral con certeza milimétrica.
+                Ingresa con tus credenciales seguras para administrar tu padrón, asignar metas territoriales y monitorear el censo electoral en tiempo real.
               </p>
 
               <div className="pt-4 flex justify-center">
@@ -1019,7 +1026,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
         </section>
       </main>
 
-      {/* 9. Footer Minimalista y Corporativo */}
+      {/* 9. Footer */}
       <footer className="border-t border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-[#080D1A] py-8 px-4 sm:px-6 lg:px-8 transition-colors">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 dark:text-slate-400">
           <div className="flex items-center gap-2.5">
