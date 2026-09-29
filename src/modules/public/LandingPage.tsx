@@ -533,6 +533,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
             B. HERO SECTION (DOBLE COLUMNA + HOLOGRAMA 3D MAPA COLOMBIA + PANEL FLOTANTE)
             ========================================================================= */}
         <section className="relative pt-10 pb-20 sm:pt-16 sm:pb-28 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto overflow-hidden">
+          {/* Fondo Escénico de Lienzo Continuo Tecnológico (Wallpaper Canvas) */}
+          <div className="absolute inset-0 pointer-events-none -z-20 overflow-hidden opacity-40 mix-blend-screen select-none">
+            <img
+              src="/enterprise_canvas_bg.jpg"
+              alt=""
+              className="w-full h-full object-cover object-top filter brightness-110 contrast-125"
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-[#070B19]/30 via-transparent to-[#070B19]" />
+          </div>
+
           {/* Luces Ambientales de Fondo */}
           <div
             className="absolute top-10 left-1/4 w-[600px] h-[400px] bg-blue-600/20 blur-[150px] pointer-events-none -z-10"
@@ -1137,19 +1147,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
         </section>
 
         {/* =========================================================================
-            F. CALL TO ACTION FINAL (HERO FOOTER BANNER CIUDAD NOCTURNA)
+            F. CALL TO ACTION FINAL (HERO FOOTER BANNER HORIZONTE PLANETARIO)
             ========================================================================= */}
         <section className="relative py-24 sm:py-32 px-4 sm:px-6 lg:px-8 text-center overflow-hidden bg-[#070B19] border-t border-slate-800/80">
-          {/* Fondo Panorámico Nocturno con Montañas y Luces */}
-          <div className="absolute inset-0 opacity-40 pointer-events-none -z-10">
-            {/* Silueta de Cordillera */}
-            <svg viewBox="0 0 1440 320" className="w-full h-full object-cover" preserveAspectRatio="none">
-              <path
-                fill="#0A142A"
-                d="M0,192L48,176C96,160,192,128,288,138.7C384,149,480,203,576,213.3C672,224,768,192,864,165.3C960,139,1056,117,1152,128C1248,139,1344,181,1392,202.7L1440,224L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"
-              />
-            </svg>
-            <div className="absolute bottom-0 inset-x-0 h-28 bg-gradient-to-t from-[#070B19] to-transparent" />
+          {/* Fondo Panorámico de Horizonte Cósmico Terrestre desde Órbita (Wallpaper Canvas) */}
+          <div className="absolute inset-0 pointer-events-none -z-10 overflow-hidden select-none">
+            <img
+              src="/enterprise_canvas_bg.jpg"
+              alt=""
+              className="w-full h-full object-cover object-bottom opacity-75 filter brightness-105"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#070B19] via-[#070B19]/40 to-[#070B19]" />
+            <div className="absolute bottom-0 inset-x-0 h-32 bg-gradient-to-t from-[#070B19] to-transparent" />
           </div>
 
           <motion.div
