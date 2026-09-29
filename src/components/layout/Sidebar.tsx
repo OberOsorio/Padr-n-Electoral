@@ -87,92 +87,98 @@ export const Sidebar = ({
         width: onCloseMobile ? '100%' : isEffectivelyCollapsed ? 80 : 280,
       }}
       transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
-      className={`shrink-0 h-screen sticky top-0 bg-white dark:bg-[#161F30]/95 backdrop-blur-xl border-r border-slate-200 dark:border-slate-700/60 flex flex-col justify-between select-none z-30 transition-colors duration-200 overflow-visible ${
+      className={`shrink-0 ${
+        onCloseMobile ? 'h-full' : 'h-screen sticky top-0'
+      } bg-white dark:bg-[#161F30]/95 backdrop-blur-xl border-r border-slate-200 dark:border-slate-700/60 flex flex-col justify-between select-none z-30 transition-colors duration-200 overflow-hidden ${
         className ?? 'hidden md:flex'
       }`}
     >
       {/* 1. Header del Sidebar */}
-      <div>
-        <div className={`border-b border-slate-200 dark:border-slate-700/60 transition-all ${
-          isEffectivelyCollapsed ? 'p-3 flex flex-col items-center gap-3' : 'p-4.5'
-        }`}>
-          {isEffectivelyCollapsed ? (
-            /* Header en Modo Colapsado / Mini Rail */
-            <>
-              <div className="h-10 w-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-500/40 flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-sm relative shrink-0">
-                <Shield className="w-5 h-5 text-blue-600 dark:text-blue-400" strokeWidth={2} />
-              </div>
+      <div className={`shrink-0 border-b border-slate-200 dark:border-slate-700/60 transition-all ${
+        onCloseMobile
+          ? 'p-4 pt-[max(1rem,env(safe-area-inset-top))]'
+          : isEffectivelyCollapsed
+          ? 'p-3 flex flex-col items-center gap-3'
+          : 'p-4.5'
+      }`}>
+        {isEffectivelyCollapsed ? (
+          /* Header en Modo Colapsado / Mini Rail */
+          <>
+            <div className="h-10 w-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-500/40 flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-sm relative shrink-0">
+              <Shield className="w-5 h-5 text-blue-600 dark:text-blue-400" strokeWidth={2} />
+            </div>
 
-              {/* Botón para expandir el panel */}
-              <button
-                type="button"
-                onClick={toggleSidebar}
-                className="p-2 rounded-xl text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:text-slate-400 dark:hover:text-blue-400 dark:hover:bg-blue-950/40 hover:shadow-[0_0_12px_rgba(37,99,235,0.25)] transition-all cursor-pointer"
-                title="Expandir panel lateral (Ctrl+B)"
-                aria-label="Expandir panel lateral"
-              >
-                <PanelLeftOpen className="w-4.5 h-4.5" />
-              </button>
-            </>
-          ) : (
-            /* Header en Modo Expandido */
-            <>
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="h-9 w-9 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-500/40 flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-sm relative shrink-0">
-                    <Shield className="w-5 h-5 text-blue-600 dark:text-blue-400" strokeWidth={2} />
-                  </div>
-
-                  <div className="min-w-0">
-                    <h2 className="text-sm font-semibold text-slate-900 dark:text-white tracking-tight leading-tight truncate">
-                      Padrón Electoral
-                    </h2>
-                  </div>
+            {/* Botón para expandir el panel */}
+            <button
+              type="button"
+              onClick={toggleSidebar}
+              className="p-2 rounded-xl text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:text-slate-400 dark:hover:text-blue-400 dark:hover:bg-blue-950/40 hover:shadow-[0_0_12px_rgba(37,99,235,0.25)] transition-all cursor-pointer"
+              title="Expandir panel lateral (Ctrl+B)"
+              aria-label="Expandir panel lateral"
+            >
+              <PanelLeftOpen className="w-4.5 h-4.5" />
+            </button>
+          </>
+        ) : (
+          /* Header en Modo Expandido */
+          <>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="h-9 w-9 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-500/40 flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-sm relative shrink-0">
+                  <Shield className="w-5 h-5 text-blue-600 dark:text-blue-400" strokeWidth={2} />
                 </div>
 
-                <div className="flex items-center gap-1 shrink-0">
-                  {/* Selector de Tema Claro / Oscuro */}
-                  <ThemeToggle size="sm" />
-
-                  {/* Botón de colapso en escritorio */}
-                  {!onCloseMobile && (
-                    <button
-                      type="button"
-                      onClick={toggleSidebar}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:text-slate-400 dark:hover:text-blue-400 dark:hover:bg-blue-950/40 hover:shadow-[0_0_12px_rgba(37,99,235,0.25)] transition-all cursor-pointer"
-                      title="Colapsar panel lateral (Ctrl+B)"
-                      aria-label="Colapsar panel lateral"
-                    >
-                      <PanelLeftClose className="w-4.5 h-4.5" />
-                    </button>
-                  )}
-
-                  {/* Botón de cierre en vista móvil */}
-                  {onCloseMobile && (
-                    <button
-                      type="button"
-                      onClick={onCloseMobile}
-                      className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                      title="Cerrar Menú"
-                      aria-label="Cerrar Menú"
-                    >
-                      <X className="w-4.5 h-4.5" />
-                    </button>
-                  )}
+                <div className="min-w-0">
+                  <h2 className="text-sm font-semibold text-slate-900 dark:text-white tracking-tight leading-tight truncate">
+                    Padrón Electoral
+                  </h2>
                 </div>
               </div>
-            </>
-          )}
-        </div>
 
-        {/* 2. Menú de Funciones */}
-        <nav className={`p-2 space-y-1.5 ${isEffectivelyCollapsed ? 'flex flex-col items-center' : ''}`}>
-          {!isEffectivelyCollapsed && (
-            <p className="px-3 pt-3 pb-1 text-[10px] font-mono uppercase tracking-widest text-slate-500 dark:text-slate-400">
-              Navegación
-            </p>
-          )}
+              <div className="flex items-center gap-1 shrink-0">
+                {/* Selector de Tema Claro / Oscuro */}
+                <ThemeToggle size="sm" />
 
+                {/* Botón de colapso en escritorio */}
+                {!onCloseMobile && (
+                  <button
+                    type="button"
+                    onClick={toggleSidebar}
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:text-slate-400 dark:hover:text-blue-400 dark:hover:bg-blue-950/40 hover:shadow-[0_0_12px_rgba(37,99,235,0.25)] transition-all cursor-pointer"
+                    title="Colapsar panel lateral (Ctrl+B)"
+                    aria-label="Colapsar panel lateral"
+                  >
+                    <PanelLeftClose className="w-4.5 h-4.5" />
+                  </button>
+                )}
+
+                {/* Botón de cierre en vista móvil */}
+                {onCloseMobile && (
+                  <button
+                    type="button"
+                    onClick={onCloseMobile}
+                    className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                    title="Cerrar Menú"
+                    aria-label="Cerrar Menú"
+                  >
+                    <X className="w-4.5 h-4.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* 2. Menú de Funciones (Scrolleable en caso de pantallas pequeñas) */}
+      <div className="flex-1 overflow-y-auto overscroll-contain p-2 space-y-1.5 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800">
+        {!isEffectivelyCollapsed && (
+          <p className="px-3 pt-2 pb-1 text-[10px] font-mono uppercase tracking-widest text-slate-500 dark:text-slate-400">
+            Navegación
+          </p>
+        )}
+
+        <nav className={`space-y-1.5 ${isEffectivelyCollapsed ? 'flex flex-col items-center' : ''}`}>
           {effectiveNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
@@ -250,8 +256,12 @@ export const Sidebar = ({
       </div>
 
       {/* 3. Footer del Sidebar: Executive User Profile Card */}
-      <div className={`border-t border-slate-200 dark:border-slate-700/60 bg-slate-50/70 dark:bg-[#0F172A]/80 transition-colors ${
-        isEffectivelyCollapsed ? 'p-2 flex flex-col items-center' : 'p-3'
+      <div className={`shrink-0 border-t border-slate-200 dark:border-slate-700/60 bg-slate-50/70 dark:bg-[#0F172A]/80 transition-colors ${
+        onCloseMobile
+          ? 'p-3 pb-[max(1rem,env(safe-area-inset-bottom))]'
+          : isEffectivelyCollapsed
+          ? 'p-2 flex flex-col items-center'
+          : 'p-3'
       }`}>
         <UserProfileCard
           userName={userName}

@@ -75,7 +75,7 @@ export const ElectorsListView = ({
 
 
   return (
-    <div className="space-y-6 p-4 sm:p-6 lg:p-8 xl:p-10 max-w-[1600px] mx-auto pb-24 md:pb-10 animate-in fade-in duration-300">
+    <div className="space-y-4 sm:space-y-6 p-2.5 sm:p-6 lg:p-8 xl:p-10 max-w-[1600px] mx-auto pb-24 md:pb-10 animate-in fade-in duration-300">
       
       {/* 1. Header de Vista Ejecutivo */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200 dark:border-slate-700/60">

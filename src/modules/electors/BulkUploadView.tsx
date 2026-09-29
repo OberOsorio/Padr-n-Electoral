@@ -625,8 +625,8 @@ export const BulkUploadView: React.FC<BulkUploadViewProps> = ({
                 )}
               </div>
 
-              <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700/60 bg-white dark:bg-slate-900/60 shadow-xs">
-                <table className="w-full text-left text-xs">
+              <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700/60 bg-white dark:bg-slate-900/60 shadow-xs w-full">
+                <table className="w-full text-left text-xs min-w-[680px]">
                   <thead className="bg-slate-50 dark:bg-slate-900 text-slate-500 dark:text-slate-400 font-mono text-[10px] uppercase border-b border-slate-200 dark:border-slate-700/60 tracking-wider">
                     <tr>
                       <th className="py-2.5 px-3">Cédula</th>

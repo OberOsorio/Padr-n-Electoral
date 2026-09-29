@@ -178,7 +178,7 @@ export const UserProfileCard = ({
     <div
       className={`group relative rounded-xl p-2.5 sm:p-3 bg-white/90 dark:bg-slate-800/40 hover:bg-white dark:hover:bg-slate-800/70 border border-slate-200/90 dark:border-slate-700/50 hover:border-slate-300 dark:hover:border-slate-600/60 shadow-xs dark:shadow-md backdrop-blur-md flex items-center justify-between gap-3 transition-all duration-200 select-none ${className}`}
     >
-      <div className="flex items-center gap-2.5 min-w-0">
+      <div className="flex items-center gap-2.5 min-w-0 flex-1">
         {/* 1. Avatar con degradado ejecutivo cobalto-índigo */}
         <div className="relative shrink-0">
           <div className="h-9.5 w-9.5 rounded-xl bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 flex items-center justify-center text-white font-semibold text-xs tracking-wider shadow-sm ring-1 ring-white/20 dark:ring-white/10">
@@ -198,10 +198,10 @@ export const UserProfileCard = ({
             {userName}
           </p>
 
-          <div className="flex items-center gap-1.5 mt-1">
+          <div className="flex items-center gap-1.5 mt-1 min-w-0">
             {/* Micro-pill para el rol */}
             <span
-              className={`px-1.5 py-0.2 rounded text-[10px] font-medium tracking-wide uppercase shrink-0 leading-normal border ${
+              className={`px-1.5 py-0.5 rounded text-[10px] font-semibold tracking-wide uppercase shrink-0 leading-none border ${
                 userRole?.toLowerCase() === 'superadmin'
                   ? 'bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/20'
                   : userRole?.toLowerCase() === 'coordinador'
@@ -219,7 +219,7 @@ export const UserProfileCard = ({
 
             {/* Correo del usuario */}
             <span
-              className="text-[11px] text-slate-500 dark:text-slate-400 truncate max-w-[105px] font-mono leading-none"
+              className="text-[11px] text-slate-500 dark:text-slate-400 truncate font-mono leading-none"
               title={userEmail}
             >
               {userEmail}

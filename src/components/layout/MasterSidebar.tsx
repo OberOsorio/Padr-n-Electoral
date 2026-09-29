@@ -74,7 +74,9 @@ export const MasterSidebar: React.FC<MasterSidebarProps> = ({
   const sidebarContent = (
     <div className="flex flex-col h-full bg-white dark:bg-[#0b0f19] border-r border-slate-200 dark:border-purple-900/30 text-slate-700 dark:text-slate-300 transition-colors">
       {/* Platform Branding Header */}
-      <div className="p-5 border-b border-slate-200 dark:border-purple-900/20 bg-gradient-to-b from-purple-50/60 dark:from-purple-950/30 via-transparent to-transparent">
+      <div className={`p-5 border-b border-slate-200 dark:border-purple-900/20 bg-gradient-to-b from-purple-50/60 dark:from-purple-950/30 via-transparent to-transparent shrink-0 ${
+        onCloseMobile ? 'pt-[max(1.25rem,env(safe-area-inset-top))]' : ''
+      }`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-purple-700 via-purple-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-purple-600/25 ring-1 ring-purple-400/40">
@@ -210,7 +212,9 @@ export const MasterSidebar: React.FC<MasterSidebarProps> = ({
       )}
 
       {/* Footer SuperAdmin Profile Card */}
-      <div className="p-3 sm:p-3.5 border-t border-slate-200 dark:border-purple-900/20 bg-slate-50/50 dark:bg-slate-950/40">
+      <div className={`p-3 sm:p-3.5 border-t border-slate-200 dark:border-purple-900/20 bg-slate-50/50 dark:bg-slate-950/40 shrink-0 ${
+        onCloseMobile ? 'pb-[max(1rem,env(safe-area-inset-bottom))]' : ''
+      }`}>
         <MasterUserCard
           name={userName}
           email={userEmail}
@@ -235,7 +239,7 @@ export const MasterSidebar: React.FC<MasterSidebarProps> = ({
             className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm"
             onClick={onCloseMobile}
           />
-          <div className="relative w-72 max-w-[85vw] h-full z-10 animate-in slide-in-from-left duration-200">
+          <div className="relative w-80 max-w-[85vw] h-[100dvh] max-h-[100dvh] z-10 animate-in slide-in-from-left duration-200 overflow-hidden flex flex-col">
             {sidebarContent}
           </div>
         </div>

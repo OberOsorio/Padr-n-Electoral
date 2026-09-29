@@ -118,13 +118,13 @@ export const AppLayout = ({
               aria-hidden="true"
             />
 
-            {/* Panel Lateral Deslizante */}
+            {/* Panel Lateral Deslizante con soporte para Safe Areas y 100dvh */}
             <motion.aside
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="relative w-72 max-w-[85vw] h-full bg-white dark:bg-[#161F30] border-r border-slate-200 dark:border-slate-700/60 shadow-2xl flex flex-col z-10 overflow-hidden"
+              className="relative w-80 max-w-[85vw] h-[100dvh] max-h-[100dvh] bg-white dark:bg-[#161F30] border-r border-slate-200 dark:border-slate-700/60 shadow-2xl flex flex-col z-10 overflow-hidden"
             >
               <Sidebar
                 activeTab={activeTab}
