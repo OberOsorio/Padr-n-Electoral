@@ -14,6 +14,10 @@ export interface NormalizedElectorRow {
   notas: string | null;
   isAutofilled?: boolean;
   autofillSource?: 'censo_maestro' | 'file';
+  nombre_original_archivo?: string;
+  nombre_fue_corregido?: boolean;
+  verificado_censo?: boolean;
+  isEnriching?: boolean;
 }
 
 export interface RowValidationError {
@@ -32,6 +36,12 @@ export interface PreflightSummary {
   invalidRows: RowValidationError[];
   duplicateCedulasInFile: number;
   enrichedCount?: number;
+  correctedCount?: number;
+  isEnrichingInProgress?: boolean;
+  enrichmentProgress?: {
+    processed: number;
+    total: number;
+  };
   detectedColumns: {
     original: string;
     mappedTo: string;

@@ -6,6 +6,7 @@ import type {
 } from './types';
 import { parseNombreCompleto } from '../../../utils/nameParser';
 import { supabase, isSupabaseConfigured } from '../../../lib/supabase';
+import type { CensoLookupResult } from '../../../types';
 
 // Normaliza un encabezado para comparación (sin tildes, minúsculas, sin espacios ni caracteres especiales)
 const normalizeHeader = (header: string): string => {
@@ -283,6 +284,8 @@ export const validateAndNormalizeRows = (
     // 7. Extraer Notas
     const notas = mapping.notas ? String(row[mapping.notas] ?? '').trim() : null;
 
+    const origFullName = `${nombres} ${apellidos}`.trim();
+
     validRows.push({
       _rowNumber: rowNumber,
       cedula: cleanCedula,
@@ -293,6 +296,10 @@ export const validateAndNormalizeRows = (
       puesto_votacion: puestoFinal,
       mesa: mesaFinal,
       notas: notas || null,
+      nombre_original_archivo: origFullName || undefined,
+      nombre_fue_corregido: false,
+      verificado_censo: false,
+      isEnriching: true,
     });
   });
 
@@ -304,7 +311,113 @@ export const validateAndNormalizeRows = (
     invalidRows,
     duplicateCedulasInFile: duplicateCount,
     detectedColumns: detectedList,
+    enrichedCount: 0,
+    correctedCount: 0,
+    isEnrichingInProgress: true,
+    enrichmentProgress: {
+      processed: 0,
+      total: validRows.length,
+    },
   };
+};
+
+/**
+ * Normaliza cadenas de nombres para comparación libre de acentos y caracteres especiales
+ */
+export const normalizeForComparison = (str?: string | null): string => {
+  if (!str) return '';
+  return str
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
+/**
+ * Calcula la edad precisa en años a partir de una fecha de nacimiento (ISO / DD/MM/YYYY)
+ */
+export const calcularEdad = (fechaNacimientoStr?: string | null): number | null => {
+  if (!fechaNacimientoStr) return null;
+  const fecha = new Date(fechaNacimientoStr);
+  if (isNaN(fecha.getTime())) return null;
+  const hoy = new Date();
+  let edad = hoy.getFullYear() - fecha.getFullYear();
+  const m = hoy.getMonth() - fecha.getMonth();
+  if (m < 0 || (m === 0 && hoy.getDate() < fecha.getDate())) {
+    edad--;
+  }
+  return edad >= 0 && edad <= 125 ? edad : null;
+};
+
+/**
+ * Aplica el resultado del censo electoral a una fila de elector, realizando autocorrección
+ * de nombre si difiere, asignando edad y preservando el puesto/mesa del archivo.
+ */
+export const aplicarResultadoCenso = (
+  row: NormalizedElectorRow,
+  censo: CensoLookupResult & { raw_response?: any }
+): NormalizedElectorRow => {
+  if (!censo.found) {
+    return {
+      ...row,
+      isEnriching: false,
+      verificado_censo: false,
+      nombre_fue_corregido: false,
+    };
+  }
+
+  const updated: NormalizedElectorRow = {
+    ...row,
+    isEnriching: false,
+    verificado_censo: true,
+  };
+
+  const censoNombres = censo.nombres ? censo.nombres.trim() : '';
+  const censoApellidos = censo.apellidos ? censo.apellidos.trim() : '';
+  const censoFullName = `${censoNombres} ${censoApellidos}`.trim();
+
+  const fileFullName = row.nombre_original_archivo || `${row.nombres || ''} ${row.apellidos || ''}`.trim();
+  const fileNorm = normalizeForComparison(fileFullName);
+  const censoNorm = normalizeForComparison(censoFullName);
+
+  // 1. Verificación y autocorrección de nombre completo
+  if (censoFullName && (!fileFullName || fileNorm !== censoNorm)) {
+    updated.nombres = censoNombres || updated.nombres;
+    updated.apellidos = censoApellidos || updated.apellidos;
+    updated.nombre_fue_corregido = true;
+    updated.isAutofilled = true;
+    updated.autofillSource = 'censo_maestro';
+  } else {
+    updated.nombre_fue_corregido = false;
+  }
+
+  // 2. Cálculo y asignación de edad (reemplaza N/A por edad real)
+  let finalEdad: number | null =
+    censo.edad !== undefined && censo.edad !== null ? Number(censo.edad) : null;
+  if (!finalEdad && censo.raw_response) {
+    const rawFecha = censo.raw_response.fechaNacimiento || censo.raw_response.fecha_nacimiento;
+    if (rawFecha) {
+      finalEdad = calcularEdad(rawFecha);
+    }
+  }
+
+  if (finalEdad !== null && finalEdad > 0) {
+    updated.edad = finalEdad;
+    updated.isAutofilled = true;
+  }
+
+  // 3. Preservación de datos: Puesto y mesa asignados del archivo se mantienen intactos.
+  // Únicamente si el archivo no traía puesto (es el valor por defecto) se complementa con la sugerencia.
+  if (
+    (!updated.puesto_votacion || updated.puesto_votacion === 'Sede Principal (Por Asignar)') &&
+    censo.puesto_sugerido
+  ) {
+    updated.puesto_votacion = censo.puesto_sugerido;
+  }
+
+  return updated;
 };
 
 export const enrichRowsWithCensus = async (

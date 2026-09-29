@@ -455,14 +455,19 @@ export const BulkUploadView: React.FC<BulkUploadViewProps> = ({
               </div>
 
               <div className="p-4 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-indigo-700 dark:text-indigo-400 block font-semibold">
-                  Autocompletados Censo
+                <span className="text-[10px] font-mono uppercase tracking-wider text-indigo-700 dark:text-indigo-400 font-semibold flex items-center justify-between">
+                  <span>Verificados / Censo</span>
+                  {preflight.isEnrichingInProgress && (
+                    <span className="w-2 h-2 rounded-full bg-indigo-500 animate-ping" />
+                  )}
                 </span>
                 <span className="text-2xl font-bold font-mono text-indigo-700 dark:text-indigo-300 mt-1 block">
                   {(preflight.enrichedCount || 0).toLocaleString('es-CO')}
                 </span>
                 <span className="text-[10px] text-indigo-600/90 dark:text-indigo-400/90 mt-0.5 block">
-                  Nombres o puestos recuperados de Supabase
+                  {preflight.correctedCount && preflight.correctedCount > 0
+                    ? `${preflight.correctedCount} corregidos por Censo`
+                    : 'Identidad y edad auditadas en tiempo real'}
                 </span>
               </div>
 
@@ -573,10 +578,23 @@ export const BulkUploadView: React.FC<BulkUploadViewProps> = ({
 
             {/* Vista Previa de Filas Válidas */}
             <div className="mt-6 pt-5 border-t border-slate-200 dark:border-slate-700/60">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 uppercase tracking-wider font-mono">
-                  Muestra Preliminar (Primeras 5 filas a procesar):
-                </span>
+              <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 uppercase tracking-wider font-mono">
+                    Muestra Preliminar (Primeras 5 filas a procesar):
+                  </span>
+                  {preflight.isEnrichingInProgress ? (
+                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono font-medium bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/40">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-ping" />
+                      Consultando Censo en background ({preflight.enrichmentProgress?.processed || 0}/{preflight.validRows.length})...
+                    </span>
+                  ) : preflight.enrichedCount && preflight.enrichedCount > 0 ? (
+                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono font-medium bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40">
+                      <Sparkles className="w-3 h-3" />
+                      Censo verificado ({preflight.enrichedCount} confirmados{preflight.correctedCount ? `, ${preflight.correctedCount} corregidos` : ''})
+                    </span>
+                  ) : null}
+                </div>
                 {preflight.invalidRows.length > 0 && (
                   <button
                     type="button"
@@ -610,20 +628,35 @@ export const BulkUploadView: React.FC<BulkUploadViewProps> = ({
                         <td className="py-2.5 px-3 font-medium text-slate-900 dark:text-white">
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <span>{row.nombres} {row.apellidos}</span>
-                            {row.isAutofilled && (
+                            {row.nombre_fue_corregido ? (
                               <span
-                                title="Autocompletado mediante consulta al Censo Maestro"
+                                title={row.nombre_original_archivo ? `Original en archivo: "${row.nombre_original_archivo}"` : 'Nombre corregido según Censo Oficial'}
+                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50 shrink-0"
+                              >
+                                ✦ Corregido por Censo
+                              </span>
+                            ) : row.verificado_censo ? (
+                              <span
+                                title="Verificado plenamente contra el Censo Electoral Oficial"
                                 className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40 shrink-0"
                               >
-                                <Sparkles className="w-2.5 h-2.5" />
-                                Censo
+                                ✦ Censo
                               </span>
-                            )}
+                            ) : row.isEnriching ? (
+                              <span
+                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-mono text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800/60 shrink-0 animate-pulse"
+                              >
+                                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-ping" />
+                                Consultando...
+                              </span>
+                            ) : null}
                           </div>
                         </td>
                         <td className="py-2.5 px-3 text-center font-mono">
                           {row.edad !== null && row.edad !== undefined ? (
-                            <span className="font-semibold text-slate-800 dark:text-slate-200">{row.edad} años</span>
+                            <span className="font-bold text-slate-900 dark:text-white font-mono">{row.edad} años</span>
+                          ) : row.isEnriching ? (
+                            <span className="text-slate-400 dark:text-slate-500 italic text-[11px] animate-pulse">Calculando...</span>
                           ) : (
                             <span className="text-slate-400 dark:text-slate-500 italic">N/A</span>
                           )}

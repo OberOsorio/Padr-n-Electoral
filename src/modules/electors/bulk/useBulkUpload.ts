@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase, isSupabaseConfigured } from '../../../lib/supabase';
 import type {
   PreflightSummary,
@@ -11,7 +11,8 @@ import {
   downloadOfficialTemplate,
   downloadValidationErrorsReport,
 } from './parser';
-import { validateAndNormalizeRows, enrichRowsWithCensus } from './validator';
+import { validateAndNormalizeRows, aplicarResultadoCenso } from './validator';
+import { buscarCiudadanoEnCenso } from '../../../services/censoService';
 import type { ElectorWithRegistrant } from '../../../types';
 import { useTenant } from '../../../context/TenantContext';
 
@@ -37,8 +38,17 @@ export const useBulkUpload = () => {
   const [postSummary, setPostSummary] = useState<PostUploadSummary | null>(null);
 
   const isMountedRef = useRef(true);
+  const activeEnrichmentRunId = useRef<number>(0);
 
-  // 1. Procesar archivo seleccionado (Parsing y Validación Previa)
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      activeEnrichmentRunId.current++;
+    };
+  }, []);
+
+  // 1. Procesar archivo seleccionado (Parsing, Validación Previa y Enriquecimiento Concurrente en Background)
   const processFile = useCallback(async (selectedFile: File) => {
     setFile(selectedFile);
     setPostSummary(null);
@@ -66,7 +76,7 @@ export const useBulkUpload = () => {
         currentChunkMessage: 'Auditando integridad de documentos, nombres y puestos...',
       }));
 
-      // Validación previa
+      // Validación y normalización previa
       const summary = validateAndNormalizeRows(
         rawRows,
         selectedFile.name,
@@ -75,42 +85,75 @@ export const useBulkUpload = () => {
 
       if (!isMountedRef.current) return;
 
-      // Enriquecimiento y autocompletado con Censo Maestro
-      const candidateCedulas = summary.validRows.length;
-      setProgress((prev) => ({
-        ...prev,
-        status: 'enriching',
-        totalToUpload: candidateCedulas,
-        processed: 0,
-        percentage: 0,
-        currentChunkMessage: `Consultando Censo Maestro para ${candidateCedulas.toLocaleString('es-CO')} documentos...`,
-      }));
-
-      const enrichedSummary = await enrichRowsWithCensus(
-        summary,
-        (processed, total) => {
-          if (!isMountedRef.current) return;
-          const pct = total > 0 ? Math.round((processed / total) * 100) : 100;
-          setProgress((prev) => ({
-            ...prev,
-            processed,
-            percentage: pct,
-            currentChunkMessage: `Verificando con Censo Maestro: ${processed.toLocaleString('es-CO')} / ${total.toLocaleString('es-CO')} documentos (${pct}%)...`,
-          }));
-        }
-      );
-
-      if (!isMountedRef.current) return;
-
-      setPreflight(enrichedSummary);
+      // Inmediatamente mostrar la Muestra Preliminar en pantalla con las filas leídas
+      setPreflight(summary);
       setProgress((prev) => ({
         ...prev,
         status: 'ready',
-        totalToUpload: enrichedSummary.validRows.length,
+        totalToUpload: summary.validRows.length,
         processed: 0,
         percentage: 0,
-        currentChunkMessage: `${enrichedSummary.validRows.length.toLocaleString('es-CO')} registros listos para inserción por lotes (${enrichedSummary.enrichedCount || 0} enriquecidos desde el Censo).`,
+        currentChunkMessage: `${summary.validRows.length.toLocaleString('es-CO')} registros listos para revisión y carga masiva.`,
       }));
+
+      // Enriquecimiento y autocorrección automática en background con concurrencia controlada (pool de 4 workers)
+      const total = summary.validRows.length;
+      if (total === 0) return;
+
+      const runId = ++activeEnrichmentRunId.current;
+      const rows = [...summary.validRows];
+      const CONCURRENCY = 4;
+      let currentIndex = 0;
+
+      const worker = async () => {
+        while (currentIndex < total) {
+          if (!isMountedRef.current || activeEnrichmentRunId.current !== runId) return;
+          const idx = currentIndex++;
+          const rowToQuery = rows[idx];
+          if (!rowToQuery) continue;
+
+          try {
+            const censoRes = await buscarCiudadanoEnCenso(rowToQuery.cedula);
+            if (!isMountedRef.current || activeEnrichmentRunId.current !== runId) return;
+
+            const updatedRow = aplicarResultadoCenso(rowToQuery, censoRes);
+            rows[idx] = updatedRow;
+
+            // Actualizar el estado reactivamente fila por fila a medida que se resuelven las promesas
+            setPreflight((prev) => {
+              if (!prev || activeEnrichmentRunId.current !== runId) return prev;
+              const nextValid = [...prev.validRows];
+              nextValid[idx] = updatedRow;
+              const currentEnriched = nextValid.filter((r) => r.verificado_censo).length;
+              const currentCorrected = nextValid.filter((r) => r.nombre_fue_corregido).length;
+              return {
+                ...prev,
+                validRows: nextValid,
+                enrichedCount: currentEnriched,
+                correctedCount: currentCorrected,
+                enrichmentProgress: {
+                  processed: Math.min(idx + 1, total),
+                  total,
+                },
+              };
+            });
+          } catch (censoErr) {
+            console.warn(`Error consultando censo para fila ${idx} (${rowToQuery.cedula}):`, censoErr);
+          }
+        }
+      };
+
+      const workers = Array.from({ length: Math.min(CONCURRENCY, total) }, () => worker());
+      Promise.all(workers).then(() => {
+        if (!isMountedRef.current || activeEnrichmentRunId.current !== runId) return;
+        setPreflight((prev) => {
+          if (!prev || activeEnrichmentRunId.current !== runId) return prev;
+          return {
+            ...prev,
+            isEnrichingInProgress: false,
+          };
+        });
+      });
     } catch (err: any) {
       if (!isMountedRef.current) return;
       console.error('Error durante la validación previa:', err);
@@ -472,6 +515,7 @@ export const useBulkUpload = () => {
 
   // 3. Resetear flujo
   const resetUpload = useCallback(() => {
+    activeEnrichmentRunId.current++;
     setFile(null);
     setPreflight(null);
     setPostSummary(null);
