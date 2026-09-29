@@ -10,7 +10,6 @@ import {
   BarChart3,
   Building,
   Building2,
-  MapPin,
   Map,
   ShieldCheck,
   ChevronRight,
@@ -47,108 +46,152 @@ const fluidFadeUp: Variants = {
 const ColombiaHologramMap: React.FC<{ variant?: 'cyber' | 'light' }> = ({ variant = 'cyber' }) => {
   const isLight = variant === 'light';
   const strokeColor = isLight ? '#0284C7' : '#00D2FF';
-  const fillColor = isLight ? 'rgba(14, 165, 233, 0.08)' : 'rgba(0, 210, 255, 0.12)';
-  const nodeFill = isLight ? '#0284C7' : '#38BDF8';
+  const fillColor = isLight ? 'rgba(14, 165, 233, 0.06)' : 'rgba(0, 210, 255, 0.08)';
+  const nodeFill = isLight ? '#0284C7' : '#00D2FF';
+  const lineStroke = isLight ? 'rgba(2, 132, 199, 0.35)' : 'rgba(0, 210, 255, 0.45)';
+
+  // 30 Nodos de constelación geográfica precisa (Capitales y Departamentos)
+  const constellationNodes = [
+    { cx: 278, cy: 52, label: 'Riohacha' },
+    { cx: 225, cy: 88, label: 'Santa Marta' },
+    { cx: 198, cy: 104, label: 'Barranquilla' },
+    { cx: 176, cy: 122, label: 'Cartagena' },
+    { cx: 248, cy: 112, label: 'Valledupar' },
+    { cx: 168, cy: 162, label: 'Montería' },
+    { cx: 282, cy: 172, label: 'Cúcuta' },
+    { cx: 242, cy: 198, label: 'Bucaramanga' },
+    { cx: 178, cy: 232, label: 'Medellín' },
+    { cx: 136, cy: 254, label: 'Quibdó' },
+    { cx: 178, cy: 274, label: 'Manizales' },
+    { cx: 172, cy: 288, label: 'Pereira' },
+    { cx: 236, cy: 264, label: 'Tunja' },
+    { cx: 218, cy: 298, label: 'Bogotá D.C.', isHub: true },
+    { cx: 186, cy: 314, label: 'Ibagué' },
+    { cx: 246, cy: 324, label: 'Villavicencio' },
+    { cx: 150, cy: 338, label: 'Cali' },
+    { cx: 196, cy: 364, label: 'Neiva' },
+    { cx: 152, cy: 384, label: 'Popayán' },
+    { cx: 212, cy: 408, label: 'Florencia' },
+    { cx: 126, cy: 416, label: 'Pasto' },
+    { cx: 170, cy: 434, label: 'Mocoa' },
+    { cx: 312, cy: 218, label: 'Arauca' },
+    { cx: 278, cy: 268, label: 'Yopal' },
+    { cx: 352, cy: 258, label: 'Puerto Carreño' },
+    { cx: 346, cy: 334, label: 'Inírida' },
+    { cx: 252, cy: 378, label: 'San José del Guaviare' },
+    { cx: 308, cy: 428, label: 'Mitú' },
+    { cx: 182, cy: 448, label: 'Puerto Asís' },
+    { cx: 246, cy: 568, label: 'Leticia', isHub: true },
+  ];
+
+  // Conexiones de red entre nodos
+  const networkLines = [
+    [278, 52, 248, 112], [248, 112, 225, 88], [225, 88, 198, 104], [198, 104, 176, 122],
+    [176, 122, 168, 162], [168, 162, 178, 232], [248, 112, 282, 172],
+    [282, 172, 242, 198], [242, 198, 236, 264], [236, 264, 218, 298],
+    [178, 232, 136, 254], [178, 232, 178, 274], [178, 274, 172, 288], [172, 288, 186, 314],
+    [186, 314, 218, 298], [178, 232, 242, 198],
+    [282, 172, 312, 218], [312, 218, 278, 268], [278, 268, 218, 298],
+    [218, 298, 246, 324], [278, 268, 352, 258], [246, 324, 346, 334],
+    [246, 324, 252, 378], [252, 378, 308, 428], [346, 334, 308, 428],
+    [172, 288, 150, 338], [150, 338, 152, 384], [152, 384, 126, 416],
+    [150, 338, 196, 364], [196, 364, 218, 298], [196, 364, 212, 408],
+    [126, 416, 170, 434], [170, 434, 182, 448], [212, 408, 182, 448],
+    [212, 408, 252, 378], [182, 448, 246, 568], [252, 378, 246, 568],
+    [308, 428, 246, 568],
+  ];
 
   return (
     <svg
-      viewBox="0 0 500 620"
+      viewBox="0 0 480 610"
       className="w-full h-full drop-shadow-[0_0_35px_rgba(0,210,255,0.45)] select-none"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
       <defs>
         <filter id="glow-cyan" x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur stdDeviation="6" result="blur" />
+          <feGaussianBlur stdDeviation="4" result="blur" />
           <feComposite in="SourceGraphic" in2="blur" operator="over" />
         </filter>
+        <filter id="node-glow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="2.5" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
         <linearGradient id="cyber-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#00D2FF" stopOpacity="0.8" />
-          <stop offset="50%" stopColor="#155EEF" stopOpacity="0.5" />
-          <stop offset="100%" stopColor="#00D2FF" stopOpacity="0.9" />
+          <stop offset="0%" stopColor="#00D2FF" stopOpacity="0.85" />
+          <stop offset="50%" stopColor="#155EEF" stopOpacity="0.6" />
+          <stop offset="100%" stopColor="#00D2FF" stopOpacity="0.95" />
         </linearGradient>
       </defs>
 
-      {/* Contorno Geográfico Realista de Colombia */}
+      {/* Contorno Geográfico Realista y Preciso de Colombia */}
       <path
-        d="M 235 22 
-           C 248 16, 270 20, 280 32 
-           C 290 44, 275 62, 268 76 
-           C 260 90, 250 98, 260 112 
-           C 270 126, 298 124, 308 140 
-           C 318 156, 305 178, 298 194 
-           C 290 210, 310 220, 332 230 
-           C 354 240, 386 244, 402 262 
-           C 418 280, 420 304, 412 324 
-           C 404 344, 378 352, 368 368 
-           C 358 384, 372 406, 362 422 
-           C 352 438, 328 440, 314 454 
-           C 300 468, 290 496, 278 512 
-           C 266 528, 252 562, 238 584 
-           C 224 606, 212 612, 204 598 
-           C 196 584, 186 548, 178 532 
-           C 170 516, 152 506, 142 492 
-           C 132 478, 136 456, 126 442 
-           C 116 428, 92 424, 84 410 
-           C 76 396, 82 376, 78 358 
-           C 74 340, 62 328, 66 310 
-           C 70 292, 88 280, 92 262 
-           C 96 244, 82 226, 88 208 
-           C 94 190, 114 182, 126 166 
-           C 138 150, 146 128, 158 114 
-           C 170 100, 192 98, 202 84 
-           C 212 70, 222 28, 235 22 Z"
+        d="M 280 25
+           C 265 40, 255 50, 240 68
+           C 225 80, 210 88, 195 95
+           C 185 102, 178 110, 175 115
+           C 170 128, 168 135, 165 140
+           C 158 150, 148 155, 140 160
+           C 130 156, 122 154, 118 162
+           C 112 172, 108 190, 105 210
+           C 102 230, 106 245, 108 255
+           C 110 275, 114 290, 115 305
+           C 116 325, 110 340, 105 355
+           C 100 375, 96 390, 95 400
+           C 105 410, 118 418, 125 420
+           C 142 425, 155 428, 165 430
+           C 180 432, 195 434, 205 435
+           C 218 450, 228 465, 235 475
+           C 245 495, 252 510, 255 520
+           C 258 540, 250 560, 246 575
+           C 255 565, 268 545, 275 525
+           C 285 500, 292 480, 295 465
+           C 308 450, 320 438, 330 425
+           C 342 405, 350 385, 355 370
+           C 362 350, 368 330, 370 315
+           C 366 290, 362 270, 355 250
+           C 345 240, 330 235, 310 230
+           C 295 225, 285 220, 275 215
+           C 280 198, 288 185, 290 175
+           C 285 160, 280 150, 275 140
+           C 270 125, 265 110, 260 100
+           C 268 85, 275 70, 280 60
+           C 285 50, 286 35, 280 25 Z"
         stroke={strokeColor}
-        strokeWidth={isLight ? '2.5' : '3'}
+        strokeWidth={isLight ? '2.2' : '2.8'}
         fill={fillColor}
         filter={isLight ? undefined : 'url(#glow-cyan)'}
       />
 
-      {/* Malla Digital de Coordenadas y Líneas de Red Conectadas */}
-      <g stroke={strokeColor} strokeWidth="1" strokeDasharray="3 3" opacity={isLight ? 0.45 : 0.6}>
-        <line x1="158" y1="114" x2="260" y2="112" />
-        <line x1="260" y1="112" x2="202" y2="210" />
-        <line x1="202" y1="210" x2="126" y2="166" />
-        <line x1="202" y1="210" x2="228" y2="265" />
-        <line x1="228" y1="265" x2="148" y2="280" />
-        <line x1="228" y1="265" x2="308" y2="220" />
-        <line x1="228" y1="265" x2="242" y2="340" />
-        <line x1="242" y1="340" x2="162" y2="368" />
-        <line x1="242" y1="340" x2="332" y2="330" />
-        <line x1="242" y1="340" x2="228" y2="440" />
-        <line x1="228" y1="440" x2="314" y2="454" />
-        <line x1="228" y1="440" x2="142" y2="492" />
-        <line x1="228" y1="440" x2="238" y2="584" />
+      {/* Constelación de Líneas Luminosas Celestes Interconectadas */}
+      <g stroke={lineStroke} strokeWidth="0.85" opacity={isLight ? 0.7 : 0.85}>
+        {networkLines.map(([x1, y1, x2, y2], idx) => (
+          <line key={`line-${idx}`} x1={x1} y1={y1} x2={x2} y2={y2} />
+        ))}
       </g>
 
-      {/* Nodos de Ciudades y Departamentos Clave */}
-      {[
-        { cx: 235, cy: 35, label: 'La Guajira' },
-        { cx: 202, cy: 92, label: 'Barranquilla' },
-        { cx: 172, cy: 110, label: 'Cartagena' },
-        { cx: 258, cy: 155, label: 'Bucaramanga' },
-        { cx: 285, cy: 145, label: 'Cúcuta' },
-        { cx: 172, cy: 215, label: 'Medellín' },
-        { cx: 228, cy: 265, label: 'Bogotá D.C.' },
-        { cx: 152, cy: 310, label: 'Cali' },
-        { cx: 142, cy: 382, label: 'Pasto' },
-        { cx: 232, cy: 370, label: 'Neiva' },
-        { cx: 332, cy: 240, label: 'Arauca' },
-        { cx: 348, cy: 320, label: 'Vichada' },
-        { cx: 314, cy: 454, label: 'Mitú' },
-        { cx: 238, cy: 584, label: 'Leticia' },
-      ].map((n) => (
+      {/* Constelación de Nodos Luminosos (Puntos Neón) */}
+      {constellationNodes.map((n) => (
         <g key={n.label}>
-          <circle cx={n.cx} cy={n.cy} r={isLight ? '4' : '5'} fill={nodeFill} />
-          {!isLight && (
+          <circle
+            cx={n.cx}
+            cy={n.cy}
+            r={n.isHub ? '3.5' : '2.2'}
+            fill={nodeFill}
+            filter={isLight ? undefined : 'url(#node-glow)'}
+          />
+          {!isLight && n.isHub && (
             <circle
               cx={n.cx}
               cy={n.cy}
-              r="10"
+              r="8"
               fill={nodeFill}
-              opacity="0.25"
+              opacity="0.3"
               className="animate-ping"
-              style={{ transformOrigin: `${n.cx}px ${n.cy}px`, animationDuration: '3s' }}
+              style={{ transformOrigin: `${n.cx}px ${n.cy}px`, animationDuration: '2.5s' }}
             />
           )}
         </g>
@@ -311,11 +354,22 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
               viewport={{ once: false, amount: 0.2 }}
               className="lg:col-span-4 relative flex flex-col items-center justify-center my-6 lg:my-0"
             >
-              {/* Bandera de Colombia Ondulante en Fondo */}
-              <div className="absolute top-10 -left-6 w-56 h-36 rounded-2xl overflow-hidden opacity-50 blur-[2px] pointer-events-none -z-10 transform -rotate-12">
-                <div className="h-1/2 w-full bg-[#FCD116]" />
-                <div className="h-1/4 w-full bg-[#003893]" />
-                <div className="h-1/4 w-full bg-[#CE1126]" />
+              {/* Bandera de Colombia Ondulante en Fondo (Estilizada y Atmosférica) */}
+              <div
+                className="absolute top-14 -left-6 sm:-left-10 w-60 sm:w-68 h-40 rounded-2xl overflow-hidden pointer-events-none -z-10 transform -rotate-6 shadow-2xl transition-all"
+                style={{
+                  opacity: 0.68,
+                  filter: 'blur(1px)',
+                }}
+              >
+                {/* Franja Amarilla (50%) */}
+                <div className="h-[50%] w-full bg-gradient-to-r from-[#FCD116] via-[#FFE259] to-[#FCD116]" />
+                {/* Franja Azul (25%) */}
+                <div className="h-[25%] w-full bg-gradient-to-r from-[#003893] via-[#0052cc] to-[#003893]" />
+                {/* Franja Roja (25%) */}
+                <div className="h-[25%] w-full bg-gradient-to-r from-[#CE1126] via-[#ea2b41] to-[#CE1126]" />
+                {/* Ondeado y Sombra de Relieve */}
+                <div className="absolute inset-0 bg-gradient-to-tr from-black/35 via-transparent to-white/20 mix-blend-overlay pointer-events-none" />
               </div>
 
               {/* Mapa Holográfico Vectorial */}
@@ -323,82 +377,89 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
                 <ColombiaHologramMap variant="cyber" />
               </div>
 
-              {/* Pedestal Circular Holográfico con Aros Concéntricos */}
-              <div className="relative -mt-16 w-[320px] sm:w-[380px] h-[100px] flex items-center justify-center pointer-events-none">
-                {/* Aro Exterior */}
-                <div className="absolute w-full h-[65px] rounded-[100%] border-2 border-cyan-400/40 shadow-[0_0_40px_rgba(0,210,255,0.7)]" />
-                {/* Aro Medio Luminoso */}
-                <div className="absolute w-[80%] h-[48px] rounded-[100%] border border-blue-500 shadow-[0_0_25px_rgba(21,94,239,0.8)]" />
-                {/* Núcleo de Luz */}
-                <div className="absolute w-[50%] h-[30px] rounded-[100%] bg-cyan-400/25 blur-md" />
+              {/* Pedestal Tecnológico Elíptico en Perspectiva Isométrica con Luz Ascendente */}
+              <div className="relative -mt-16 w-[320px] sm:w-[380px] h-[110px] flex flex-col items-center justify-center pointer-events-none">
+                {/* Haz de Luz Láser Ascendente hacia el Trapecio Amazónico */}
+                <div
+                  className="absolute -top-12 w-44 h-24 pointer-events-none"
+                  style={{
+                    background:
+                      'radial-gradient(ellipse at bottom, rgba(0, 210, 255, 0.45) 0%, rgba(21, 94, 239, 0.15) 50%, transparent 80%)',
+                    clipPath: 'polygon(35% 0%, 65% 0%, 100% 100%, 0% 100%)',
+                  }}
+                />
+
+                {/* Disco Base Oscuro (#0B152D) */}
+                <div className="absolute w-[92%] h-[68px] rounded-[100%] bg-[#0B152D] border border-cyan-500/30 shadow-[0_15px_35px_rgba(0,0,0,0.8)]" />
+
+                {/* Aro Exterior Neón Brillante */}
+                <div className="absolute w-[88%] h-[60px] rounded-[100%] border-2 border-[#00D2FF] shadow-[0_0_35px_rgba(0,210,255,0.7)]" />
+
+                {/* Aro Medio Tecnológico */}
+                <div className="absolute w-[70%] h-[44px] rounded-[100%] border border-[#38BDF8]/80 shadow-[0_0_20px_rgba(56,189,248,0.5)] border-dashed" />
+
+                {/* Núcleo Interior Radiante */}
+                <div className="absolute w-[45%] h-[26px] rounded-[100%] bg-gradient-to-b from-[#00D2FF]/40 to-transparent border border-cyan-300 shadow-[0_0_25px_rgba(0,210,255,0.9)]" />
               </div>
             </motion.div>
 
-            {/* Columna Derecha: Panel Lateral Flotante de Métricas */}
+            {/* Columna Derecha: Panel Lateral Flotante de Métricas (4 Tarjetas Exactas) */}
             <motion.div
               variants={fluidFadeUp}
               initial="hidden"
               whileInView="visible"
               viewport={{ once: false, amount: 0.2 }}
-              className="lg:col-span-3 flex flex-col gap-3.5 w-full max-w-[280px] mx-auto lg:mx-0"
+              className="lg:col-span-3 flex flex-col gap-3.5 w-full max-w-[290px] mx-auto lg:mx-0"
             >
-              {/* Métrica 1 */}
-              <div className="p-4 rounded-2xl bg-[#0E172E]/80 backdrop-blur-xl border border-slate-700/60 hover:border-cyan-400/40 transition-all text-left shadow-lg">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-xl bg-blue-500/10 text-cyan-400 border border-cyan-400/20">
-                    <Shield className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <span className="text-xl sm:text-2xl font-black font-mono text-white block">
-                      32
-                    </span>
-                    <span className="text-xs text-slate-400 block font-medium">Departamentos</span>
-                  </div>
+              {/* Tarjeta 1: Departamentos */}
+              <div className="p-4 rounded-xl bg-[#0E172E]/85 backdrop-blur-md border border-sky-400/25 hover:border-cyan-400/50 hover:shadow-[0_0_20px_rgba(0,210,255,0.15)] transition-all flex items-center gap-3.5 shadow-lg group">
+                <div className="p-2.5 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-400/30 shrink-0 group-hover:scale-105 transition-transform">
+                  <Shield className="w-5 h-5" strokeWidth={2.2} />
+                </div>
+                <div className="text-left">
+                  <span className="text-2xl font-black font-mono text-white tracking-tight leading-none block">
+                    32
+                  </span>
+                  <span className="text-xs text-[#94A3B8] font-medium block mt-1">Departamentos</span>
                 </div>
               </div>
 
-              {/* Métrica 2 */}
-              <div className="p-4 rounded-2xl bg-[#0E172E]/80 backdrop-blur-xl border border-slate-700/60 hover:border-cyan-400/40 transition-all text-left shadow-lg">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-xl bg-blue-500/10 text-cyan-400 border border-cyan-400/20">
-                    <MapPin className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <span className="text-xl sm:text-2xl font-black font-mono text-white block">
-                      +1.102
-                    </span>
-                    <span className="text-xs text-slate-400 block font-medium">Municipios</span>
-                  </div>
+              {/* Tarjeta 2: Municipios */}
+              <div className="p-4 rounded-xl bg-[#0E172E]/85 backdrop-blur-md border border-sky-400/25 hover:border-cyan-400/50 hover:shadow-[0_0_20px_rgba(0,210,255,0.15)] transition-all flex items-center gap-3.5 shadow-lg group">
+                <div className="p-2.5 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-400/30 shrink-0 group-hover:scale-105 transition-transform">
+                  <Building2 className="w-5 h-5" strokeWidth={2.2} />
+                </div>
+                <div className="text-left">
+                  <span className="text-2xl font-black font-mono text-white tracking-tight leading-none block">
+                    +1.102
+                  </span>
+                  <span className="text-xs text-[#94A3B8] font-medium block mt-1">Municipios</span>
                 </div>
               </div>
 
-              {/* Métrica 3 */}
-              <div className="p-4 rounded-2xl bg-[#0E172E]/80 backdrop-blur-xl border border-slate-700/60 hover:border-cyan-400/40 transition-all text-left shadow-lg">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-xl bg-blue-500/10 text-cyan-400 border border-cyan-400/20">
-                    <Building className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <span className="text-xl sm:text-2xl font-black font-mono text-white block">
-                      +12.000
-                    </span>
-                    <span className="text-xs text-slate-400 block font-medium">Puestos de votación</span>
-                  </div>
+              {/* Tarjeta 3: Puestos de votación */}
+              <div className="p-4 rounded-xl bg-[#0E172E]/85 backdrop-blur-md border border-sky-400/25 hover:border-cyan-400/50 hover:shadow-[0_0_20px_rgba(0,210,255,0.15)] transition-all flex items-center gap-3.5 shadow-lg group">
+                <div className="p-2.5 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-400/30 shrink-0 group-hover:scale-105 transition-transform">
+                  <Vote className="w-5 h-5" strokeWidth={2.2} />
+                </div>
+                <div className="text-left">
+                  <span className="text-2xl font-black font-mono text-white tracking-tight leading-none block">
+                    +12.000
+                  </span>
+                  <span className="text-xs text-[#94A3B8] font-medium block mt-1">Puestos de votación</span>
                 </div>
               </div>
 
-              {/* Métrica 4 */}
-              <div className="p-4 rounded-2xl bg-[#0E172E]/80 backdrop-blur-xl border border-slate-700/60 hover:border-cyan-400/40 transition-all text-left shadow-lg">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-xl bg-blue-500/10 text-cyan-400 border border-cyan-400/20">
-                    <Users className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <span className="text-lg sm:text-xl font-black font-mono text-white block">
-                      +39.000.000
-                    </span>
-                    <span className="text-xs text-slate-400 block font-medium">Ciudadanos habilitados</span>
-                  </div>
+              {/* Tarjeta 4: Ciudadanos habilitados */}
+              <div className="p-4 rounded-xl bg-[#0E172E]/85 backdrop-blur-md border border-sky-400/25 hover:border-cyan-400/50 hover:shadow-[0_0_20px_rgba(0,210,255,0.15)] transition-all flex items-center gap-3.5 shadow-lg group">
+                <div className="p-2.5 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-400/30 shrink-0 group-hover:scale-105 transition-transform">
+                  <Users className="w-5 h-5" strokeWidth={2.2} />
+                </div>
+                <div className="text-left">
+                  <span className="text-xl sm:text-2xl font-black font-mono text-white tracking-tight leading-none block">
+                    +39.000.000
+                  </span>
+                  <span className="text-xs text-[#94A3B8] font-medium block mt-1">Ciudadanos habilitados</span>
                 </div>
               </div>
             </motion.div>
@@ -450,9 +511,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: false, amount: 0.2 }}
-                className="p-6 rounded-2xl bg-[#0D162B]/80 backdrop-blur-xl border border-slate-700/60 hover:border-cyan-400/40 transition-all duration-300 hover:-translate-y-1 shadow-lg"
+                className="p-6 rounded-2xl bg-[#0E172E] border border-cyan-500/20 hover:border-cyan-400/60 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_25px_rgba(0,210,255,0.15)] shadow-lg group"
               >
-                <div className="h-11 w-11 rounded-xl bg-blue-500/10 text-cyan-400 border border-cyan-400/20 flex items-center justify-center mb-4">
+                <div className="w-12 h-12 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-400/30 flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
                   <Users className="w-5.5 h-5.5" />
                 </div>
                 <h3 className="text-base font-bold text-white mb-2">Gestión de campañas</h3>
@@ -467,9 +528,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: false, amount: 0.2 }}
-                className="p-6 rounded-2xl bg-[#0D162B]/80 backdrop-blur-xl border border-slate-700/60 hover:border-cyan-400/40 transition-all duration-300 hover:-translate-y-1 shadow-lg"
+                className="p-6 rounded-2xl bg-[#0E172E] border border-cyan-500/20 hover:border-cyan-400/60 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_25px_rgba(0,210,255,0.15)] shadow-lg group"
               >
-                <div className="h-11 w-11 rounded-xl bg-blue-500/10 text-cyan-400 border border-cyan-400/20 flex items-center justify-center mb-4">
+                <div className="w-12 h-12 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-400/30 flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
                   <Building2 className="w-5.5 h-5.5" />
                 </div>
                 <h3 className="text-base font-bold text-white mb-2">Registro de candidatos</h3>
@@ -484,9 +545,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: false, amount: 0.2 }}
-                className="p-6 rounded-2xl bg-[#0D162B]/80 backdrop-blur-xl border border-slate-700/60 hover:border-cyan-400/40 transition-all duration-300 hover:-translate-y-1 shadow-lg"
+                className="p-6 rounded-2xl bg-[#0E172E] border border-cyan-500/20 hover:border-cyan-400/60 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_25px_rgba(0,210,255,0.15)] shadow-lg group"
               >
-                <div className="h-11 w-11 rounded-xl bg-blue-500/10 text-cyan-400 border border-cyan-400/20 flex items-center justify-center mb-4">
+                <div className="w-12 h-12 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-400/30 flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
                   <BarChart3 className="w-5.5 h-5.5" />
                 </div>
                 <h3 className="text-base font-bold text-white mb-2">Información electoral oficial</h3>
@@ -501,9 +562,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: false, amount: 0.2 }}
-                className="p-6 rounded-2xl bg-[#0D162B]/80 backdrop-blur-xl border border-slate-700/60 hover:border-cyan-400/40 transition-all duration-300 hover:-translate-y-1 shadow-lg"
+                className="p-6 rounded-2xl bg-[#0E172E] border border-cyan-500/20 hover:border-cyan-400/60 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_25px_rgba(0,210,255,0.15)] shadow-lg group"
               >
-                <div className="h-11 w-11 rounded-xl bg-blue-500/10 text-cyan-400 border border-cyan-400/20 flex items-center justify-center mb-4">
+                <div className="w-12 h-12 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-400/30 flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
                   <ShieldCheck className="w-5.5 h-5.5" />
                 </div>
                 <h3 className="text-base font-bold text-white mb-2">Seguridad avanzada</h3>
@@ -518,9 +579,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: false, amount: 0.2 }}
-                className="p-6 rounded-2xl bg-[#0D162B]/80 backdrop-blur-xl border border-slate-700/60 hover:border-cyan-400/40 transition-all duration-300 hover:-translate-y-1 shadow-lg"
+                className="p-6 rounded-2xl bg-[#0E172E] border border-cyan-500/20 hover:border-cyan-400/60 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_25px_rgba(0,210,255,0.15)] shadow-lg group"
               >
-                <div className="h-11 w-11 rounded-xl bg-blue-500/10 text-cyan-400 border border-cyan-400/20 flex items-center justify-center mb-4">
+                <div className="w-12 h-12 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-400/30 flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
                   <Cloud className="w-5.5 h-5.5" />
                 </div>
                 <h3 className="text-base font-bold text-white mb-2">Acceso en tiempo real</h3>
@@ -535,9 +596,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: false, amount: 0.2 }}
-                className="p-6 rounded-2xl bg-[#0D162B]/80 backdrop-blur-xl border border-slate-700/60 hover:border-cyan-400/40 transition-all duration-300 hover:-translate-y-1 shadow-lg"
+                className="p-6 rounded-2xl bg-[#0E172E] border border-cyan-500/20 hover:border-cyan-400/60 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_25px_rgba(0,210,255,0.15)] shadow-lg group"
               >
-                <div className="h-11 w-11 rounded-xl bg-blue-500/10 text-cyan-400 border border-cyan-400/20 flex items-center justify-center mb-4">
+                <div className="w-12 h-12 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-400/30 flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
                   <Headphones className="w-5.5 h-5.5" />
                 </div>
                 <h3 className="text-base font-bold text-white mb-2">Soporte especializado</h3>
@@ -552,7 +613,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
         {/* =========================================================================
             D. SECCIÓN DE IMPACTO Y DATOS ESTADÍSTICOS (DATA HUD + BLUEPRINT)
             ========================================================================= */}
-        <section id="seguridad" className="py-20 sm:py-28 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-slate-800/80 relative">
+        <section
+          id="seguridad"
+          className="py-20 sm:py-28 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-slate-800/80 relative overflow-hidden bg-[radial-gradient(ellipse_80%_80%_at_50%_-10%,rgba(14,165,233,0.15),transparent)]"
+        >
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
             {/* Encabezado Lateral */}
             <motion.div
@@ -578,7 +642,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
                 <button
                   type="button"
                   onClick={onNavigateToLogin}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#0E172E] hover:bg-[#152345] border border-slate-700 text-slate-200 text-xs sm:text-sm font-semibold transition-all shadow-sm cursor-pointer"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#0E172E] hover:bg-[#152345] border border-cyan-500/30 text-slate-200 text-xs sm:text-sm font-semibold transition-all shadow-sm cursor-pointer"
                 >
                   <span>Ver estadísticas completas</span>
                   <ArrowRight className="w-4 h-4" />
@@ -594,13 +658,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: false, amount: 0.2 }}
-                className="p-6 rounded-2xl bg-[#0D162B]/90 border border-slate-700/80 hover:border-cyan-400/40 transition-all shadow-lg"
+                className="p-6 rounded-2xl bg-[#0D162B]/90 border border-slate-700/80 hover:border-cyan-400/50 hover:shadow-[0_0_20px_rgba(0,210,255,0.15)] transition-all shadow-lg group"
               >
-                <div className="p-2.5 w-fit rounded-xl bg-blue-500/10 text-cyan-400 border border-cyan-400/20 mb-4">
+                <div className="p-2.5 w-fit rounded-xl bg-blue-500/10 text-cyan-400 border border-cyan-400/20 mb-4 group-hover:scale-105 transition-transform">
                   <Map className="w-5 h-5" />
                 </div>
-                <span className="text-3xl font-black font-mono text-white block">32</span>
-                <span className="text-xs text-slate-400 font-medium mt-1 block">Departamentos</span>
+                <span className="text-3xl sm:text-4xl font-black font-mono text-white block tracking-tight">32</span>
+                <span className="text-xs text-[#94A3B8] font-medium mt-1.5 block">Departamentos</span>
               </motion.div>
 
               {/* Métrica 2 */}
@@ -609,13 +673,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: false, amount: 0.2 }}
-                className="p-6 rounded-2xl bg-[#0D162B]/90 border border-slate-700/80 hover:border-cyan-400/40 transition-all shadow-lg"
+                className="p-6 rounded-2xl bg-[#0D162B]/90 border border-slate-700/80 hover:border-cyan-400/50 hover:shadow-[0_0_20px_rgba(0,210,255,0.15)] transition-all shadow-lg group"
               >
-                <div className="p-2.5 w-fit rounded-xl bg-blue-500/10 text-cyan-400 border border-cyan-400/20 mb-4">
+                <div className="p-2.5 w-fit rounded-xl bg-blue-500/10 text-cyan-400 border border-cyan-400/20 mb-4 group-hover:scale-105 transition-transform">
                   <Building2 className="w-5 h-5" />
                 </div>
-                <span className="text-3xl font-black font-mono text-white block">+1.102</span>
-                <span className="text-xs text-slate-400 font-medium mt-1 block">Municipios</span>
+                <span className="text-3xl sm:text-4xl font-black font-mono text-white block tracking-tight">+1.102</span>
+                <span className="text-xs text-[#94A3B8] font-medium mt-1.5 block">Municipios</span>
               </motion.div>
 
               {/* Métrica 3 */}
@@ -624,13 +688,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: false, amount: 0.2 }}
-                className="p-6 rounded-2xl bg-[#0D162B]/90 border border-slate-700/80 hover:border-cyan-400/40 transition-all shadow-lg"
+                className="p-6 rounded-2xl bg-[#0D162B]/90 border border-slate-700/80 hover:border-cyan-400/50 hover:shadow-[0_0_20px_rgba(0,210,255,0.15)] transition-all shadow-lg group"
               >
-                <div className="p-2.5 w-fit rounded-xl bg-blue-500/10 text-cyan-400 border border-cyan-400/20 mb-4">
+                <div className="p-2.5 w-fit rounded-xl bg-blue-500/10 text-cyan-400 border border-cyan-400/20 mb-4 group-hover:scale-105 transition-transform">
                   <Radio className="w-5 h-5" />
                 </div>
-                <span className="text-3xl font-black font-mono text-white block">1.102</span>
-                <span className="text-xs text-slate-400 font-medium mt-1 block">Zonas electorales</span>
+                <span className="text-3xl sm:text-4xl font-black font-mono text-white block tracking-tight">1.102</span>
+                <span className="text-xs text-[#94A3B8] font-medium mt-1.5 block">Zonas electorales</span>
               </motion.div>
 
               {/* Métrica 4 */}
@@ -639,13 +703,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: false, amount: 0.2 }}
-                className="p-6 rounded-2xl bg-[#0D162B]/90 border border-slate-700/80 hover:border-cyan-400/40 transition-all shadow-lg"
+                className="p-6 rounded-2xl bg-[#0D162B]/90 border border-slate-700/80 hover:border-cyan-400/50 hover:shadow-[0_0_20px_rgba(0,210,255,0.15)] transition-all shadow-lg group"
               >
-                <div className="p-2.5 w-fit rounded-xl bg-blue-500/10 text-cyan-400 border border-cyan-400/20 mb-4">
+                <div className="p-2.5 w-fit rounded-xl bg-blue-500/10 text-cyan-400 border border-cyan-400/20 mb-4 group-hover:scale-105 transition-transform">
                   <Building className="w-5 h-5" />
                 </div>
-                <span className="text-3xl font-black font-mono text-white block">+12.000</span>
-                <span className="text-xs text-slate-400 font-medium mt-1 block">Puestos de votación</span>
+                <span className="text-3xl sm:text-4xl font-black font-mono text-white block tracking-tight">+12.000</span>
+                <span className="text-xs text-[#94A3B8] font-medium mt-1.5 block">Puestos de votación</span>
               </motion.div>
 
               {/* Métrica 5 */}
@@ -654,13 +718,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: false, amount: 0.2 }}
-                className="p-6 rounded-2xl bg-[#0D162B]/90 border border-slate-700/80 hover:border-cyan-400/40 transition-all shadow-lg"
+                className="p-6 rounded-2xl bg-[#0D162B]/90 border border-slate-700/80 hover:border-cyan-400/50 hover:shadow-[0_0_20px_rgba(0,210,255,0.15)] transition-all shadow-lg group"
               >
-                <div className="p-2.5 w-fit rounded-xl bg-blue-500/10 text-cyan-400 border border-cyan-400/20 mb-4">
+                <div className="p-2.5 w-fit rounded-xl bg-blue-500/10 text-cyan-400 border border-cyan-400/20 mb-4 group-hover:scale-105 transition-transform">
                   <Vote className="w-5 h-5" />
                 </div>
-                <span className="text-3xl font-black font-mono text-white block">+106.000</span>
-                <span className="text-xs text-slate-400 font-medium mt-1 block">Mesas de votación</span>
+                <span className="text-3xl sm:text-4xl font-black font-mono text-white block tracking-tight">+106.000</span>
+                <span className="text-xs text-[#94A3B8] font-medium mt-1.5 block">Mesas de votación</span>
               </motion.div>
 
               {/* Métrica 6 */}
@@ -669,13 +733,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: false, amount: 0.2 }}
-                className="p-6 rounded-2xl bg-[#0D162B]/90 border border-slate-700/80 hover:border-cyan-400/40 transition-all shadow-lg"
+                className="p-6 rounded-2xl bg-[#0D162B]/90 border border-slate-700/80 hover:border-cyan-400/50 hover:shadow-[0_0_20px_rgba(0,210,255,0.15)] transition-all shadow-lg group"
               >
-                <div className="p-2.5 w-fit rounded-xl bg-blue-500/10 text-cyan-400 border border-cyan-400/20 mb-4">
+                <div className="p-2.5 w-fit rounded-xl bg-blue-500/10 text-cyan-400 border border-cyan-400/20 mb-4 group-hover:scale-105 transition-transform">
                   <Users className="w-5 h-5" />
                 </div>
-                <span className="text-3xl font-black font-mono text-white block">+39.000.000</span>
-                <span className="text-xs text-slate-400 font-medium mt-1 block">Ciudadanos habilitados</span>
+                <span className="text-3xl sm:text-4xl font-black font-mono text-white block tracking-tight">+39.000.000</span>
+                <span className="text-xs text-[#94A3B8] font-medium mt-1.5 block">Ciudadanos habilitados</span>
               </motion.div>
             </div>
           </div>
@@ -688,11 +752,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
         </section>
 
         {/* =========================================================================
-            E. SECCIÓN DE COBERTURA NACIONAL (CONTRASTE CLARO #F1F5F9 - #FFFFFF)
+            E. SECCIÓN DE COBERTURA NACIONAL (CONTRASTE CLARO #F8FAFC)
             ========================================================================= */}
         <section
           id="cobertura"
-          className="py-20 sm:py-28 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-[#F1F5F9] to-white text-slate-900 transition-colors"
+          className="py-20 sm:py-28 px-4 sm:px-6 lg:px-8 bg-[#F8FAFC] text-slate-900 transition-colors"
         >
           <div className="max-w-7xl mx-auto">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
@@ -704,7 +768,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
                 viewport={{ once: false, amount: 0.2 }}
                 className="lg:col-span-4 relative flex items-center justify-center"
               >
-                {/* Pantallas Oscuras en Capas */}
+                {/* Pantallas Oscuras en Capas Isométricas */}
                 <div className="relative w-full max-w-[340px] h-[360px]">
                   {/* Capa Trasera 1 */}
                   <div className="absolute top-4 left-0 w-56 h-64 rounded-2xl bg-[#091124] border border-slate-700 shadow-xl transform -rotate-12 overflow-hidden opacity-75">
@@ -721,7 +785,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
                   </div>
 
                   {/* Tarjeta Frontal Blanca con Opciones */}
-                  <div className="absolute top-10 left-16 w-64 rounded-2xl bg-white border border-slate-200 shadow-2xl p-4 text-left space-y-2 z-10">
+                  <div className="absolute top-10 left-16 w-64 rounded-2xl bg-white border border-slate-200/90 shadow-[0_20px_50px_rgba(0,0,0,0.12)] p-4 text-left space-y-2.5 z-20">
                     <div className="p-2.5 rounded-xl hover:bg-slate-50 flex items-center justify-between transition-colors border border-slate-100">
                       <div className="flex items-center gap-2.5">
                         <span className="p-1.5 rounded-lg bg-amber-500/10 text-amber-600 font-bold text-xs">
