@@ -10,6 +10,7 @@ import {
   BarChart3,
   Building,
   Building2,
+  MapPin,
   Map,
   ShieldCheck,
   ChevronRight,
@@ -41,161 +42,420 @@ const fluidFadeUp: Variants = {
 };
 
 // ============================================================================
-// COMPONENTE VECTORIAL: MAPA HOLOGRÁFICO DE COLOMBIA CON RED DE NODOS
+// COMPONENTE VECTORIAL: MAPA HOLOGRÁFICO DE COLOMBIA CON RED DE NODOS, ÓRBITAS Y PEDESTAL HUD
 // ============================================================================
 const ColombiaHologramMap: React.FC<{ variant?: 'cyber' | 'light' }> = ({ variant = 'cyber' }) => {
   const isLight = variant === 'light';
   const strokeColor = isLight ? '#0284C7' : '#00D2FF';
-  const fillColor = isLight ? 'rgba(14, 165, 233, 0.06)' : 'rgba(0, 210, 255, 0.08)';
+  const fillColor = isLight ? 'rgba(14, 165, 233, 0.05)' : 'rgba(0, 210, 255, 0.07)';
   const nodeFill = isLight ? '#0284C7' : '#00D2FF';
   const lineStroke = isLight ? 'rgba(2, 132, 199, 0.35)' : 'rgba(0, 210, 255, 0.45)';
 
-  // 30 Nodos de constelación geográfica precisa (Capitales y Departamentos)
+  // Nodos Geográficos de la Constelación (Capitales y Nodos Estratégicos)
   const constellationNodes = [
-    { cx: 278, cy: 52, label: 'Riohacha' },
-    { cx: 225, cy: 88, label: 'Santa Marta' },
-    { cx: 198, cy: 104, label: 'Barranquilla' },
-    { cx: 176, cy: 122, label: 'Cartagena' },
-    { cx: 248, cy: 112, label: 'Valledupar' },
-    { cx: 168, cy: 162, label: 'Montería' },
-    { cx: 282, cy: 172, label: 'Cúcuta' },
-    { cx: 242, cy: 198, label: 'Bucaramanga' },
-    { cx: 178, cy: 232, label: 'Medellín' },
-    { cx: 136, cy: 254, label: 'Quibdó' },
-    { cx: 178, cy: 274, label: 'Manizales' },
-    { cx: 172, cy: 288, label: 'Pereira' },
-    { cx: 236, cy: 264, label: 'Tunja' },
-    { cx: 218, cy: 298, label: 'Bogotá D.C.', isHub: true },
-    { cx: 186, cy: 314, label: 'Ibagué' },
-    { cx: 246, cy: 324, label: 'Villavicencio' },
-    { cx: 150, cy: 338, label: 'Cali' },
-    { cx: 196, cy: 364, label: 'Neiva' },
-    { cx: 152, cy: 384, label: 'Popayán' },
-    { cx: 212, cy: 408, label: 'Florencia' },
-    { cx: 126, cy: 416, label: 'Pasto' },
-    { cx: 170, cy: 434, label: 'Mocoa' },
-    { cx: 312, cy: 218, label: 'Arauca' },
-    { cx: 278, cy: 268, label: 'Yopal' },
-    { cx: 352, cy: 258, label: 'Puerto Carreño' },
-    { cx: 346, cy: 334, label: 'Inírida' },
-    { cx: 252, cy: 378, label: 'San José del Guaviare' },
-    { cx: 308, cy: 428, label: 'Mitú' },
-    { cx: 182, cy: 448, label: 'Puerto Asís' },
-    { cx: 246, cy: 568, label: 'Leticia', isHub: true },
+    { cx: 300, cy: 55, label: 'Riohacha' },
+    { cx: 245, cy: 92, label: 'Santa Marta' },
+    { cx: 218, cy: 108, label: 'Barranquilla' },
+    { cx: 195, cy: 126, label: 'Cartagena' },
+    { cx: 270, cy: 116, label: 'Valledupar' },
+    { cx: 185, cy: 168, label: 'Montería' },
+    { cx: 305, cy: 178, label: 'Cúcuta' },
+    { cx: 262, cy: 202, label: 'Bucaramanga' },
+    { cx: 198, cy: 236, label: 'Medellín', isPulseHub: true },
+    { cx: 154, cy: 258, label: 'Quibdó' },
+    { cx: 196, cy: 278, label: 'Manizales' },
+    { cx: 190, cy: 294, label: 'Pereira' },
+    { cx: 256, cy: 268, label: 'Tunja' },
+    { cx: 236, cy: 302, label: 'Bogotá D.C.', isPulseHub: true },
+    { cx: 204, cy: 318, label: 'Ibagué' },
+    { cx: 266, cy: 328, label: 'Villavicencio' },
+    { cx: 168, cy: 342, label: 'Cali', isPulseHub: true },
+    { cx: 214, cy: 368, label: 'Neiva' },
+    { cx: 170, cy: 388, label: 'Popayán' },
+    { cx: 230, cy: 412, label: 'Florencia' },
+    { cx: 144, cy: 420, label: 'Pasto' },
+    { cx: 188, cy: 438, label: 'Mocoa' },
+    { cx: 335, cy: 222, label: 'Arauca' },
+    { cx: 298, cy: 272, label: 'Yopal' },
+    { cx: 374, cy: 262, label: 'Puerto Carreño' },
+    { cx: 368, cy: 338, label: 'Inírida' },
+    { cx: 272, cy: 382, label: 'San José del Guaviare' },
+    { cx: 328, cy: 432, label: 'Mitú' },
+    { cx: 200, cy: 452, label: 'Puerto Asís' },
+    { cx: 266, cy: 540, label: 'Leticia' },
   ];
 
-  // Conexiones de red entre nodos
+  // Red de Triangulación Poligonal (Low-Poly Cyber Mesh)
+  const polygonFacets = [
+    // Caribe y Norte
+    '300,55 270,116 245,92',
+    '245,92 218,108 270,116',
+    '218,108 195,126 270,116',
+    '195,126 185,168 270,116',
+    '270,116 305,178 262,202',
+    '185,168 198,236 262,202',
+    '185,168 154,258 198,236',
+    // Santanderes, Boyacá y Centro
+    '305,178 335,222 298,272',
+    '305,178 262,202 298,272',
+    '262,202 256,268 298,272',
+    '262,202 198,236 256,268',
+    '198,236 196,278 256,268',
+    '198,236 154,258 196,278',
+    '196,278 190,294 236,302',
+    '196,278 256,268 236,302',
+    '256,268 298,272 266,328',
+    '256,268 236,302 266,328',
+    // Eje Cafetero, Valle, Tolima, Huila
+    '190,294 204,318 236,302',
+    '190,294 168,342 204,318',
+    '204,318 236,302 214,368',
+    '236,302 266,328 214,368',
+    '168,342 170,388 214,368',
+    '170,388 144,420 188,438',
+    '170,388 188,438 214,368',
+    '214,368 188,438 230,412',
+    // Orinoquía y Amazonía
+    '298,272 374,262 335,222',
+    '298,272 374,262 368,338',
+    '298,272 266,328 368,338',
+    '266,328 272,382 368,338',
+    '266,328 214,368 272,382',
+    '272,382 368,338 328,432',
+    '272,382 230,412 328,432',
+    '214,368 230,412 272,382',
+    '144,420 188,438 200,452',
+    '188,438 230,412 200,452',
+    '230,412 272,382 200,452',
+    '272,382 328,432 266,540',
+    '272,382 200,452 266,540',
+    '328,432 266,540 266,540',
+  ];
+
+  // Líneas directas de interconexión
   const networkLines = [
-    [278, 52, 248, 112], [248, 112, 225, 88], [225, 88, 198, 104], [198, 104, 176, 122],
-    [176, 122, 168, 162], [168, 162, 178, 232], [248, 112, 282, 172],
-    [282, 172, 242, 198], [242, 198, 236, 264], [236, 264, 218, 298],
-    [178, 232, 136, 254], [178, 232, 178, 274], [178, 274, 172, 288], [172, 288, 186, 314],
-    [186, 314, 218, 298], [178, 232, 242, 198],
-    [282, 172, 312, 218], [312, 218, 278, 268], [278, 268, 218, 298],
-    [218, 298, 246, 324], [278, 268, 352, 258], [246, 324, 346, 334],
-    [246, 324, 252, 378], [252, 378, 308, 428], [346, 334, 308, 428],
-    [172, 288, 150, 338], [150, 338, 152, 384], [152, 384, 126, 416],
-    [150, 338, 196, 364], [196, 364, 218, 298], [196, 364, 212, 408],
-    [126, 416, 170, 434], [170, 434, 182, 448], [212, 408, 182, 448],
-    [212, 408, 252, 378], [182, 448, 246, 568], [252, 378, 246, 568],
-    [308, 428, 246, 568],
+    [300, 55, 270, 116], [270, 116, 245, 92], [245, 92, 218, 108], [218, 108, 195, 126],
+    [195, 126, 185, 168], [185, 168, 198, 236], [270, 116, 305, 178], [305, 178, 262, 202],
+    [262, 202, 256, 268], [256, 268, 236, 302], [198, 236, 154, 258], [198, 236, 196, 278],
+    [196, 278, 190, 294], [190, 294, 204, 318], [204, 318, 236, 302], [198, 236, 262, 202],
+    [305, 178, 335, 222], [335, 222, 298, 272], [298, 272, 236, 302], [236, 302, 266, 328],
+    [298, 272, 374, 262], [266, 328, 368, 338], [266, 328, 272, 382], [272, 382, 328, 432],
+    [368, 338, 328, 432], [190, 294, 168, 342], [168, 342, 170, 388], [170, 388, 144, 420],
+    [168, 342, 214, 368], [214, 368, 236, 302], [214, 368, 230, 412], [144, 420, 188, 438],
+    [188, 438, 200, 452], [230, 412, 200, 452], [230, 412, 272, 382], [200, 452, 266, 540],
+    [272, 382, 266, 540], [328, 432, 266, 540],
   ];
 
   return (
     <svg
-      viewBox="0 0 480 610"
-      className="w-full h-full drop-shadow-[0_0_35px_rgba(0,210,255,0.45)] select-none"
+      viewBox="0 0 540 650"
+      className="w-full h-full drop-shadow-[0_0_45px_rgba(0,210,255,0.45)] select-none"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
       <defs>
-        <filter id="glow-cyan" x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur stdDeviation="4" result="blur" />
-          <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        {/* Resplandor Neón Multicapa para Contorno */}
+        <filter id="hero-glow-cyan" x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation="3.5" result="blur1" />
+          <feGaussianBlur stdDeviation="9" result="blur2" />
+          <feMerge>
+            <feMergeNode in="blur2" />
+            <feMergeNode in="blur1" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
         </filter>
-        <filter id="node-glow" x="-50%" y="-50%" width="200%" height="200%">
+
+        {/* Resplandor Concentrado de Nodos */}
+        <filter id="node-glow" x="-60%" y="-60%" width="220%" height="220%">
           <feGaussianBlur stdDeviation="2.5" result="blur" />
           <feMerge>
             <feMergeNode in="blur" />
             <feMergeNode in="SourceGraphic" />
           </feMerge>
         </filter>
-        <linearGradient id="cyber-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+
+        {/* Resplandor de Destellos Estelares (Star Flare) */}
+        <filter id="flare-glow" x="-100%" y="-100%" width="300%" height="300%">
+          <feGaussianBlur stdDeviation="3" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+
+        {/* Gradiente para Anillos Orbitales */}
+        <linearGradient id="orbit-grad-1" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#00D2FF" stopOpacity="0.85" />
-          <stop offset="50%" stopColor="#155EEF" stopOpacity="0.6" />
-          <stop offset="100%" stopColor="#00D2FF" stopOpacity="0.95" />
+          <stop offset="45%" stopColor="#155EEF" stopOpacity="0.15" />
+          <stop offset="75%" stopColor="#00D2FF" stopOpacity="0.9" />
+          <stop offset="100%" stopColor="#00D2FF" stopOpacity="0.1" />
         </linearGradient>
+
+        <linearGradient id="orbit-grad-2" x1="100%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#38BDF8" stopOpacity="0.75" />
+          <stop offset="50%" stopColor="#155EEF" stopOpacity="0.15" />
+          <stop offset="100%" stopColor="#00D2FF" stopOpacity="0.85" />
+        </linearGradient>
+
+        {/* Gradiente para el Haz de Luz Láser Ascendente del Pedestal */}
+        <linearGradient id="laser-cone-grad" x1="50%" y1="100%" x2="50%" y2="0%">
+          <stop offset="0%" stopColor="#00D2FF" stopOpacity="0.8" />
+          <stop offset="35%" stopColor="#155EEF" stopOpacity="0.35" />
+          <stop offset="80%" stopColor="#00D2FF" stopOpacity="0.1" />
+          <stop offset="100%" stopColor="#00D2FF" stopOpacity="0" />
+        </linearGradient>
+
+        {/* Gradiente Radial para el Emitter Core */}
+        <radialGradient id="emitter-radial" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#FFFFFF" stopOpacity="1" />
+          <stop offset="30%" stopColor="#00D2FF" stopOpacity="0.95" />
+          <stop offset="70%" stopColor="#155EEF" stopOpacity="0.6" />
+          <stop offset="100%" stopColor="#060E22" stopOpacity="0" />
+        </radialGradient>
       </defs>
 
-      {/* Contorno Geográfico Realista y Preciso de Colombia */}
+      {/* =====================================================================
+          1. ANILLOS ORBITALES DE LUZ EN PERSPECTIVA 3D (ESPACIALIDAD)
+          ===================================================================== */}
+      {!isLight && (
+        <g opacity="0.85">
+          {/* Anillo Orbital Mayor Diagonal (rodea el mapa y pasa detrás de la bandera) */}
+          <ellipse
+            cx="265"
+            cy="270"
+            rx="245"
+            ry="115"
+            transform="rotate(-22 265 270)"
+            stroke="url(#orbit-grad-1)"
+            strokeWidth="1.5"
+            fill="none"
+            filter="url(#hero-glow-cyan)"
+          />
+          {/* Anillo Orbital Menor Intermedio (cintura del territorio) */}
+          <ellipse
+            cx="265"
+            cy="375"
+            rx="185"
+            ry="65"
+            transform="rotate(14 265 375)"
+            stroke="url(#orbit-grad-2)"
+            strokeWidth="1.2"
+            fill="none"
+            strokeDasharray="8 6"
+            filter="url(#hero-glow-cyan)"
+          />
+        </g>
+      )}
+
+      {/* =====================================================================
+          2. SILUETA VECTORIAL GEOGRÁFICA PRECISA DE COLOMBIA
+          ===================================================================== */}
       <path
-        d="M 280 25
-           C 265 40, 255 50, 240 68
-           C 225 80, 210 88, 195 95
-           C 185 102, 178 110, 175 115
-           C 170 128, 168 135, 165 140
-           C 158 150, 148 155, 140 160
-           C 130 156, 122 154, 118 162
-           C 112 172, 108 190, 105 210
-           C 102 230, 106 245, 108 255
-           C 110 275, 114 290, 115 305
-           C 116 325, 110 340, 105 355
-           C 100 375, 96 390, 95 400
-           C 105 410, 118 418, 125 420
-           C 142 425, 155 428, 165 430
-           C 180 432, 195 434, 205 435
-           C 218 450, 228 465, 235 475
-           C 245 495, 252 510, 255 520
-           C 258 540, 250 560, 246 575
-           C 255 565, 268 545, 275 525
-           C 285 500, 292 480, 295 465
-           C 308 450, 320 438, 330 425
-           C 342 405, 350 385, 355 370
-           C 362 350, 368 330, 370 315
-           C 366 290, 362 270, 355 250
-           C 345 240, 330 235, 310 230
-           C 295 225, 285 220, 275 215
-           C 280 198, 288 185, 290 175
-           C 285 160, 280 150, 275 140
-           C 270 125, 265 110, 260 100
-           C 268 85, 275 70, 280 60
-           C 285 50, 286 35, 280 25 Z"
+        d="M 302 28
+           C 288 44, 278 52, 260 70
+           C 245 82, 230 90, 215 97
+           C 205 104, 198 112, 195 117
+           C 190 130, 188 137, 185 142
+           C 178 152, 168 157, 160 162
+           C 150 158, 142 156, 138 164
+           C 132 174, 128 192, 125 212
+           C 122 232, 126 247, 128 257
+           C 130 277, 134 292, 135 307
+           C 136 327, 130 342, 125 357
+           C 120 377, 116 392, 115 402
+           C 125 412, 138 420, 145 422
+           C 162 427, 175 430, 185 432
+           C 200 434, 215 436, 225 437
+           C 238 452, 248 467, 255 477
+           C 265 497, 272 512, 275 522
+           C 278 542, 270 560, 266 565
+           C 275 555, 288 535, 295 515
+           C 305 490, 312 470, 315 455
+           C 328 440, 340 428, 350 415
+           C 362 395, 370 375, 375 360
+           C 382 340, 388 320, 390 305
+           C 386 280, 382 260, 375 240
+           C 365 230, 350 225, 330 220
+           C 315 215, 305 210, 295 205
+           C 300 188, 308 175, 310 165
+           C 305 150, 300 140, 295 130
+           C 290 115, 285 100, 280 90
+           C 288 75, 295 60, 300 50
+           C 306 40, 308 34, 302 28 Z"
         stroke={strokeColor}
-        strokeWidth={isLight ? '2.2' : '2.8'}
+        strokeWidth={isLight ? '2.4' : '3.2'}
         fill={fillColor}
-        filter={isLight ? undefined : 'url(#glow-cyan)'}
+        filter={isLight ? undefined : 'url(#hero-glow-cyan)'}
       />
 
-      {/* Constelación de Líneas Luminosas Celestes Interconectadas */}
+      {/* =====================================================================
+          3. CONSTELACIÓN POLIGONAL TRANSLÚCIDA (FACETAS CIBERNÉTICAS)
+          ===================================================================== */}
+      {!isLight && (
+        <g stroke="rgba(0, 210, 255, 0.4)" strokeWidth="0.8" fill="rgba(0, 210, 255, 0.04)">
+          {polygonFacets.map((pts, i) => (
+            <polygon key={`poly-${i}`} points={pts} />
+          ))}
+        </g>
+      )}
+
+      {/* Líneas de Red Vectorial Interconectada */}
       <g stroke={lineStroke} strokeWidth="0.85" opacity={isLight ? 0.7 : 0.85}>
         {networkLines.map(([x1, y1, x2, y2], idx) => (
           <line key={`line-${idx}`} x1={x1} y1={y1} x2={x2} y2={y2} />
         ))}
       </g>
 
-      {/* Constelación de Nodos Luminosos (Puntos Neón) */}
+      {/* =====================================================================
+          4. NODOS LUMINOSOS Y DESTELLOS ESTELARES (STAR FLARES)
+          ===================================================================== */}
       {constellationNodes.map((n) => (
         <g key={n.label}>
+          {/* Nodo estándar */}
           <circle
             cx={n.cx}
             cy={n.cy}
-            r={n.isHub ? '3.5' : '2.2'}
+            r={n.isPulseHub ? '4' : '2.4'}
             fill={nodeFill}
             filter={isLight ? undefined : 'url(#node-glow)'}
           />
-          {!isLight && n.isHub && (
-            <circle
-              cx={n.cx}
-              cy={n.cy}
-              r="8"
-              fill={nodeFill}
-              opacity="0.3"
-              className="animate-ping"
-              style={{ transformOrigin: `${n.cx}px ${n.cy}px`, animationDuration: '2.5s' }}
-            />
+
+          {/* Nodos de alta intensidad con destellos en cruz (Star Flares) y auras pulsantes */}
+          {!isLight && n.isPulseHub && (
+            <g>
+              {/* Halo circular grande */}
+              <circle cx={n.cx} cy={n.cy} r="12" fill="#00D2FF" opacity="0.35" />
+
+              {/* Anillo de onda expansiva */}
+              <circle
+                cx={n.cx}
+                cy={n.cy}
+                r="18"
+                fill="none"
+                stroke="#00D2FF"
+                strokeWidth="1.2"
+                opacity="0.5"
+                className="animate-ping"
+                style={{ transformOrigin: `${n.cx}px ${n.cy}px`, animationDuration: '3s' }}
+              />
+
+              {/* Centro de luz blanca ultra-brillante */}
+              <circle cx={n.cx} cy={n.cy} r="2.2" fill="#FFFFFF" />
+
+              {/* Destello de lente estelar de 4 puntas (Cross Flare Glint) */}
+              <polygon
+                points={`${n.cx},${n.cy - 16} ${n.cx + 2.5},${n.cy - 2.5} ${n.cx + 16},${n.cy} ${n.cx + 2.5},${n.cy + 2.5} ${n.cx},${n.cy + 16} ${n.cx - 2.5},${n.cy + 2.5} ${n.cx - 16},${n.cy} ${n.cx - 2.5},${n.cy - 2.5}`}
+                fill="#FFFFFF"
+                opacity="0.95"
+                filter="url(#flare-glow)"
+              />
+              <polygon
+                points={`${n.cx},${n.cy - 9} ${n.cx + 1.8},${n.cy - 1.8} ${n.cx + 9},${n.cy} ${n.cx + 1.8},${n.cy + 1.8} ${n.cx},${n.cy + 9} ${n.cx - 1.8},${n.cy + 1.8} ${n.cx - 9},${n.cy} ${n.cx - 1.8},${n.cy - 1.8}`}
+                fill="#00D2FF"
+                opacity="0.85"
+              />
+            </g>
           )}
         </g>
       ))}
+
+      {/* =====================================================================
+          5. PEDESTAL CIBERNÉTICO HUD CON ANILLOS CONCÉNTRICOS Y LUZ ASCENDENTE
+          ===================================================================== */}
+      {!isLight && (
+        <g id="pedestal-hud">
+          {/* Haz de Luz Láser Ascendente que Baña la Punta Sur (Leticia) */}
+          <polygon
+            points="225,565 305,565 275,540 255,540"
+            fill="url(#laser-cone-grad)"
+            filter="url(#hero-glow-cyan)"
+            opacity="0.8"
+          />
+
+          {/* Plataforma Base Reflectante Oscura */}
+          <ellipse
+            cx="266"
+            cy="580"
+            rx="210"
+            ry="44"
+            fill="#060E22"
+            stroke="rgba(0, 210, 255, 0.4)"
+            strokeWidth="1.8"
+          />
+
+          {/* Barras de Luz LED Neón Segmentadas en el Perímetro Exterior */}
+          <path
+            d="M 85,576 A 210 44 0 0 0 165,614"
+            stroke="#00D2FF"
+            strokeWidth="4"
+            strokeLinecap="round"
+            fill="none"
+            filter="url(#hero-glow-cyan)"
+          />
+          <path
+            d="M 195,620 A 210 44 0 0 0 245,624"
+            stroke="#00D2FF"
+            strokeWidth="3.5"
+            strokeLinecap="round"
+            fill="none"
+            filter="url(#hero-glow-cyan)"
+          />
+          <path
+            d="M 285,624 A 210 44 0 0 0 335,620"
+            stroke="#00D2FF"
+            strokeWidth="3.5"
+            strokeLinecap="round"
+            fill="none"
+            filter="url(#hero-glow-cyan)"
+          />
+          <path
+            d="M 365,614 A 210 44 0 0 0 445,576"
+            stroke="#00D2FF"
+            strokeWidth="4"
+            strokeLinecap="round"
+            fill="none"
+            filter="url(#hero-glow-cyan)"
+          />
+
+          {/* Anillo Intermedio Metálico Escalonado */}
+          <ellipse
+            cx="266"
+            cy="570"
+            rx="155"
+            ry="32"
+            fill="#091530"
+            stroke="#155EEF"
+            strokeWidth="2.5"
+          />
+          <ellipse
+            cx="266"
+            cy="566"
+            rx="145"
+            ry="28"
+            fill="none"
+            stroke="#00D2FF"
+            strokeWidth="1.2"
+            strokeDasharray="14 6"
+            opacity="0.8"
+          />
+
+          {/* Anillo Emitter Interior Radiante */}
+          <ellipse
+            cx="266"
+            cy="560"
+            rx="95"
+            ry="20"
+            fill="url(#emitter-radial)"
+            stroke="#00D2FF"
+            strokeWidth="2"
+            filter="url(#hero-glow-cyan)"
+          />
+
+          {/* Núcleo Central de Emisión de Alta Intensidad */}
+          <ellipse cx="266" cy="558" rx="55" ry="11" fill="#00D2FF" filter="url(#node-glow)" />
+          <ellipse cx="266" cy="557" rx="30" ry="6" fill="#FFFFFF" />
+        </g>
+      )}
     </svg>
   );
 };
@@ -352,114 +612,101 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
               initial="hidden"
               whileInView="visible"
               viewport={{ once: false, amount: 0.2 }}
-              className="lg:col-span-4 relative flex flex-col items-center justify-center my-6 lg:my-0"
+              className="lg:col-span-4 relative flex flex-col items-center justify-center my-6 lg:my-0 select-none"
             >
-              {/* Bandera de Colombia Ondulante en Fondo (Estilizada y Atmosférica) */}
+              {/* Bandera de Colombia Atmosférica en Fondo (Detrás del hombro noroccidental del mapa) */}
               <div
-                className="absolute top-14 -left-6 sm:-left-10 w-60 sm:w-68 h-40 rounded-2xl overflow-hidden pointer-events-none -z-10 transform -rotate-6 shadow-2xl transition-all"
+                className="absolute top-12 -left-10 sm:-left-16 w-64 sm:w-76 h-44 sm:h-50 rounded-2xl overflow-hidden pointer-events-none -z-10 transform -rotate-8 shadow-2xl transition-all select-none"
                 style={{
-                  opacity: 0.68,
-                  filter: 'blur(1px)',
+                  opacity: 0.75,
+                  filter: 'blur(1.5px)',
                 }}
               >
-                {/* Franja Amarilla (50%) */}
-                <div className="h-[50%] w-full bg-gradient-to-r from-[#FCD116] via-[#FFE259] to-[#FCD116]" />
+                {/* Franja Amarilla (50%) con pliegues satinados */}
+                <div className="h-[50%] w-full bg-gradient-to-r from-[#DDA700] via-[#FCD116] to-[#FFE866] relative">
+                  <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-transparent to-black/10" />
+                </div>
                 {/* Franja Azul (25%) */}
-                <div className="h-[25%] w-full bg-gradient-to-r from-[#003893] via-[#0052cc] to-[#003893]" />
+                <div className="h-[25%] w-full bg-gradient-to-r from-[#00246B] via-[#003893] to-[#0052CC] relative">
+                  <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-transparent to-black/10" />
+                </div>
                 {/* Franja Roja (25%) */}
-                <div className="h-[25%] w-full bg-gradient-to-r from-[#CE1126] via-[#ea2b41] to-[#CE1126]" />
-                {/* Ondeado y Sombra de Relieve */}
-                <div className="absolute inset-0 bg-gradient-to-tr from-black/35 via-transparent to-white/20 mix-blend-overlay pointer-events-none" />
-              </div>
-
-              {/* Mapa Holográfico Vectorial */}
-              <div className="relative w-[300px] sm:w-[350px] lg:w-[380px] h-[380px] sm:h-[440px] flex items-center justify-center z-10">
-                <ColombiaHologramMap variant="cyber" />
-              </div>
-
-              {/* Pedestal Tecnológico Elíptico en Perspectiva Isométrica con Luz Ascendente */}
-              <div className="relative -mt-16 w-[320px] sm:w-[380px] h-[110px] flex flex-col items-center justify-center pointer-events-none">
-                {/* Haz de Luz Láser Ascendente hacia el Trapecio Amazónico */}
+                <div className="h-[25%] w-full bg-gradient-to-r from-[#990012] via-[#CE1126] to-[#FF2D44] relative">
+                  <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-transparent to-black/10" />
+                </div>
+                {/* Ondulación de Tejido y Seda Tridimensional */}
                 <div
-                  className="absolute -top-12 w-44 h-24 pointer-events-none"
+                  className="absolute inset-0 pointer-events-none mix-blend-overlay"
                   style={{
                     background:
-                      'radial-gradient(ellipse at bottom, rgba(0, 210, 255, 0.45) 0%, rgba(21, 94, 239, 0.15) 50%, transparent 80%)',
-                    clipPath: 'polygon(35% 0%, 65% 0%, 100% 100%, 0% 100%)',
+                      'repeating-linear-gradient(45deg, rgba(255,255,255,0.2) 0px, rgba(0,0,0,0.3) 24px, rgba(255,255,255,0.15) 48px)',
                   }}
                 />
+              </div>
 
-                {/* Disco Base Oscuro (#0B152D) */}
-                <div className="absolute w-[92%] h-[68px] rounded-[100%] bg-[#0B152D] border border-cyan-500/30 shadow-[0_15px_35px_rgba(0,0,0,0.8)]" />
-
-                {/* Aro Exterior Neón Brillante */}
-                <div className="absolute w-[88%] h-[60px] rounded-[100%] border-2 border-[#00D2FF] shadow-[0_0_35px_rgba(0,210,255,0.7)]" />
-
-                {/* Aro Medio Tecnológico */}
-                <div className="absolute w-[70%] h-[44px] rounded-[100%] border border-[#38BDF8]/80 shadow-[0_0_20px_rgba(56,189,248,0.5)] border-dashed" />
-
-                {/* Núcleo Interior Radiante */}
-                <div className="absolute w-[45%] h-[26px] rounded-[100%] bg-gradient-to-b from-[#00D2FF]/40 to-transparent border border-cyan-300 shadow-[0_0_25px_rgba(0,210,255,0.9)]" />
+              {/* Mapa Holográfico 3D con Órbitas y Pedestal HUD Integrado */}
+              <div className="relative w-[320px] sm:w-[400px] lg:w-[440px] xl:w-[470px] h-[400px] sm:h-[480px] lg:h-[520px] flex items-center justify-center z-10">
+                <ColombiaHologramMap variant="cyber" />
               </div>
             </motion.div>
 
-            {/* Columna Derecha: Panel Lateral Flotante de Métricas (4 Tarjetas Exactas) */}
+            {/* Columna Derecha: Panel Lateral Flotante de Métricas (4 Tarjetas Glassmorphic Exactas) */}
             <motion.div
               variants={fluidFadeUp}
               initial="hidden"
               whileInView="visible"
               viewport={{ once: false, amount: 0.2 }}
-              className="lg:col-span-3 flex flex-col gap-3.5 w-full max-w-[290px] mx-auto lg:mx-0"
+              className="lg:col-span-3 flex flex-col gap-3.5 w-full max-w-[290px] mx-auto lg:mx-0 z-20"
             >
-              {/* Tarjeta 1: Departamentos */}
-              <div className="p-4 rounded-xl bg-[#0E172E]/85 backdrop-blur-md border border-sky-400/25 hover:border-cyan-400/50 hover:shadow-[0_0_20px_rgba(0,210,255,0.15)] transition-all flex items-center gap-3.5 shadow-lg group">
-                <div className="p-2.5 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-400/30 shrink-0 group-hover:scale-105 transition-transform">
-                  <Shield className="w-5 h-5" strokeWidth={2.2} />
+              {/* Tarjeta 1: Departments */}
+              <div className="p-4 rounded-2xl bg-[#081226]/85 backdrop-blur-xl border border-sky-400/25 hover:border-cyan-400/60 hover:shadow-[0_0_25px_rgba(0,210,255,0.2)] transition-all duration-300 flex items-center gap-3.5 shadow-xl group">
+                <div className="w-12 h-12 rounded-full bg-[#051129] border border-cyan-400/50 flex items-center justify-center text-cyan-400 shadow-[0_0_15px_rgba(0,210,255,0.3)] shrink-0 group-hover:scale-105 transition-transform">
+                  <Shield className="w-5.5 h-5.5" strokeWidth={2.2} />
                 </div>
                 <div className="text-left">
                   <span className="text-2xl font-black font-mono text-white tracking-tight leading-none block">
                     32
                   </span>
-                  <span className="text-xs text-[#94A3B8] font-medium block mt-1">Departamentos</span>
+                  <span className="text-xs text-slate-300 font-semibold block mt-1">Departamentos</span>
                 </div>
               </div>
 
-              {/* Tarjeta 2: Municipios */}
-              <div className="p-4 rounded-xl bg-[#0E172E]/85 backdrop-blur-md border border-sky-400/25 hover:border-cyan-400/50 hover:shadow-[0_0_20px_rgba(0,210,255,0.15)] transition-all flex items-center gap-3.5 shadow-lg group">
-                <div className="p-2.5 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-400/30 shrink-0 group-hover:scale-105 transition-transform">
-                  <Building2 className="w-5 h-5" strokeWidth={2.2} />
+              {/* Tarjeta 2: Municipalities */}
+              <div className="p-4 rounded-2xl bg-[#081226]/85 backdrop-blur-xl border border-sky-400/25 hover:border-cyan-400/60 hover:shadow-[0_0_25px_rgba(0,210,255,0.2)] transition-all duration-300 flex items-center gap-3.5 shadow-xl group">
+                <div className="w-12 h-12 rounded-full bg-[#051129] border border-cyan-400/50 flex items-center justify-center text-cyan-400 shadow-[0_0_15px_rgba(0,210,255,0.3)] shrink-0 group-hover:scale-105 transition-transform">
+                  <MapPin className="w-5.5 h-5.5" strokeWidth={2.2} />
                 </div>
                 <div className="text-left">
                   <span className="text-2xl font-black font-mono text-white tracking-tight leading-none block">
                     +1.102
                   </span>
-                  <span className="text-xs text-[#94A3B8] font-medium block mt-1">Municipios</span>
+                  <span className="text-xs text-slate-300 font-semibold block mt-1">Municipios</span>
                 </div>
               </div>
 
-              {/* Tarjeta 3: Puestos de votación */}
-              <div className="p-4 rounded-xl bg-[#0E172E]/85 backdrop-blur-md border border-sky-400/25 hover:border-cyan-400/50 hover:shadow-[0_0_20px_rgba(0,210,255,0.15)] transition-all flex items-center gap-3.5 shadow-lg group">
-                <div className="p-2.5 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-400/30 shrink-0 group-hover:scale-105 transition-transform">
-                  <Vote className="w-5 h-5" strokeWidth={2.2} />
+              {/* Tarjeta 3: Voting Stations */}
+              <div className="p-4 rounded-2xl bg-[#081226]/85 backdrop-blur-xl border border-sky-400/25 hover:border-cyan-400/60 hover:shadow-[0_0_25px_rgba(0,210,255,0.2)] transition-all duration-300 flex items-center gap-3.5 shadow-xl group">
+                <div className="w-12 h-12 rounded-full bg-[#051129] border border-cyan-400/50 flex items-center justify-center text-cyan-400 shadow-[0_0_15px_rgba(0,210,255,0.3)] shrink-0 group-hover:scale-105 transition-transform">
+                  <Vote className="w-5.5 h-5.5" strokeWidth={2.2} />
                 </div>
                 <div className="text-left">
                   <span className="text-2xl font-black font-mono text-white tracking-tight leading-none block">
                     +12.000
                   </span>
-                  <span className="text-xs text-[#94A3B8] font-medium block mt-1">Puestos de votación</span>
+                  <span className="text-xs text-slate-300 font-semibold block mt-1">Puestos de votación</span>
                 </div>
               </div>
 
-              {/* Tarjeta 4: Ciudadanos habilitados */}
-              <div className="p-4 rounded-xl bg-[#0E172E]/85 backdrop-blur-md border border-sky-400/25 hover:border-cyan-400/50 hover:shadow-[0_0_20px_rgba(0,210,255,0.15)] transition-all flex items-center gap-3.5 shadow-lg group">
-                <div className="p-2.5 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-400/30 shrink-0 group-hover:scale-105 transition-transform">
-                  <Users className="w-5 h-5" strokeWidth={2.2} />
+              {/* Tarjeta 4: Eligible Citizens */}
+              <div className="p-4 rounded-2xl bg-[#081226]/85 backdrop-blur-xl border border-sky-400/25 hover:border-cyan-400/60 hover:shadow-[0_0_25px_rgba(0,210,255,0.2)] transition-all duration-300 flex items-center gap-3.5 shadow-xl group">
+                <div className="w-12 h-12 rounded-full bg-[#051129] border border-cyan-400/50 flex items-center justify-center text-cyan-400 shadow-[0_0_15px_rgba(0,210,255,0.3)] shrink-0 group-hover:scale-105 transition-transform">
+                  <Users className="w-5.5 h-5.5" strokeWidth={2.2} />
                 </div>
                 <div className="text-left">
                   <span className="text-xl sm:text-2xl font-black font-mono text-white tracking-tight leading-none block">
                     +39.000.000
                   </span>
-                  <span className="text-xs text-[#94A3B8] font-medium block mt-1">Ciudadanos habilitados</span>
+                  <span className="text-xs text-slate-300 font-semibold block mt-1">Ciudadanos habilitados</span>
                 </div>
               </div>
             </motion.div>
