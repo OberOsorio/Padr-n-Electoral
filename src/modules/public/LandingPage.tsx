@@ -471,7 +471,30 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
   };
 
   return (
-    <div className="min-h-screen bg-[#070B19] text-white selection:bg-[#155EEF] selection:text-white relative overflow-x-hidden flex flex-col justify-between font-sans">
+    <div className="min-h-screen bg-[#070B19] text-slate-100 selection:bg-[#155EEF] selection:text-white relative overflow-x-hidden w-full flex flex-col justify-between font-sans">
+      {/* =========================================================================
+          RESPLANDORES DE ILUMINACIÓN AMBIENTAL (GLOBAL AMBIENT GLOWS)
+          ========================================================================= */}
+      <div
+        className="fixed inset-0 pointer-events-none -z-20 select-none overflow-hidden"
+        aria-hidden="true"
+      >
+        {/* Haz de luz radial superior */}
+        <div
+          className="absolute -top-24 left-[15%] sm:left-[30%] w-[800px] sm:w-[1200px] h-[550px] sm:h-[750px] pointer-events-none"
+          style={{
+            background: 'radial-gradient(circle at 60% 15%, rgba(21, 94, 239, 0.22) 0%, rgba(7, 11, 25, 0) 65%)',
+          }}
+        />
+        {/* Haz de luz de apoyo lateral izquierdo */}
+        <div
+          className="absolute top-[10%] -left-32 w-[600px] sm:w-[800px] h-[600px] sm:h-[800px] pointer-events-none"
+          style={{
+            background: 'radial-gradient(circle at 10% 25%, rgba(0, 210, 255, 0.08) 0%, transparent 50%)',
+          }}
+        />
+      </div>
+
       {/* =========================================================================
           A. BARRA DE NAVEGACIÓN (STICKY GLASSMORPHISM HEADER)
           ========================================================================= */}
@@ -530,17 +553,17 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
 
       <main className="flex-1 z-10" id="inicio">
         {/* =========================================================================
-            B. HERO SECTION (DOBLE COLUMNA + HOLOGRAMA 3D MAPA COLOMBIA + PANEL FLOTANTE)
+            B. HERO SECTION (DOBLE COLUMNA + PEDESTAL HUD EN LIENZO + PANEL FLOTANTE)
             ========================================================================= */}
         <section className="relative pt-10 pb-20 sm:pt-16 sm:pb-28 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto overflow-hidden">
-          {/* Fondo Escénico de Lienzo Continuo Tecnológico (Wallpaper Canvas) */}
-          <div className="absolute inset-0 pointer-events-none -z-20 overflow-hidden opacity-40 mix-blend-screen select-none">
+          {/* Fondo Escénico de Lienzo Continuo Tecnológico (Master Canvas Wallpaper) */}
+          <div className="absolute inset-0 pointer-events-none -z-20 overflow-hidden opacity-55 mix-blend-screen select-none">
             <img
-              src="/enterprise_canvas_bg.jpg"
+              src="/landing_bg_master.jpg"
               alt=""
-              className="w-full h-full object-cover object-top filter brightness-110 contrast-125"
+              className="w-full h-full object-cover object-top filter brightness-110 contrast-120"
             />
-            <div className="absolute inset-0 bg-gradient-to-b from-[#070B19]/30 via-transparent to-[#070B19]" />
+            <div className="absolute inset-0 bg-gradient-to-b from-[#070B19]/25 via-transparent to-[#070B19]" />
           </div>
 
           {/* Luces Ambientales de Fondo */}
@@ -618,9 +641,19 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
 
             {/* Columna Central: Espacio Escénico Despejado para el Pedestal y Haz de Luz del Lienzo */}
             <div
-              className="hidden lg:flex lg:col-span-4 relative flex-col items-center justify-center min-h-[480px] pointer-events-none select-none"
+              className="hidden lg:flex lg:col-span-4 relative flex-col items-center justify-end min-h-[480px] pointer-events-none select-none"
               aria-hidden="true"
-            />
+            >
+              {/* Capa de Piso Luminoso bajo el Pedestal */}
+              <div
+                className="w-[320px] h-[90px] rounded-full pointer-events-none mb-6"
+                style={{
+                  background:
+                    'radial-gradient(ellipse at center, rgba(0, 210, 255, 0.35) 0%, rgba(21, 94, 239, 0.1) 45%, transparent 75%)',
+                  filter: 'blur(20px)',
+                }}
+              />
+            </div>
 
             {/* Columna Derecha: Panel Lateral Flotante de Métricas (4 Tarjetas Glassmorphic Exactas) */}
             <motion.div
@@ -686,9 +719,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
         </section>
 
         {/* =========================================================================
-            C. SECCIÓN DE CARACTERÍSTICAS (GRID DE 6 TARJETAS EXACTAS)
+            C. SECCIÓN DE CARACTERÍSTICAS (GRID DE 6 TARJETAS + DARK GRID BLUEPRINT)
             ========================================================================= */}
-        <section id="caracteristicas" className="py-20 sm:py-28 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-slate-800/80">
+        <section
+          id="caracteristicas"
+          className="relative py-20 sm:py-28 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-slate-800/80 bg-[#080E21] rounded-3xl my-6"
+          style={{
+            backgroundImage: `linear-gradient(to right, rgba(56, 189, 248, 0.03) 1px, transparent 1px), linear-gradient(to bottom, rgba(56, 189, 248, 0.03) 1px, transparent 1px)`,
+            backgroundSize: '40px 40px',
+          }}
+        >
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
             {/* Encabezado Lateral */}
             <motion.div
@@ -1112,14 +1152,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
             F. CALL TO ACTION FINAL (HERO FOOTER BANNER HORIZONTE PLANETARIO)
             ========================================================================= */}
         <section className="relative py-24 sm:py-32 px-4 sm:px-6 lg:px-8 text-center overflow-hidden bg-[#070B19] border-t border-slate-800/80">
-          {/* Fondo Panorámico de Horizonte Cósmico Terrestre desde Órbita (Wallpaper Canvas) */}
+          {/* Fondo Panorámico de Horizonte Cósmico Terrestre desde Órbita (Master Canvas Wallpaper) */}
           <div className="absolute inset-0 pointer-events-none -z-10 overflow-hidden select-none">
             <img
-              src="/enterprise_canvas_bg.jpg"
+              src="/landing_bg_master.jpg"
               alt=""
-              className="w-full h-full object-cover object-bottom opacity-75 filter brightness-105"
+              className="w-full h-full object-cover object-bottom opacity-90 filter brightness-110 contrast-115"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#070B19] via-[#070B19]/40 to-[#070B19]" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#070B19] via-[#070B19]/30 to-[#070B19]" />
             <div className="absolute bottom-0 inset-x-0 h-32 bg-gradient-to-t from-[#070B19] to-transparent" />
           </div>
 
