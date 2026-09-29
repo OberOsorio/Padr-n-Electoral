@@ -616,49 +616,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
               </div>
             </motion.div>
 
-            {/* Columna Central: Holograma 3D Mapa de Colombia sobre Pedestal */}
-            <motion.div
-              variants={fluidFadeUp}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: false, amount: 0.2 }}
-              className="lg:col-span-4 relative flex flex-col items-center justify-center my-6 lg:my-0 select-none"
-            >
-              {/* Bandera de Colombia Atmosférica en Fondo (Detrás del hombro noroccidental del mapa) */}
-              <div
-                className="absolute top-12 -left-10 sm:-left-16 w-64 sm:w-76 h-44 sm:h-50 rounded-2xl overflow-hidden pointer-events-none -z-10 transform -rotate-8 shadow-2xl transition-all select-none"
-                style={{
-                  opacity: 0.75,
-                  filter: 'blur(1.5px)',
-                }}
-              >
-                {/* Franja Amarilla (50%) con pliegues satinados */}
-                <div className="h-[50%] w-full bg-gradient-to-r from-[#DDA700] via-[#FCD116] to-[#FFE866] relative">
-                  <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-transparent to-black/10" />
-                </div>
-                {/* Franja Azul (25%) */}
-                <div className="h-[25%] w-full bg-gradient-to-r from-[#00246B] via-[#003893] to-[#0052CC] relative">
-                  <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-transparent to-black/10" />
-                </div>
-                {/* Franja Roja (25%) */}
-                <div className="h-[25%] w-full bg-gradient-to-r from-[#990012] via-[#CE1126] to-[#FF2D44] relative">
-                  <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-transparent to-black/10" />
-                </div>
-                {/* Ondulación de Tejido y Seda Tridimensional */}
-                <div
-                  className="absolute inset-0 pointer-events-none mix-blend-overlay"
-                  style={{
-                    background:
-                      'repeating-linear-gradient(45deg, rgba(255,255,255,0.2) 0px, rgba(0,0,0,0.3) 24px, rgba(255,255,255,0.15) 48px)',
-                  }}
-                />
-              </div>
-
-              {/* Mapa Holográfico 3D con Órbitas y Pedestal HUD Integrado */}
-              <div className="relative w-[320px] sm:w-[400px] lg:w-[440px] xl:w-[470px] h-[400px] sm:h-[480px] lg:h-[520px] flex items-center justify-center z-10">
-                <ColombiaHologramMap variant="cyber" />
-              </div>
-            </motion.div>
+            {/* Columna Central: Espacio Escénico Despejado para el Pedestal y Haz de Luz del Lienzo */}
+            <div
+              className="hidden lg:flex lg:col-span-4 relative flex-col items-center justify-center min-h-[480px] pointer-events-none select-none"
+              aria-hidden="true"
+            />
 
             {/* Columna Derecha: Panel Lateral Flotante de Métricas (4 Tarjetas Glassmorphic Exactas) */}
             <motion.div
