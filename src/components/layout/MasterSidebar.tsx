@@ -212,8 +212,8 @@ export const MasterSidebar: React.FC<MasterSidebarProps> = ({
       )}
 
       {/* Footer SuperAdmin Profile Card */}
-      <div className={`p-3 sm:p-3.5 border-t border-slate-200 dark:border-purple-900/20 bg-slate-50/50 dark:bg-slate-950/40 shrink-0 ${
-        onCloseMobile ? 'pb-[max(1rem,env(safe-area-inset-bottom))]' : ''
+      <div className={`border-t border-slate-200 dark:border-purple-900/20 bg-slate-50/50 dark:bg-slate-950/40 shrink-0 ${
+        onCloseMobile ? 'p-4 pb-8 md:pb-4' : 'p-3 sm:p-3.5'
       }`}>
         <MasterUserCard
           name={userName}
@@ -236,10 +236,11 @@ export const MasterSidebar: React.FC<MasterSidebarProps> = ({
       {isMobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden flex">
           <div
-            className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm"
+            className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-40 lg:hidden cursor-pointer"
             onClick={onCloseMobile}
+            aria-hidden="true"
           />
-          <div className="relative w-80 max-w-[85vw] h-[100dvh] max-h-[100dvh] z-10 animate-in slide-in-from-left duration-200 overflow-hidden flex flex-col">
+          <div className="fixed inset-y-0 left-0 z-50 w-[85vw] max-w-xs h-[100dvh] max-h-[100dvh] bg-white dark:bg-[#0b0f19] border-r border-slate-200 dark:border-purple-900/30 shadow-2xl flex flex-col justify-between overflow-hidden animate-in slide-in-from-left duration-200">
             {sidebarContent}
           </div>
         </div>

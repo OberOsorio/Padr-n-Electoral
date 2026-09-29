@@ -255,10 +255,10 @@ export const Sidebar = ({
         </nav>
       </div>
 
-      {/* 3. Footer del Sidebar: Executive User Profile Card */}
-      <div className={`shrink-0 border-t border-slate-200 dark:border-slate-700/60 bg-slate-50/70 dark:bg-[#0F172A]/80 transition-colors ${
+      {/* 3. Footer del Sidebar: Executive User Profile Card con espaciado inferior seguro para móviles */}
+      <div className={`shrink-0 border-t border-slate-200 dark:border-slate-800/80 bg-slate-50/70 dark:bg-slate-900/90 transition-colors ${
         onCloseMobile
-          ? 'p-3 pb-[max(1rem,env(safe-area-inset-bottom))]'
+          ? 'p-4 pb-8 md:pb-4'
           : isEffectivelyCollapsed
           ? 'p-2 flex flex-col items-center'
           : 'p-3'

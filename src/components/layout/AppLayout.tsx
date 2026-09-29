@@ -106,25 +106,25 @@ export const AppLayout = ({
       {/* 2. Drawer Lateral Móvil (Off-canvas) con AnimatePresence */}
       <AnimatePresence>
         {isMobileMenuOpen && (
-          <div className="fixed inset-0 z-50 md:hidden flex" role="dialog" aria-modal="true">
-            {/* Backdrop oscuro con desenfoque suave */}
+          <div className="fixed inset-0 z-50 md:hidden" role="dialog" aria-modal="true">
+            {/* 1. BACKDROP OSCURO CON DESENFOQUE (Cubre 100% de la pantalla) */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: 0.25 }}
               onClick={() => setIsMobileMenuOpen(false)}
-              className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs"
+              className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-40 md:hidden cursor-pointer"
               aria-hidden="true"
             />
 
-            {/* Panel Lateral Deslizante con soporte para Safe Areas y 100dvh */}
+            {/* 2. PANEL LATERAL DESLIZANTE NATIVO (Drawer Móvil) */}
             <motion.aside
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="relative w-80 max-w-[85vw] h-[100dvh] max-h-[100dvh] bg-white dark:bg-[#161F30] border-r border-slate-200 dark:border-slate-700/60 shadow-2xl flex flex-col z-10 overflow-hidden"
+              transition={{ type: 'spring', damping: 28, stiffness: 260 }}
+              className="fixed inset-y-0 left-0 z-50 w-[85vw] max-w-xs h-[100dvh] max-h-[100dvh] bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col justify-between overflow-hidden"
             >
               <Sidebar
                 activeTab={activeTab}
