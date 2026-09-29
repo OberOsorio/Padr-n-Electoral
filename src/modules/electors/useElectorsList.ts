@@ -3,6 +3,7 @@ import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import type { ElectorWithRegistrant, Elector } from '../../types';
 import { PREDEFINED_POLLING_PLACES } from './constants';
 import { useTenant } from '../../context/TenantContext';
+import { useElectorsRealtime } from './useElectorsRealtime';
 
 export interface CoordinatorOption {
   id: string;
@@ -162,13 +163,15 @@ export const useElectorsList = (
   }, [currentTenantId, tenantLoading]);
 
   // 2. Consulta de Electores con Paginación Server-Side y Filtros
-  const fetchElectors = useCallback(async () => {
+  const fetchElectors = useCallback(async (isSilent = false) => {
     // Si aún está resolviendo el tenant, esperar
     if (tenantLoading) {
       return;
     }
 
-    setLoading(true);
+    if (!isSilent) {
+      setLoading(true);
+    }
     setError(null);
 
     // Si no está configurado Supabase, retornar vacío
@@ -176,7 +179,7 @@ export const useElectorsList = (
       if (isMountedRef.current) {
         setElectors([]);
         setTotalCount(0);
-        setLoading(false);
+        if (!isSilent) setLoading(false);
       }
       return;
     }
@@ -239,7 +242,7 @@ export const useElectorsList = (
         );
       }
     } finally {
-      if (isMountedRef.current) {
+      if (isMountedRef.current && !isSilent) {
         setLoading(false);
       }
     }
@@ -247,12 +250,108 @@ export const useElectorsList = (
 
   useEffect(() => {
     isMountedRef.current = true;
-    fetchElectors();
+    fetchElectors(false);
+
+    // Escuchar eventos locales de registro para modo demo o fallback
+    const handleLocalInsert = () => {
+      fetchElectors(true);
+    };
+    window.addEventListener('elector_registered', handleLocalInsert);
 
     return () => {
       isMountedRef.current = false;
+      window.removeEventListener('elector_registered', handleLocalInsert);
     };
   }, [fetchElectors]);
+
+  // 3. Suscripción en Tiempo Real (Supabase Realtime WebSocket)
+  const { isConnected: isRealtimeConnected } = useElectorsRealtime({
+    tenantId: currentTenantId,
+    enabled: isSupabaseConfigured && !tenantLoading,
+    onElectorInserted: (newRow) => {
+      // 1. Actualización inmediata del contador
+      setTotalCount((prev) => prev + 1);
+
+      // 2. Si estamos en la página 1 y el registro cumple con los filtros activos, anteponerlo a la tabla
+      if (page === 1) {
+        const matchesSearch =
+          !searchQuery ||
+          `${newRow.nombres || ''} ${newRow.apellidos || ''} ${newRow.cedula || ''}`
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase());
+        const matchesPuesto =
+          !puestoFilter ||
+          ['all', 'todos', ''].includes(puestoFilter.toLowerCase()) ||
+          newRow.puesto_votacion === puestoFilter;
+        const matchesCoord =
+          !coordinadorFilter ||
+          ['all', 'todos', ''].includes(coordinadorFilter.toLowerCase()) ||
+          newRow.registrado_por === coordinadorFilter;
+
+        if (matchesSearch && matchesPuesto && matchesCoord) {
+          const newFormatted: ElectorWithRegistrant = {
+            id: newRow.id,
+            cedula: newRow.cedula || '',
+            nombres: newRow.nombres || '',
+            apellidos: newRow.apellidos || '',
+            edad:
+              newRow.edad !== undefined && newRow.edad !== null
+                ? Number(newRow.edad)
+                : null,
+            telefono: newRow.telefono || '',
+            puesto_votacion: newRow.puesto_votacion || '',
+            mesa: newRow.mesa || 0,
+            notas: newRow.notas || null,
+            registrado_por: newRow.registrado_por,
+            created_at: newRow.created_at || new Date().toISOString(),
+            registrador: null,
+          };
+
+          setElectors((prev) => {
+            if (prev.some((e) => e.id === newRow.id)) return prev;
+            return [newFormatted, ...prev.slice(0, pageSize - 1)];
+          });
+        }
+      }
+
+      // 3. Reconsulta silenciosa en segundo plano para poblar relaciones y validar paginación exacta
+      fetchElectors(true);
+    },
+    onElectorDeleted: (oldRow) => {
+      // 1. Decrementar contador en vivo de inmediato
+      setTotalCount((prev) => Math.max(0, prev - 1));
+
+      // 2. Remover visualmente de la tabla actual
+      setElectors((prev) => prev.filter((e) => e.id !== oldRow.id));
+
+      // 3. Reconsulta silenciosa en segundo plano para rellenar la página si queda hueco
+      fetchElectors(true);
+    },
+    onElectorUpdated: (newRow) => {
+      // Actualizar datos del elector en la tabla visualmente
+      setElectors((prev) =>
+        prev.map((e) =>
+          e.id === newRow.id
+            ? {
+                ...e,
+                ...newRow,
+                edad:
+                  newRow.edad !== undefined && newRow.edad !== null
+                    ? Number(newRow.edad)
+                    : e.edad,
+              }
+            : e
+        )
+      );
+
+      // Reconsulta silenciosa
+      fetchElectors(true);
+    },
+    onRefreshTotal: () => {
+      // Reconsulta de reconciliación en background
+      fetchElectors(true);
+    },
+  });
 
   // Función para eliminar elector
   const deleteElector = async (id: string): Promise<boolean> => {
@@ -264,7 +363,7 @@ export const useElectorsList = (
       const updated = list.filter((e) => e.id !== id);
       localStorage.setItem('electoral_local_electors', JSON.stringify(updated));
       window.dispatchEvent(new Event('elector_registered'));
-      fetchElectors();
+      fetchElectors(false);
       return true;
     }
 
@@ -275,7 +374,7 @@ export const useElectorsList = (
 
       if (delError) throw delError;
 
-      fetchElectors();
+      fetchElectors(false);
       return true;
     } catch (err) {
       console.error('Error al eliminar elector:', err);
@@ -298,7 +397,7 @@ export const useElectorsList = (
       );
       localStorage.setItem('electoral_local_electors', JSON.stringify(updated));
       window.dispatchEvent(new Event('elector_registered'));
-      fetchElectors();
+      fetchElectors(false);
       return true;
     }
 
@@ -309,7 +408,7 @@ export const useElectorsList = (
 
       if (updError) throw updError;
 
-      fetchElectors();
+      fetchElectors(false);
       return true;
     } catch (err) {
       console.error('Error al actualizar elector:', err);
@@ -325,7 +424,8 @@ export const useElectorsList = (
     error,
     deleteElector,
     updateElector,
-    refetch: fetchElectors,
+    refetch: () => fetchElectors(false),
+    isRealtimeConnected,
     pollingPlacesList: PREDEFINED_POLLING_PLACES.map((p) => p.name),
   };
 };

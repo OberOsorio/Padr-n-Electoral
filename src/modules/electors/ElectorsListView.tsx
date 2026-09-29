@@ -37,7 +37,7 @@ export const ElectorsListView = ({
   const [editingElector, setEditingElector] = useState<ElectorWithRegistrant | null>(null);
   const [deletingElector, setDeletingElector] = useState<ElectorWithRegistrant | null>(null);
 
-  // Consulta reactiva con Supabase
+  // Consulta reactiva con Supabase y suscripción Realtime en vivo
   const {
     electors,
     totalCount,
@@ -48,6 +48,7 @@ export const ElectorsListView = ({
     deleteElector,
     updateElector,
     refetch,
+    isRealtimeConnected,
   } = useElectorsList(
     debouncedSearch,
     puestoFilter,
@@ -86,13 +87,27 @@ export const ElectorsListView = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          {/* Totalizador de registros encontrados */}
+          {/* Totalizador de registros encontrados con indicador Realtime */}
           <div className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 text-xs text-slate-600 dark:text-slate-200 flex items-center gap-2 shadow-xs">
             <Users className="w-4 h-4 text-blue-600 dark:text-blue-400" />
             <span className="font-mono font-semibold text-slate-900 dark:text-[#F8FAFC]">
               {totalCount.toLocaleString()}
             </span>
             <span className="text-slate-500 dark:text-slate-400">registrados</span>
+            {isRealtimeConnected && (
+              <span
+                className="flex items-center gap-1.5 pl-2 ml-0.5 border-l border-slate-200 dark:border-slate-700"
+                title="Sincronización en vivo activa (Supabase Realtime)"
+              >
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider hidden sm:inline">
+                  En Vivo
+                </span>
+              </span>
+            )}
           </div>
 
           <button
