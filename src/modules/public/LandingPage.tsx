@@ -12,8 +12,7 @@ import {
 } from 'lucide-react';
 import { ThemeToggle } from '../../components/ui/ThemeToggle';
 import { SecurityMetricsSection } from './SecurityMetricsSection';
-import { StarfieldCanvas } from '../../components/effects/StarfieldCanvas';
-import { Globe3DVisual } from '../../components/effects/Globe3DVisual';
+import { HeroTelemetryCard } from '../../components/effects/HeroTelemetryCard';
 
 interface LandingPageProps {
   onNavigateToLogin: () => void;
@@ -22,8 +21,6 @@ interface LandingPageProps {
 export const LandingPage = ({ onNavigateToLogin }: LandingPageProps) => {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0F172A] text-slate-900 dark:text-slate-100 selection:bg-blue-600 selection:text-white relative overflow-x-hidden flex flex-col justify-between transition-colors duration-300">
-      {/* Fondo de Partículas Estelares (Canvas 2D) */}
-      <StarfieldCanvas />
 
       {/* Luces de fondo ambientales sutiles */}
       <div 
@@ -104,9 +101,9 @@ export const LandingPage = ({ onNavigateToLogin }: LandingPageProps) => {
               </div>
             </div>
 
-            {/* Columna Derecha: Esfera / Globo 3D Holográfico */}
+            {/* Columna Derecha: Tarjeta Ejecutiva de Telemetría (Zero WebGL, Zero Canvas) */}
             <div className="lg:col-span-5 flex items-center justify-center w-full">
-              <Globe3DVisual />
+              <HeroTelemetryCard />
             </div>
           </div>
 
