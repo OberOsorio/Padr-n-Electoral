@@ -1,26 +1,22 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence, type Variants } from 'framer-motion';
+import { motion, type Variants } from 'framer-motion';
 import {
   Shield,
   ArrowRight,
-  Lock,
-  ShieldCheck,
-  Database,
-  ChevronRight,
-  Layers,
-  MapPin,
-  Activity,
-  ChevronDown,
-  FileCheck,
-  Server,
   Check,
-  HelpCircle,
-  Smartphone,
+  Cloud,
+  Headphones,
+  Users,
+  BarChart3,
+  Building,
+  Building2,
+  MapPin,
+  Map,
+  ShieldCheck,
+  ChevronRight,
+  Landmark,
   Radio,
-  Cpu,
-  Fingerprint,
-  KeyRound,
-  Terminal,
+  Vote,
 } from 'lucide-react';
 import { ThemeToggle } from '../../components/ui/ThemeToggle';
 
@@ -29,143 +25,141 @@ interface LandingPageProps {
 }
 
 // ============================================================================
-// ANIMACIONES BIDIRECCIONALES FLUIDAS Y PREMIUM (SCROLL DOWN & SCROLL UP)
+// ANIMACIONES BIDIRECCIONALES FLUIDAS (SCROLL DOWN & SCROLL UP)
 // ============================================================================
-const textFluidReveal: Variants = {
-  hidden: {
-    opacity: 0,
-    y: 32,
-    filter: 'blur(8px)',
-  },
+const fluidFadeUp: Variants = {
+  hidden: { opacity: 0, y: 32, filter: 'blur(6px)' },
   visible: (custom: number = 0) => ({
     opacity: 1,
     y: 0,
     filter: 'blur(0px)',
     transition: {
-      duration: 0.75,
+      duration: 0.7,
       delay: custom * 0.08,
       ease: [0.16, 1, 0.3, 1] as const,
     },
   }),
 };
 
-const cardStagger: Variants = {
-  hidden: {
-    opacity: 0,
-    scale: 0.96,
-    y: 24,
-  },
-  visible: (custom: number = 0) => ({
-    opacity: 1,
-    scale: 1,
-    y: 0,
-    transition: {
-      duration: 0.65,
-      delay: custom * 0.1,
-      ease: [0.16, 1, 0.3, 1] as const,
-    },
-  }),
+// ============================================================================
+// COMPONENTE VECTORIAL: MAPA HOLOGRÁFICO DE COLOMBIA CON RED DE NODOS
+// ============================================================================
+const ColombiaHologramMap: React.FC<{ variant?: 'cyber' | 'light' }> = ({ variant = 'cyber' }) => {
+  const isLight = variant === 'light';
+  const strokeColor = isLight ? '#0284C7' : '#00D2FF';
+  const fillColor = isLight ? 'rgba(14, 165, 233, 0.08)' : 'rgba(0, 210, 255, 0.12)';
+  const nodeFill = isLight ? '#0284C7' : '#38BDF8';
+
+  return (
+    <svg
+      viewBox="0 0 500 620"
+      className="w-full h-full drop-shadow-[0_0_35px_rgba(0,210,255,0.45)] select-none"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <defs>
+        <filter id="glow-cyan" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="6" result="blur" />
+          <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        </filter>
+        <linearGradient id="cyber-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#00D2FF" stopOpacity="0.8" />
+          <stop offset="50%" stopColor="#155EEF" stopOpacity="0.5" />
+          <stop offset="100%" stopColor="#00D2FF" stopOpacity="0.9" />
+        </linearGradient>
+      </defs>
+
+      {/* Contorno Geográfico Realista de Colombia */}
+      <path
+        d="M 235 22 
+           C 248 16, 270 20, 280 32 
+           C 290 44, 275 62, 268 76 
+           C 260 90, 250 98, 260 112 
+           C 270 126, 298 124, 308 140 
+           C 318 156, 305 178, 298 194 
+           C 290 210, 310 220, 332 230 
+           C 354 240, 386 244, 402 262 
+           C 418 280, 420 304, 412 324 
+           C 404 344, 378 352, 368 368 
+           C 358 384, 372 406, 362 422 
+           C 352 438, 328 440, 314 454 
+           C 300 468, 290 496, 278 512 
+           C 266 528, 252 562, 238 584 
+           C 224 606, 212 612, 204 598 
+           C 196 584, 186 548, 178 532 
+           C 170 516, 152 506, 142 492 
+           C 132 478, 136 456, 126 442 
+           C 116 428, 92 424, 84 410 
+           C 76 396, 82 376, 78 358 
+           C 74 340, 62 328, 66 310 
+           C 70 292, 88 280, 92 262 
+           C 96 244, 82 226, 88 208 
+           C 94 190, 114 182, 126 166 
+           C 138 150, 146 128, 158 114 
+           C 170 100, 192 98, 202 84 
+           C 212 70, 222 28, 235 22 Z"
+        stroke={strokeColor}
+        strokeWidth={isLight ? '2.5' : '3'}
+        fill={fillColor}
+        filter={isLight ? undefined : 'url(#glow-cyan)'}
+      />
+
+      {/* Malla Digital de Coordenadas y Líneas de Red Conectadas */}
+      <g stroke={strokeColor} strokeWidth="1" strokeDasharray="3 3" opacity={isLight ? 0.45 : 0.6}>
+        <line x1="158" y1="114" x2="260" y2="112" />
+        <line x1="260" y1="112" x2="202" y2="210" />
+        <line x1="202" y1="210" x2="126" y2="166" />
+        <line x1="202" y1="210" x2="228" y2="265" />
+        <line x1="228" y1="265" x2="148" y2="280" />
+        <line x1="228" y1="265" x2="308" y2="220" />
+        <line x1="228" y1="265" x2="242" y2="340" />
+        <line x1="242" y1="340" x2="162" y2="368" />
+        <line x1="242" y1="340" x2="332" y2="330" />
+        <line x1="242" y1="340" x2="228" y2="440" />
+        <line x1="228" y1="440" x2="314" y2="454" />
+        <line x1="228" y1="440" x2="142" y2="492" />
+        <line x1="228" y1="440" x2="238" y2="584" />
+      </g>
+
+      {/* Nodos de Ciudades y Departamentos Clave */}
+      {[
+        { cx: 235, cy: 35, label: 'La Guajira' },
+        { cx: 202, cy: 92, label: 'Barranquilla' },
+        { cx: 172, cy: 110, label: 'Cartagena' },
+        { cx: 258, cy: 155, label: 'Bucaramanga' },
+        { cx: 285, cy: 145, label: 'Cúcuta' },
+        { cx: 172, cy: 215, label: 'Medellín' },
+        { cx: 228, cy: 265, label: 'Bogotá D.C.' },
+        { cx: 152, cy: 310, label: 'Cali' },
+        { cx: 142, cy: 382, label: 'Pasto' },
+        { cx: 232, cy: 370, label: 'Neiva' },
+        { cx: 332, cy: 240, label: 'Arauca' },
+        { cx: 348, cy: 320, label: 'Vichada' },
+        { cx: 314, cy: 454, label: 'Mitú' },
+        { cx: 238, cy: 584, label: 'Leticia' },
+      ].map((n) => (
+        <g key={n.label}>
+          <circle cx={n.cx} cy={n.cy} r={isLight ? '4' : '5'} fill={nodeFill} />
+          {!isLight && (
+            <circle
+              cx={n.cx}
+              cy={n.cy}
+              r="10"
+              fill={nodeFill}
+              opacity="0.25"
+              className="animate-ping"
+              style={{ transformOrigin: `${n.cx}px ${n.cy}px`, animationDuration: '3s' }}
+            />
+          )}
+        </g>
+      ))}
+    </svg>
+  );
 };
 
 // ============================================================================
-// DATOS ESTRATÉGICOS REALES DE LA PLATAFORMA ELECTORAL
+// COMPONENTE PRINCIPAL LANDING PAGE ELECTORAL
 // ============================================================================
-const pillarsData = [
-  {
-    code: 'MOD-01',
-    icon: ShieldCheck,
-    title: 'Algoritmo Anti-Colisión Territorial',
-    category: 'INTEGRIDAD DE DATOS',
-    lead: 'Matemáticamente imposible duplicar simpatizantes entre líderes de campaña.',
-    description:
-      'En cada contienda, múltiples coordinadores inflan sus cifras adjudicándose los mismos votantes. El motor anti-colisión ejecuta un bloqueo determinista indexado por campaña: si una cédula ya fue ingresada, la rechaza en 0.04s, adjudicando el elector con sello inmutable de fecha, hora y líder original.',
-    metrics: ['0 Duplicados', 'Trazabilidad Inmutable', 'Auditoría Forense'],
-    accent: 'emerald',
-  },
-  {
-    code: 'MOD-02',
-    icon: Database,
-    title: 'Pipeline de Censo Nacional & DNP',
-    category: 'ENRIQUECIMIENTO EN VIVO',
-    lead: 'Consulta oficial que normaliza nombres, calcula edad y valida el sufragio.',
-    description:
-      'Al registrar un documento o cargar archivos masivos, el servicio en background cruza la información contra la base oficial del censo nacional. Calcula la edad exacta sin pedir fecha de nacimiento manual, corrige erratas ortográficas y determina si la persona está habilitada para votar.',
-    metrics: ['Autocorrección DNP', 'Cálculo de Edad', 'Filtro de Inhabilidades'],
-    accent: 'blue',
-  },
-  {
-    code: 'MOD-03',
-    icon: MapPin,
-    title: 'Matriz Geoespacial DIVIPOLE Oficial',
-    category: 'ESTRUCTURA TERRITORIAL',
-    lead: 'Catálogo de la División Político-Administrativa con puestos y mesas exactas.',
-    description:
-      'Toda la cartografía electoral precargada: Departamentos, Municipios, Comunas, Zonas Urbanas/Rurales, Puestos de Votación y número de Mesas habilitadas. Permite auditar la saturación de cada mesa y distribuir metas cuantitativas proporcionales al potencial electoral.',
-    metrics: ['DIVIPOLE Colombia', 'Control de Saturación', 'Metas por Puesto'],
-    accent: 'amber',
-  },
-  {
-    code: 'MOD-04',
-    icon: Cpu,
-    title: 'Motor Multi-Hilo de Carga Masiva',
-    category: 'PROCESAMIENTO POR LOTES',
-    lead: 'Procesamiento reactivo de miles de electores en Excel o CSV sin latencia.',
-    description:
-      'Importación paralela con pool concurrente de trabajadores. Mapea columnas automáticamente, depura caracteres corruptos, normaliza teléfonos celulares y ejecuta pre-auditoría con enriquecimiento automático antes de persistir en base de datos.',
-    metrics: ['Excel (.xlsx) & CSV', 'Pool Multi-Hilo', 'Pre-flight Audit'],
-    accent: 'indigo',
-  },
-  {
-    code: 'MOD-05',
-    icon: Smartphone,
-    title: 'Terminal de Enrolamiento para Líderes',
-    category: 'MOVILIDAD EN CAMPO',
-    lead: 'Memoria de lote inteligente para registro ultra-rápido en territorio.',
-    description:
-      'Diseñado para el líder barrial que recorre comunas y veredas desde su smartphone. La memoria de sesión recuerda automáticamente el último puesto y mesa seleccionados, permitiendo enrolar decenas de simpatizantes en minutos con mínimo consumo de datos.',
-    metrics: ['Mobile-First', 'Memoria de Lote', '70% Más Rápido'],
-    accent: 'purple',
-  },
-  {
-    code: 'MOD-06',
-    icon: KeyRound,
-    title: 'Aislamiento Criptográfico PostgreSQL RLS',
-    category: 'SEGURIDAD BANCARIA',
-    lead: 'Row-Level Security nativo: cada campaña es una fortaleza hermética.',
-    description:
-      'Aislamiento multi-tenant por directiva criptográfica en el motor de base de datos. Cada líder visualiza exclusivamente su padrón; los coordinadores auditan su zona; los administradores tienen trazabilidad inmutable y exportación segura en Excel UTF-8 con BOM.',
-    metrics: ['PostgreSQL RLS', 'Cifrado AES-256', 'UTF-8 BOM Export'],
-    accent: 'sky',
-  },
-];
-
-const timelineSteps = [
-  {
-    num: '01',
-    phase: 'ESTRUCTURACIÓN',
-    title: 'Zonificación DIVIPOLE & Metas de Victoria',
-    desc: 'El comité electoral configura el municipio, activa los puestos de votación y define metas numéricas asignadas por comuna, puesto y mesa.',
-  },
-  {
-    num: '02',
-    phase: 'ENROLAMIENTO',
-    title: 'Captura Territorial & Validación en Censo',
-    desc: 'Los líderes despliegan el registro en territorio. Cada cédula es verificada en milisegundos contra el censo nacional DNP con edad oficial calculada.',
-  },
-  {
-    num: '03',
-    phase: 'TELEMETRÍA',
-    title: 'Auditoría en Realtime & Supervisión WebSocket',
-    desc: 'El comando central monitorea segundo a segundo la consolidación de metas, detecta puestos desatendidos y audita el rendimiento individual.',
-  },
-  {
-    num: '04',
-    phase: 'DEFENSA',
-    title: 'Operación del Día D & Escrutinio',
-    desc: 'Listados organizados mesa a mesa para movilización de votantes y transmisión rápida de actas E-14 para blindar el escrutinio oficial contra fraudes.',
-  },
-];
-
 export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) => {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
@@ -174,811 +168,842 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#070C18] text-slate-900 dark:text-slate-100 selection:bg-blue-600 selection:text-white relative overflow-x-hidden flex flex-col justify-between transition-colors duration-300">
+    <div className="min-h-screen bg-[#070B19] text-white selection:bg-[#155EEF] selection:text-white relative overflow-x-hidden flex flex-col justify-between font-sans">
       {/* =========================================================================
-          ATMÓSFERA Y RESPLANDORES FUTURISTAS (PINTURA AMBIENTAL CSS)
+          A. BARRA DE NAVEGACIÓN (STICKY GLASSMORPHISM HEADER)
           ========================================================================= */}
-      <div
-        className="absolute top-0 left-1/2 -translate-x-1/2 w-[1200px] h-[550px] bg-gradient-to-b from-blue-600/15 dark:from-blue-600/20 via-indigo-600/10 to-transparent blur-[150px] pointer-events-none -z-10"
-        aria-hidden="true"
-      />
-      <div
-        className="absolute top-[900px] right-0 w-[600px] h-[600px] bg-indigo-600/10 dark:bg-indigo-600/15 blur-[160px] pointer-events-none -z-10"
-        aria-hidden="true"
-      />
-      <div
-        className="absolute top-[2000px] left-0 w-[550px] h-[550px] bg-emerald-500/10 dark:bg-emerald-500/15 blur-[150px] pointer-events-none -z-10"
-        aria-hidden="true"
-      />
-
-      {/* =========================================================================
-          1. HEADER FUTURISTA STICKY CON ESTADO DE RED TELEMÉTRICA
-          ========================================================================= */}
-      <header className="sticky top-0 z-50 w-full bg-white/80 dark:bg-[#0A101F]/85 backdrop-blur-2xl border-b border-slate-200/80 dark:border-slate-800/80 transition-colors">
+      <header className="sticky top-0 z-50 w-full bg-[#070B19]/80 backdrop-blur-xl border-b border-slate-800/60 transition-colors">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-          {/* Logo Holográfico */}
-          <div className="flex items-center gap-3.5">
-            <div className="h-11 w-11 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-blue-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/30 ring-1 ring-blue-400/40 shrink-0 relative group">
-              <Shield className="w-6 h-6 text-white transition-transform duration-300 group-hover:scale-110" strokeWidth={2.3} />
-              <span className="absolute -bottom-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white dark:border-[#0A101F]" />
+          {/* Izquierda: Isotipo + Nombre Institucional */}
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/25 ring-1 ring-cyan-400/40 shrink-0">
+              <Shield className="w-5.5 h-5.5 sm:w-6 sm:h-6 text-white" strokeWidth={2.4} />
             </div>
             <div className="flex flex-col text-left">
-              <span className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white leading-none font-sans">
-                PADRÓN <span className="bg-gradient-to-r from-blue-600 to-indigo-500 bg-clip-text text-transparent">ELECTORAL</span>
+              <span className="text-[11px] font-mono tracking-widest text-slate-400 uppercase leading-none font-bold">
+                PLATAFORMA
               </span>
-              <span className="text-[10px] font-mono tracking-widest uppercase text-slate-500 dark:text-slate-400 font-bold mt-1 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                COMMAND CENTER · 2026
+              <span className="text-xl sm:text-2xl font-black tracking-tight text-white leading-none mt-1">
+                ELECTORAL
               </span>
             </div>
           </div>
 
-          {/* Navegación Estratégica */}
-          <nav className="hidden lg:flex items-center gap-8 text-xs font-bold tracking-wider uppercase text-slate-600 dark:text-slate-300 font-mono">
-            <a href="#arquitectura" className="hover:text-blue-500 transition-colors">
-              // Arquitectura
+          {/* Centro: Links de Navegación Minimalistas */}
+          <nav className="hidden md:flex items-center gap-8 text-sm font-semibold text-slate-300">
+            <a href="#inicio" className="text-white hover:text-cyan-400 transition-colors relative py-1">
+              Inicio
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500 rounded-full" />
             </a>
-            <a href="#pilares" className="hover:text-blue-500 transition-colors">
-              // Blindaje
+            <a href="#caracteristicas" className="hover:text-cyan-400 transition-colors">
+              Características
             </a>
-            <a href="#timeline" className="hover:text-blue-500 transition-colors">
-              // Operación
+            <a href="#cobertura" className="hover:text-cyan-400 transition-colors">
+              Cobertura
             </a>
-            <a href="#comparativa" className="hover:text-blue-500 transition-colors">
-              // Diferencial
+            <a href="#seguridad" className="hover:text-cyan-400 transition-colors">
+              Seguridad
             </a>
-            <a href="#faq" className="hover:text-blue-500 transition-colors">
-              // FAQ
+            <a href="#contacto" className="hover:text-cyan-400 transition-colors">
+              Contacto
             </a>
           </nav>
 
-          {/* Acciones */}
+          {/* Derecha: Botón CTA Primario en Azul Eléctrico */}
           <div className="flex items-center gap-3">
             <ThemeToggle />
 
             <button
               type="button"
               onClick={onNavigateToLogin}
-              className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 active:scale-[0.98] text-white text-xs sm:text-sm font-bold tracking-wide transition-all shadow-xl shadow-blue-500/25 hover:shadow-blue-500/40 cursor-pointer border border-blue-400/30"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#155EEF] hover:bg-blue-500 active:scale-[0.98] text-white text-xs sm:text-sm font-bold tracking-wide transition-all shadow-lg shadow-blue-600/30 hover:shadow-blue-500/50 cursor-pointer border border-blue-400/30"
             >
-              <Lock className="w-3.5 h-3.5" />
-              <span>Acceso Seguro</span>
+              <span>Acceder a la plataforma</span>
               <ArrowRight className="w-4 h-4 ml-0.5" />
             </button>
           </div>
         </div>
       </header>
 
-      <main className="flex-1 z-10">
+      <main className="flex-1 z-10" id="inicio">
         {/* =========================================================================
-            2. HERO SECTION: COMUNICADO ESTRATÉGICO Y FILOSOFÍA FUTURISTA
+            B. HERO SECTION (DOBLE COLUMNA + HOLOGRAMA 3D MAPA COLOMBIA + PANEL FLOTANTE)
             ========================================================================= */}
-        <section className="relative pt-16 pb-20 sm:pt-28 sm:pb-32 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-center">
-          {/* Tagline de Misión */}
-          <motion.div
-            variants={textFluidReveal}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: false, amount: 0.2 }}
-            custom={0}
-            className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-blue-50/90 dark:bg-blue-950/70 border border-blue-200/80 dark:border-blue-800/80 text-blue-700 dark:text-blue-300 text-xs font-mono font-bold tracking-wider uppercase shadow-xs mb-8 backdrop-blur-xl"
-          >
-            <Radio className="w-4 h-4 text-emerald-500 animate-pulse" />
-            <span>Infraestructura de Inteligencia Electoral · Ciclo 2026</span>
-          </motion.div>
+        <section className="relative pt-10 pb-20 sm:pt-16 sm:pb-28 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto overflow-hidden">
+          {/* Luces Ambientales de Fondo */}
+          <div
+            className="absolute top-10 left-1/4 w-[600px] h-[400px] bg-blue-600/20 blur-[150px] pointer-events-none -z-10"
+            aria-hidden="true"
+          />
+          <div
+            className="absolute top-20 right-10 w-[500px] h-[500px] bg-cyan-500/15 blur-[160px] pointer-events-none -z-10"
+            aria-hidden="true"
+          />
 
-          {/* Titular Monumental */}
-          <motion.h1
-            variants={textFluidReveal}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: false, amount: 0.2 }}
-            custom={1}
-            className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight text-slate-900 dark:text-white leading-[1.08] max-w-5xl mx-auto text-balance"
-          >
-            La certeza de cada voto antes, durante y después de{' '}
-            <span className="bg-gradient-to-r from-blue-600 via-indigo-500 to-cyan-400 bg-clip-text text-transparent">
-              las urnas.
-            </span>
-          </motion.h1>
-
-          {/* Bajada Editorial */}
-          <motion.p
-            variants={textFluidReveal}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: false, amount: 0.2 }}
-            custom={2}
-            className="mt-8 text-base sm:text-xl text-slate-600 dark:text-slate-300 max-w-3xl mx-auto leading-relaxed text-balance font-normal"
-          >
-            La plataforma SaaS de alta precisión que sustituye las planillas manuales por rigor territorial: enriquecimiento en tiempo real con el censo oficial, detección matemática de doble registro entre líderes y trazabilidad inviolable hasta la última mesa.
-          </motion.p>
-
-          {/* Botones de Acción Futuristas */}
-          <motion.div
-            variants={textFluidReveal}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: false, amount: 0.2 }}
-            custom={3}
-            className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4"
-          >
-            <button
-              type="button"
-              onClick={onNavigateToLogin}
-              className="w-full sm:w-auto px-9 py-4 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-[0.98] text-white text-sm font-bold tracking-wider uppercase transition-all shadow-2xl shadow-blue-500/30 hover:shadow-blue-500/50 cursor-pointer flex items-center justify-center gap-3 border border-blue-400/40"
-            >
-              <span>Ingresar al Comando Central</span>
-              <ChevronRight className="w-4 h-4" />
-            </button>
-
-            <a
-              href="#pilares"
-              className="w-full sm:w-auto px-8 py-4 rounded-xl bg-white dark:bg-slate-900/90 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 text-sm font-bold tracking-wider uppercase transition-all flex items-center justify-center gap-2.5 shadow-sm"
-            >
-              <Terminal className="w-4 h-4 text-blue-500" />
-              <span>Conocer el Blindaje</span>
-            </a>
-          </motion.div>
-
-          {/* Matriz Telemetría Futurista */}
-          <motion.div
-            variants={textFluidReveal}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: false, amount: 0.2 }}
-            custom={4}
-            className="mt-16 max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-4 p-5 rounded-3xl bg-white/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 backdrop-blur-2xl shadow-lg"
-          >
-            <div className="p-4 text-center">
-              <span className="text-[11px] font-mono uppercase text-slate-500 dark:text-slate-400 font-bold block tracking-wider">
-                Anti-Colisión
-              </span>
-              <span className="text-2xl sm:text-3xl font-black font-mono text-emerald-600 dark:text-emerald-400 mt-1 block">
-                0 Duplicados
-              </span>
-              <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 block">
-                Índice único por Campaña
-              </span>
-            </div>
-
-            <div className="p-4 text-center border-l border-slate-200/60 dark:border-slate-800/60">
-              <span className="text-[11px] font-mono uppercase text-slate-500 dark:text-slate-400 font-bold block tracking-wider">
-                Censo Nacional
-              </span>
-              <span className="text-2xl sm:text-3xl font-black font-mono text-blue-600 dark:text-blue-400 mt-1 block">
-                &lt; 0.04s
-              </span>
-              <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 block">
-                Cruce y cálculo de edad
-              </span>
-            </div>
-
-            <div className="p-4 text-center border-t md:border-t-0 md:border-l border-slate-200/60 dark:border-slate-800/60">
-              <span className="text-[11px] font-mono uppercase text-slate-500 dark:text-slate-400 font-bold block tracking-wider">
-                Cartografía
-              </span>
-              <span className="text-2xl sm:text-3xl font-black font-mono text-indigo-600 dark:text-indigo-400 mt-1 block">
-                DIVIPOLE
-              </span>
-              <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 block">
-                Puestos y mesas oficiales
-              </span>
-            </div>
-
-            <div className="p-4 text-center border-t md:border-t-0 md:border-l border-slate-200/60 dark:border-slate-800/60">
-              <span className="text-[11px] font-mono uppercase text-slate-500 dark:text-slate-400 font-bold block tracking-wider">
-                Seguridad
-              </span>
-              <span className="text-2xl sm:text-3xl font-black font-mono text-amber-600 dark:text-amber-400 mt-1 block">
-                PostgreSQL RLS
-              </span>
-              <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 block">
-                Aislamiento estanco
-              </span>
-            </div>
-          </motion.div>
-        </section>
-
-        {/* =========================================================================
-            3. SECCIÓN: EL MANIFIESTO ESTRATÉGICO (POR QUÉ FALLAN LAS CAMPAÑAS)
-            ========================================================================= */}
-        <section id="arquitectura" className="py-20 sm:py-28 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-slate-200/80 dark:border-slate-800/80">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-            {/* Declaración de Alto Impacto */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-6 items-center">
+            {/* Columna Izquierda: Información Principal */}
             <motion.div
-              variants={textFluidReveal}
+              variants={fluidFadeUp}
               initial="hidden"
               whileInView="visible"
               viewport={{ once: false, amount: 0.2 }}
-              className="lg:col-span-5 text-left space-y-5"
+              className="lg:col-span-5 text-left space-y-6"
             >
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 text-xs font-mono font-bold tracking-wider">
-                <Fingerprint className="w-3.5 h-3.5" />
-                <span>DOCTRINA ELECTORAL 2026</span>
+              {/* Badge Píldora Superior */}
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-950/70 border border-cyan-400/30 text-cyan-300 text-xs font-mono font-bold tracking-wider uppercase shadow-[0_0_15px_rgba(0,210,255,0.2)]">
+                <span>TECNOLOGÍA PARA UNA DEMOCRACIA MÁS FUERTE</span>
               </div>
 
-              <h2 className="text-3xl sm:text-5xl font-black tracking-tight text-slate-900 dark:text-white leading-tight">
-                El candidato que no audita su territorio, ya perdió la elección.
-              </h2>
+              {/* H1 de Gran Escala con acento cian */}
+              <h1 className="text-4xl sm:text-5xl lg:text-5.5xl xl:text-6xl font-black tracking-tight text-white leading-[1.08] text-balance">
+                Tu aliado en cada{' '}
+                <span className="text-[#00D2FF] drop-shadow-[0_0_25px_rgba(0,210,255,0.4)]">
+                  proceso electoral
+                </span>
+              </h1>
 
-              <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 leading-relaxed">
-                Durante décadas, las campañas han confiado sus victorias a planillas dispersas de Excel que cualquier persona puede alterar, duplicar o filtrar. El resultado: metas falsas de votación, líderes cobrando por los mismos electores y descalabro logístico en las mesas el Día D.
+              {/* Párrafo descriptivo fiel */}
+              <p className="text-sm sm:text-base text-slate-300 leading-relaxed max-w-lg">
+                Plataforma tecnológica diseñada para gestionar, controlar y hacer seguimiento a todas las etapas del proceso electoral en Colombia. Transparencia, seguridad y eficiencia en un solo lugar.
               </p>
 
-              <div className="pt-2">
-                <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-transparent border-l-4 border-blue-600 font-mono text-xs sm:text-sm text-slate-800 dark:text-slate-200">
-                  "Padrón Electoral transforma la intuición política en una ciencia de datos territoriales inviolable."
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Visualización de las 3 Brechas Críticas Resueltas */}
-            <motion.div
-              variants={cardStagger}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: false, amount: 0.2 }}
-              className="lg:col-span-7 space-y-4"
-            >
-              <div className="p-6 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 shadow-sm text-left flex items-start gap-4">
-                <div className="h-10 w-10 rounded-xl bg-red-50 dark:bg-red-950/50 text-red-500 border border-red-200 dark:border-red-800/60 flex items-center justify-center shrink-0 font-mono font-bold">
-                  01
-                </div>
-                <div>
-                  <h4 className="text-base font-bold text-slate-900 dark:text-white">
-                    La Trampa de los Votos Duplicados
-                  </h4>
-                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">
-                    Un simpatizante prometido a tres líderes diferentes representa dos votos ficticios. Nuestro motor bloquea la cédula desde el primer intento y le adjudica el mérito exclusivamente al primer enrolador.
-                  </p>
-                </div>
-              </div>
-
-              <div className="p-6 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 shadow-sm text-left flex items-start gap-4">
-                <div className="h-10 w-10 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-500 border border-amber-200 dark:border-amber-800/60 flex items-center justify-center shrink-0 font-mono font-bold">
-                  02
-                </div>
-                <div>
-                  <h4 className="text-base font-bold text-slate-900 dark:text-white">
-                    El Desconocimiento del Censo y la Mesa Real
-                  </h4>
-                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">
-                    Movilizar votantes hacia puestos equivocados arruina la elección. La plataforma cruza los datos con la Registraduría y el DNP para ubicar al elector en su mesa oficial con edad calculada.
-                  </p>
-                </div>
-              </div>
-
-              <div className="p-6 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 shadow-sm text-left flex items-start gap-4">
-                <div className="h-10 w-10 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-500 border border-blue-200 dark:border-blue-800/60 flex items-center justify-center shrink-0 font-mono font-bold">
-                  03
-                </div>
-                <div>
-                  <h4 className="text-base font-bold text-slate-900 dark:text-white">
-                    La Filtración y Robo de Bases de Datos
-                  </h4>
-                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">
-                    Con PostgreSQL RLS, los líderes territoriales únicamente ven su propio listado. Es técnicamente imposible que un líder renuncie y se lleve la base completa de la campaña.
-                  </p>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        </section>
-
-        {/* =========================================================================
-            4. SECCIÓN: LOS SEIS PILARES DEL BLINDAJE ELECTORAL (FUTURISTA, SIN CAPTURAS)
-            ========================================================================= */}
-        <section id="pilares" className="py-20 sm:py-28 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-slate-200/80 dark:border-slate-800/80">
-          <motion.div
-            variants={textFluidReveal}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: false, amount: 0.2 }}
-            className="text-center max-w-3xl mx-auto mb-16 space-y-3"
-          >
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 text-xs font-mono font-bold tracking-wider">
-              <Layers className="w-3.5 h-3.5" />
-              <span>CAPACIDADES DEL NÚCLEO</span>
-            </div>
-            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-              Seis Motores Diseñados para la Certeza Electoral
-            </h2>
-            <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300">
-              Cada componente ha sido concebido para operar bajo las condiciones más exigentes del terreno político.
-            </p>
-          </motion.div>
-
-          {/* Grilla Asimétrica y Futurista de Pilares */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {pillarsData.map((p, idx) => {
-              const IconComponent = p.icon;
-              return (
-                <motion.div
-                  key={p.code}
-                  variants={cardStagger}
-                  initial="hidden"
-                  whileInView="visible"
-                  viewport={{ once: false, amount: 0.15 }}
-                  custom={idx}
-                  className="rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 hover:border-blue-500/50 p-7 shadow-sm hover:shadow-2xl transition-all duration-300 flex flex-col justify-between group relative overflow-hidden text-left"
-                >
-                  <div>
-                    {/* Header de la tarjeta */}
-                    <div className="flex items-center justify-between mb-5">
-                      <div className="h-12 w-12 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 flex items-center justify-center text-blue-600 dark:text-blue-400 group-hover:scale-105 transition-transform">
-                        <IconComponent className="w-6 h-6" />
-                      </div>
-                      <span className="font-mono text-xs font-black text-slate-400 dark:text-slate-500">
-                        {p.code}
-                      </span>
-                    </div>
-
-                    <span className="text-[10px] font-mono uppercase font-bold tracking-wider text-blue-600 dark:text-blue-400 block mb-1">
-                      {p.category}
-                    </span>
-
-                    <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2 leading-snug">
-                      {p.title}
-                    </h3>
-
-                    <p className="text-xs font-semibold text-slate-700 dark:text-slate-200 mb-2">
-                      {p.lead}
-                    </p>
-
-                    <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                      {p.description}
-                    </p>
-                  </div>
-
-                  {/* Tags de telemetría */}
-                  <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-wrap gap-1.5 font-mono text-[10px]">
-                    {p.metrics.map((m) => (
-                      <span
-                        key={m}
-                        className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold"
-                      >
-                        {m}
-                      </span>
-                    ))}
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* =========================================================================
-            5. SECCIÓN: TIMELINE OPERATIVO DE CAMPAÑA (INTERCONECTADO Y FLUIDO)
-            ========================================================================= */}
-        <section id="timeline" className="py-20 sm:py-28 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-slate-200/80 dark:border-slate-800/80">
-          <motion.div
-            variants={textFluidReveal}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: false, amount: 0.2 }}
-            className="text-center max-w-3xl mx-auto mb-16 space-y-3"
-          >
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 text-xs font-mono font-bold tracking-wider">
-              <Activity className="w-3.5 h-3.5" />
-              <span>DESPLIEGUE TÁCTICO</span>
-            </div>
-            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-              De la Cartografía Inicial a la Victoria en Urnas
-            </h2>
-            <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300">
-              Un ciclo de cuatro fases diseñado para otorgar ventaja estratégica absoluta frente a los rivales electorales.
-            </p>
-          </motion.div>
-
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 relative">
-            {timelineSteps.map((step, idx) => (
-              <motion.div
-                key={step.num}
-                variants={cardStagger}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: false, amount: 0.2 }}
-                custom={idx}
-                className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm relative text-left flex flex-col justify-between"
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="w-10 h-10 rounded-2xl bg-blue-600 text-white font-mono font-black text-sm flex items-center justify-center shadow-lg shadow-blue-500/25">
-                      {step.num}
-                    </span>
-                    <span className="text-[10px] font-mono tracking-widest text-slate-400 dark:text-slate-500 font-bold uppercase">
-                      {step.phase}
-                    </span>
-                  </div>
-
-                  <h4 className="text-base font-bold text-slate-900 dark:text-white mb-2">
-                    {step.title}
-                  </h4>
-
-                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                    {step.desc}
-                  </p>
-                </div>
-
-                <div className="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center gap-1.5 text-[11px] font-mono text-blue-600 dark:text-blue-400 font-semibold">
-                  <span>Paso Verificado</span>
-                  <Check className="w-3.5 h-3.5" />
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </section>
-
-        {/* =========================================================================
-            6. SECCIÓN: MATRIZ ESTRATÉGICA (PADRÓN ELECTORAL VS EXCEL TRADICIONAL)
-            ========================================================================= */}
-        <section id="comparativa" className="py-20 sm:py-28 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto border-t border-slate-200/80 dark:border-slate-800/80">
-          <motion.div
-            variants={textFluidReveal}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: false, amount: 0.2 }}
-            className="text-center max-w-3xl mx-auto mb-16 space-y-3"
-          >
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 text-xs font-mono font-bold tracking-wider">
-              <FileCheck className="w-3.5 h-3.5" />
-              <span>DIFERENCIAL DE PODER</span>
-            </div>
-            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-              Padrón Electoral vs. Planillas en Excel y Drive
-            </h2>
-            <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300">
-              La diferencia técnica entre una campaña con control militar del territorio y una expuesta a la improvisación.
-            </p>
-          </motion.div>
-
-          <motion.div
-            variants={textFluidReveal}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: false, amount: 0.2 }}
-            className="border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden bg-white dark:bg-slate-900 shadow-2xl"
-          >
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs sm:text-sm border-collapse">
-                <thead>
-                  <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/70 text-slate-700 dark:text-slate-300 font-semibold font-mono">
-                    <th className="py-4 px-4 sm:px-6 w-1/3 text-xs uppercase tracking-wider">Dimensión Operativa</th>
-                    <th className="py-4 px-4 sm:px-6 w-1/3 text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-950/30 text-xs uppercase tracking-wider">
-                      Padrón Electoral (SaaS Central)
-                    </th>
-                    <th className="py-4 px-4 sm:px-6 w-1/3 text-slate-400 dark:text-slate-500 text-xs uppercase tracking-wider">
-                      Planillas Compartidas (Excel / Sheets)
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
-                  <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                    <td className="py-4 px-4 sm:px-6 font-semibold text-slate-900 dark:text-white">
-                      Anti-Colisión entre Líderes
-                    </td>
-                    <td className="py-4 px-4 sm:px-6 font-semibold text-emerald-600 dark:text-emerald-400 bg-blue-50/20 dark:bg-blue-950/10 flex items-center gap-2">
-                      <Check className="w-4 h-4 text-emerald-500 shrink-0" />
-                      Bloqueo automático en 0.04 segundos
-                    </td>
-                    <td className="py-4 px-4 sm:px-6 text-slate-500 dark:text-slate-400">
-                      Inexistente: hasta 40% de electores duplicados
-                    </td>
-                  </tr>
-
-                  <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                    <td className="py-4 px-4 sm:px-6 font-semibold text-slate-900 dark:text-white">
-                      Cruce y Validación de Censo
-                    </td>
-                    <td className="py-4 px-4 sm:px-6 font-semibold text-emerald-600 dark:text-emerald-400 bg-blue-50/20 dark:bg-blue-950/10 flex items-center gap-2">
-                      <Check className="w-4 h-4 text-emerald-500 shrink-0" />
-                      Autocorrección de nombres y edad en vivo
-                    </td>
-                    <td className="py-4 px-4 sm:px-6 text-slate-500 dark:text-slate-400">
-                      Digitación a ciegas propensa a errores fatales
-                    </td>
-                  </tr>
-
-                  <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                    <td className="py-4 px-4 sm:px-6 font-semibold text-slate-900 dark:text-white">
-                      Confidencialidad y Fuga de Bases
-                    </td>
-                    <td className="py-4 px-4 sm:px-6 font-semibold text-emerald-600 dark:text-emerald-400 bg-blue-50/20 dark:bg-blue-950/10 flex items-center gap-2">
-                      <Check className="w-4 h-4 text-emerald-500 shrink-0" />
-                      PostgreSQL RLS: cada líder solo ve sus electores
-                    </td>
-                    <td className="py-4 px-4 sm:px-6 text-slate-500 dark:text-slate-400">
-                      Cualquiera con el enlace descarga la base entera
-                    </td>
-                  </tr>
-
-                  <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                    <td className="py-4 px-4 sm:px-6 font-semibold text-slate-900 dark:text-white">
-                      Sincronización en Tiempo Real
-                    </td>
-                    <td className="py-4 px-4 sm:px-6 font-semibold text-emerald-600 dark:text-emerald-400 bg-blue-50/20 dark:bg-blue-950/10 flex items-center gap-2">
-                      <Check className="w-4 h-4 text-emerald-500 shrink-0" />
-                      Suscripción WebSocket en móviles y comando central
-                    </td>
-                    <td className="py-4 px-4 sm:px-6 text-slate-500 dark:text-slate-400">
-                      Conflictos de archivo desincronizado y pérdida de datos
-                    </td>
-                  </tr>
-
-                  <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                    <td className="py-4 px-4 sm:px-6 font-semibold text-slate-900 dark:text-white">
-                      Estructura Territorial DIVIPOLE
-                    </td>
-                    <td className="py-4 px-4 sm:px-6 font-semibold text-emerald-600 dark:text-emerald-400 bg-blue-50/20 dark:bg-blue-950/10 flex items-center gap-2">
-                      <Check className="w-4 h-4 text-emerald-500 shrink-0" />
-                      Puestos y mesas oficiales de Colombia integradas
-                    </td>
-                    <td className="py-4 px-4 sm:px-6 text-slate-500 dark:text-slate-400">
-                      Nombres de puestos escritos con decenas de variantes
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </motion.div>
-        </section>
-
-        {/* =========================================================================
-            7. SECCIÓN: GOBERNANZA & ESTRUCTURA DE ROLES DE CAMPAÑA
-            ========================================================================= */}
-        <section className="py-20 sm:py-28 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-slate-200/80 dark:border-slate-800/80">
-          <motion.div
-            variants={textFluidReveal}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: false, amount: 0.2 }}
-            className="text-center max-w-3xl mx-auto mb-16 space-y-3"
-          >
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 text-xs font-mono font-bold tracking-wider">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>GOBERNANZA DE SEGURIDAD</span>
-            </div>
-            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-              Jerarquía de Roles y Privilegios Estancos
-            </h2>
-            <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300">
-              Cada actor de la campaña opera con permisos blindados directamente en el motor de base de datos.
-            </p>
-          </motion.div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <motion.div
-              variants={cardStagger}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: false, amount: 0.2 }}
-              custom={0}
-              className="p-7 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm text-left flex flex-col justify-between"
-            >
-              <div>
-                <span className="text-[10px] font-mono uppercase font-bold text-blue-500 tracking-wider block mb-2">
-                  NIVEL ESTRATÉGICO
-                </span>
-                <h4 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
-                  Administrador General
-                </h4>
-                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                  Candidato y Gerente de Campaña. Visión 360° del padrón, fijación de metas cuantitativas, balance de saturación de puestos y descarga de reportes oficiales.
-                </p>
-              </div>
-              <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 font-mono text-[11px] text-blue-600 dark:text-blue-400 font-semibold">
-                Control Total · Gestión de Campaña
-              </div>
-            </motion.div>
-
-            <motion.div
-              variants={cardStagger}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: false, amount: 0.2 }}
-              custom={1}
-              className="p-7 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm text-left flex flex-col justify-between"
-            >
-              <div>
-                <span className="text-[10px] font-mono uppercase font-bold text-indigo-500 tracking-wider block mb-2">
-                  NIVEL TÁCTICO
-                </span>
-                <h4 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
-                  Coordinador Territorial
-                </h4>
-                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                  Supervisa comunas o municipios asignados. Ejecuta importaciones masivas por lotes, audita a sus líderes subordinados y supervisa metas territoriales.
-                </p>
-              </div>
-              <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 font-mono text-[11px] text-indigo-600 dark:text-indigo-400 font-semibold">
-                Carga Masiva · Auditoría Zonal
-              </div>
-            </motion.div>
-
-            <motion.div
-              variants={cardStagger}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: false, amount: 0.2 }}
-              custom={2}
-              className="p-7 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm text-left flex flex-col justify-between"
-            >
-              <div>
-                <span className="text-[10px] font-mono uppercase font-bold text-purple-500 tracking-wider block mb-2">
-                  NIVEL OPERATIVO
-                </span>
-                <h4 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
-                  Líder de Terreno
-                </h4>
-                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                  Enrola votantes en campo desde su smartphone con memoria de lote. Solo puede ver sus propios registros; blindado contra fugas de información.
-                </p>
-              </div>
-              <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 font-mono text-[11px] text-purple-600 dark:text-purple-400 font-semibold">
-                Mobile-First · Memoria de Lote
-              </div>
-            </motion.div>
-          </div>
-        </section>
-
-        {/* =========================================================================
-            8. SECCIÓN: PREGUNTAS FRECUENTES (FAQ ACORDEÓN FLUIDO BIDIRECCIONAL)
-            ========================================================================= */}
-        <section id="faq" className="py-20 sm:py-28 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto border-t border-slate-200/80 dark:border-slate-800/80">
-          <motion.div
-            variants={textFluidReveal}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: false, amount: 0.2 }}
-            className="text-center max-w-2xl mx-auto mb-14 space-y-3"
-          >
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 text-xs font-mono font-bold tracking-wider">
-              <HelpCircle className="w-3.5 h-3.5" />
-              <span>CONSULTAS CLAVE</span>
-            </div>
-            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-              Preguntas Frecuentes
-            </h2>
-            <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300">
-              Respuestas directas a las dudas tácticas de gerentes de campaña y comités electorales.
-            </p>
-          </motion.div>
-
-          <div className="space-y-4">
-            {[
-              {
-                q: '¿Cómo garantiza el motor anti-colisión que no existan votos inflados?',
-                a: 'El sistema mantiene un índice único por documento de identidad dentro del tenant de la campaña en PostgreSQL. Si un segundo líder intenta registrar una cédula ya existente, el sistema bloquea la inserción y le indica de forma transparente qué líder la inscribió primero, en qué fecha y en qué mesa.',
-              },
-              {
-                q: '¿Cómo funciona la consulta y enriquecimiento con el censo oficial?',
-                a: 'Al ingresar una cédula o cargar un archivo masivo en Excel, un servicio en background consulta el censo oficial (DNP / Registraduría). De forma instantánea calcula la edad precisa del ciudadano, normaliza sus nombres oficiales y sugiere el puesto y mesa de votación asignados.',
-              },
-              {
-                q: '¿Los líderes de barrio pueden ver los electores registrados por otros líderes?',
-                a: 'No. Mediante políticas de Seguridad a Nivel de Fila (PostgreSQL Row Level Security), cada líder tiene una vista hermética y aislada donde solo puede ver y gestionar sus propios simpatizantes. Solo los coordinadores y el administrador general poseen visibilidad ampliada.',
-              },
-              {
-                q: '¿Qué formato deben tener los archivos para la Carga Masiva?',
-                a: 'La plataforma acepta archivos Excel (.xlsx) y CSV. No requiere una plantilla rígida: el sistema mapea de forma inteligente las columnas (Cédula, Nombres, Teléfono, Puesto, Mesa) y ejecuta una pre-auditoría reactiva antes de confirmar la importación.',
-              },
-              {
-                q: '¿La plataforma soporta miles de conexiones simultáneas el Día D?',
-                a: 'Sí. La infraestructura está montada sobre una arquitectura serverless distribuida en Edge (Cloudflare Workers y Supabase PostgreSQL) con alta resiliencia y réplicas de lectura preparadas para absorber el pico masivo de consultas de la jornada electoral.',
-              },
-            ].map((faq, index) => {
-              const isOpen = openFaq === index;
-              return (
-                <motion.div
-                  key={faq.q}
-                  variants={cardStagger}
-                  initial="hidden"
-                  whileInView="visible"
-                  viewport={{ once: false, amount: 0.15 }}
-                  custom={index}
-                  className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 overflow-hidden shadow-xs"
-                >
-                  <button
-                    type="button"
-                    onClick={() => toggleFaq(index)}
-                    className="w-full px-6 py-5 text-left flex items-center justify-between gap-4 font-bold text-sm sm:text-base text-slate-900 dark:text-white hover:text-blue-500 transition-colors cursor-pointer"
-                  >
-                    <span>{faq.q}</span>
-                    <ChevronDown
-                      className={`w-4 h-4 shrink-0 text-slate-400 transition-transform duration-300 ${
-                        isOpen ? 'rotate-180 text-blue-500' : ''
-                      }`}
-                    />
-                  </button>
-
-                  <AnimatePresence>
-                    {isOpen && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.35, ease: 'easeInOut' }}
-                      >
-                        <div className="px-6 pb-6 text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed border-t border-slate-100 dark:border-slate-800/80 pt-3">
-                          {faq.a}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </motion.div>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* =========================================================================
-            9. BANNER FINAL FUTURISTA: ACCESO AL COMANDO CENTRAL
-            ========================================================================= */}
-        <section className="py-20 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto text-center">
-          <motion.div
-            variants={textFluidReveal}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: false, amount: 0.2 }}
-            className="p-8 sm:p-16 rounded-3xl bg-gradient-to-b from-blue-600/15 via-white to-white dark:from-blue-900/25 dark:via-[#0A101F] dark:to-[#0A101F] border border-blue-200 dark:border-blue-800/80 shadow-2xl relative overflow-hidden backdrop-blur-2xl"
-          >
-            <div className="max-w-2xl mx-auto space-y-5">
-              <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 text-xs font-mono font-bold tracking-wider">
-                <Server className="w-3.5 h-3.5 text-blue-500" />
-                ACCESO EXCLUSIVO PARA CAMPAÑAS AUTORIZADAS
-              </span>
-
-              <h2 className="text-3xl sm:text-5xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">
-                Toma el control absoluto de tu elección hoy.
-              </h2>
-
-              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed max-w-xl mx-auto">
-                Ingresa con tus credenciales asignadas por el comité electoral para administrar tu padrón, asignar metas territoriales y monitorear el censo en tiempo real.
-              </p>
-
-              <div className="pt-4 flex justify-center">
+              {/* Fila de Botones */}
+              <div className="flex flex-col sm:flex-row items-center gap-3.5 pt-2">
                 <button
                   type="button"
                   onClick={onNavigateToLogin}
-                  className="px-9 py-4 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-[0.98] text-white text-sm font-bold tracking-wider uppercase transition-all shadow-xl shadow-blue-500/30 hover:shadow-blue-500/50 cursor-pointer flex items-center gap-3 border border-blue-400/40"
+                  className="w-full sm:w-auto px-7 py-3.5 rounded-full bg-[#155EEF] hover:bg-blue-500 active:scale-[0.98] text-white text-sm font-bold tracking-wide transition-all shadow-xl shadow-blue-600/40 hover:shadow-blue-500/60 cursor-pointer flex items-center justify-center gap-2 border border-blue-400/40"
                 >
-                  <Lock className="w-4 h-4" />
-                  <span>Ingresar a la Plataforma</span>
+                  <span>Comenzar ahora</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+
+                <a
+                  href="#caracteristicas"
+                  className="w-full sm:w-auto px-7 py-3.5 rounded-full bg-[#0E172E]/90 hover:bg-[#152345] border border-slate-700 text-slate-200 text-sm font-semibold transition-all flex items-center justify-center cursor-pointer shadow-sm"
+                >
+                  <span>Conoce más</span>
+                </a>
+              </div>
+
+              {/* Badges de Confianza Horizontales */}
+              <div className="pt-4 flex flex-wrap items-center gap-5 text-xs text-slate-300 font-medium">
+                <div className="flex items-center gap-1.5 text-slate-200">
+                  <Check className="w-4 h-4 text-cyan-400" />
+                  <span>Seguro y confiable</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-slate-200">
+                  <Cloud className="w-4 h-4 text-blue-400" />
+                  <span>100% en la nube</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-slate-200">
+                  <Headphones className="w-4 h-4 text-emerald-400" />
+                  <span>Soporte 24/7</span>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Columna Central: Holograma 3D Mapa de Colombia sobre Pedestal */}
+            <motion.div
+              variants={fluidFadeUp}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: false, amount: 0.2 }}
+              className="lg:col-span-4 relative flex flex-col items-center justify-center my-6 lg:my-0"
+            >
+              {/* Bandera de Colombia Ondulante en Fondo */}
+              <div className="absolute top-10 -left-6 w-56 h-36 rounded-2xl overflow-hidden opacity-50 blur-[2px] pointer-events-none -z-10 transform -rotate-12">
+                <div className="h-1/2 w-full bg-[#FCD116]" />
+                <div className="h-1/4 w-full bg-[#003893]" />
+                <div className="h-1/4 w-full bg-[#CE1126]" />
+              </div>
+
+              {/* Mapa Holográfico Vectorial */}
+              <div className="relative w-[300px] sm:w-[350px] lg:w-[380px] h-[380px] sm:h-[440px] flex items-center justify-center z-10">
+                <ColombiaHologramMap variant="cyber" />
+              </div>
+
+              {/* Pedestal Circular Holográfico con Aros Concéntricos */}
+              <div className="relative -mt-16 w-[320px] sm:w-[380px] h-[100px] flex items-center justify-center pointer-events-none">
+                {/* Aro Exterior */}
+                <div className="absolute w-full h-[65px] rounded-[100%] border-2 border-cyan-400/40 shadow-[0_0_40px_rgba(0,210,255,0.7)]" />
+                {/* Aro Medio Luminoso */}
+                <div className="absolute w-[80%] h-[48px] rounded-[100%] border border-blue-500 shadow-[0_0_25px_rgba(21,94,239,0.8)]" />
+                {/* Núcleo de Luz */}
+                <div className="absolute w-[50%] h-[30px] rounded-[100%] bg-cyan-400/25 blur-md" />
+              </div>
+            </motion.div>
+
+            {/* Columna Derecha: Panel Lateral Flotante de Métricas */}
+            <motion.div
+              variants={fluidFadeUp}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: false, amount: 0.2 }}
+              className="lg:col-span-3 flex flex-col gap-3.5 w-full max-w-[280px] mx-auto lg:mx-0"
+            >
+              {/* Métrica 1 */}
+              <div className="p-4 rounded-2xl bg-[#0E172E]/80 backdrop-blur-xl border border-slate-700/60 hover:border-cyan-400/40 transition-all text-left shadow-lg">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-blue-500/10 text-cyan-400 border border-cyan-400/20">
+                    <Shield className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-xl sm:text-2xl font-black font-mono text-white block">
+                      32
+                    </span>
+                    <span className="text-xs text-slate-400 block font-medium">Departamentos</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Métrica 2 */}
+              <div className="p-4 rounded-2xl bg-[#0E172E]/80 backdrop-blur-xl border border-slate-700/60 hover:border-cyan-400/40 transition-all text-left shadow-lg">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-blue-500/10 text-cyan-400 border border-cyan-400/20">
+                    <MapPin className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-xl sm:text-2xl font-black font-mono text-white block">
+                      +1.102
+                    </span>
+                    <span className="text-xs text-slate-400 block font-medium">Municipios</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Métrica 3 */}
+              <div className="p-4 rounded-2xl bg-[#0E172E]/80 backdrop-blur-xl border border-slate-700/60 hover:border-cyan-400/40 transition-all text-left shadow-lg">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-blue-500/10 text-cyan-400 border border-cyan-400/20">
+                    <Building className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-xl sm:text-2xl font-black font-mono text-white block">
+                      +12.000
+                    </span>
+                    <span className="text-xs text-slate-400 block font-medium">Puestos de votación</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Métrica 4 */}
+              <div className="p-4 rounded-2xl bg-[#0E172E]/80 backdrop-blur-xl border border-slate-700/60 hover:border-cyan-400/40 transition-all text-left shadow-lg">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-blue-500/10 text-cyan-400 border border-cyan-400/20">
+                    <Users className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-lg sm:text-xl font-black font-mono text-white block">
+                      +39.000.000
+                    </span>
+                    <span className="text-xs text-slate-400 block font-medium">Ciudadanos habilitados</span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </section>
+
+        {/* =========================================================================
+            C. SECCIÓN DE CARACTERÍSTICAS (GRID DE 6 TARJETAS EXACTAS)
+            ========================================================================= */}
+        <section id="caracteristicas" className="py-20 sm:py-28 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-slate-800/80">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+            {/* Encabezado Lateral */}
+            <motion.div
+              variants={fluidFadeUp}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: false, amount: 0.2 }}
+              className="lg:col-span-4 text-left space-y-4"
+            >
+              <span className="text-xs font-mono font-bold uppercase tracking-wider text-cyan-400 block">
+                CARACTERÍSTICAS PRINCIPALES
+              </span>
+
+              <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white leading-tight">
+                Todo lo que necesitas en una sola plataforma
+              </h2>
+
+              <p className="text-sm text-slate-300 leading-relaxed">
+                Herramientas diseñadas para hacer más fácil, transparente y eficiente todo el proceso electoral, desde la creación de campañas hasta el seguimiento en tiempo real.
+              </p>
+
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={onNavigateToLogin}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#155EEF] hover:bg-blue-500 text-white text-xs sm:text-sm font-bold tracking-wide transition-all shadow-md shadow-blue-600/30 cursor-pointer"
+                >
+                  <span>Ver todas las funciones</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
+            </motion.div>
+
+            {/* Grid de 6 Tarjetas Tecnológicas (2 Filas x 3 Columnas) */}
+            <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 text-left">
+              {/* Tarjeta 1 */}
+              <motion.div
+                variants={fluidFadeUp}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: false, amount: 0.2 }}
+                className="p-6 rounded-2xl bg-[#0D162B]/80 backdrop-blur-xl border border-slate-700/60 hover:border-cyan-400/40 transition-all duration-300 hover:-translate-y-1 shadow-lg"
+              >
+                <div className="h-11 w-11 rounded-xl bg-blue-500/10 text-cyan-400 border border-cyan-400/20 flex items-center justify-center mb-4">
+                  <Users className="w-5.5 h-5.5" />
+                </div>
+                <h3 className="text-base font-bold text-white mb-2">Gestión de campañas</h3>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Crea, administra y monitorea tus campañas electorales de forma sencilla y segura.
+                </p>
+              </motion.div>
+
+              {/* Tarjeta 2 */}
+              <motion.div
+                variants={fluidFadeUp}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: false, amount: 0.2 }}
+                className="p-6 rounded-2xl bg-[#0D162B]/80 backdrop-blur-xl border border-slate-700/60 hover:border-cyan-400/40 transition-all duration-300 hover:-translate-y-1 shadow-lg"
+              >
+                <div className="h-11 w-11 rounded-xl bg-blue-500/10 text-cyan-400 border border-cyan-400/20 flex items-center justify-center mb-4">
+                  <Building2 className="w-5.5 h-5.5" />
+                </div>
+                <h3 className="text-base font-bold text-white mb-2">Registro de candidatos</h3>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Controla y valida la información de todos tus candidatos y sus equipos de trabajo.
+                </p>
+              </motion.div>
+
+              {/* Tarjeta 3 */}
+              <motion.div
+                variants={fluidFadeUp}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: false, amount: 0.2 }}
+                className="p-6 rounded-2xl bg-[#0D162B]/80 backdrop-blur-xl border border-slate-700/60 hover:border-cyan-400/40 transition-all duration-300 hover:-translate-y-1 shadow-lg"
+              >
+                <div className="h-11 w-11 rounded-xl bg-blue-500/10 text-cyan-400 border border-cyan-400/20 flex items-center justify-center mb-4">
+                  <BarChart3 className="w-5.5 h-5.5" />
+                </div>
+                <h3 className="text-base font-bold text-white mb-2">Información electoral oficial</h3>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Datos actualizados de la Registraduría Nacional del Estado Civil y mapas electorales por territorio.
+                </p>
+              </motion.div>
+
+              {/* Tarjeta 4 */}
+              <motion.div
+                variants={fluidFadeUp}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: false, amount: 0.2 }}
+                className="p-6 rounded-2xl bg-[#0D162B]/80 backdrop-blur-xl border border-slate-700/60 hover:border-cyan-400/40 transition-all duration-300 hover:-translate-y-1 shadow-lg"
+              >
+                <div className="h-11 w-11 rounded-xl bg-blue-500/10 text-cyan-400 border border-cyan-400/20 flex items-center justify-center mb-4">
+                  <ShieldCheck className="w-5.5 h-5.5" />
+                </div>
+                <h3 className="text-base font-bold text-white mb-2">Seguridad avanzada</h3>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Protección de datos, encriptación y autenticación de alto nivel.
+                </p>
+              </motion.div>
+
+              {/* Tarjeta 5 */}
+              <motion.div
+                variants={fluidFadeUp}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: false, amount: 0.2 }}
+                className="p-6 rounded-2xl bg-[#0D162B]/80 backdrop-blur-xl border border-slate-700/60 hover:border-cyan-400/40 transition-all duration-300 hover:-translate-y-1 shadow-lg"
+              >
+                <div className="h-11 w-11 rounded-xl bg-blue-500/10 text-cyan-400 border border-cyan-400/20 flex items-center justify-center mb-4">
+                  <Cloud className="w-5.5 h-5.5" />
+                </div>
+                <h3 className="text-base font-bold text-white mb-2">Acceso en tiempo real</h3>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Consulta resultados, estadísticas y reportes desde cualquier dispositivo.
+                </p>
+              </motion.div>
+
+              {/* Tarjeta 6 */}
+              <motion.div
+                variants={fluidFadeUp}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: false, amount: 0.2 }}
+                className="p-6 rounded-2xl bg-[#0D162B]/80 backdrop-blur-xl border border-slate-700/60 hover:border-cyan-400/40 transition-all duration-300 hover:-translate-y-1 shadow-lg"
+              >
+                <div className="h-11 w-11 rounded-xl bg-blue-500/10 text-cyan-400 border border-cyan-400/20 flex items-center justify-center mb-4">
+                  <Headphones className="w-5.5 h-5.5" />
+                </div>
+                <h3 className="text-base font-bold text-white mb-2">Soporte especializado</h3>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Un equipo siempre disponible para acompañarte en todo el proceso.
+                </p>
+              </motion.div>
+            </div>
+          </div>
+        </section>
+
+        {/* =========================================================================
+            D. SECCIÓN DE IMPACTO Y DATOS ESTADÍSTICOS (DATA HUD + BLUEPRINT)
+            ========================================================================= */}
+        <section id="seguridad" className="py-20 sm:py-28 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-slate-800/80 relative">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+            {/* Encabezado Lateral */}
+            <motion.div
+              variants={fluidFadeUp}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: false, amount: 0.2 }}
+              className="lg:col-span-4 text-left space-y-4"
+            >
+              <span className="text-xs font-mono font-bold uppercase tracking-wider text-cyan-400 block">
+                NUESTRO IMPACTO
+              </span>
+
+              <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white leading-tight">
+                Datos que respaldan nuestra gestión
+              </h2>
+
+              <p className="text-sm text-slate-300 leading-relaxed">
+                La tecnología al servicio de la democracia. Estos son algunos de los resultados que nos motivan a seguir mejorando.
+              </p>
+
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={onNavigateToLogin}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#0E172E] hover:bg-[#152345] border border-slate-700 text-slate-200 text-xs sm:text-sm font-semibold transition-all shadow-sm cursor-pointer"
+                >
+                  <span>Ver estadísticas completas</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            </motion.div>
+
+            {/* Grid de 6 Contadores Numéricos (2 Filas x 3 Columnas) */}
+            <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 text-left">
+              {/* Métrica 1 */}
+              <motion.div
+                variants={fluidFadeUp}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: false, amount: 0.2 }}
+                className="p-6 rounded-2xl bg-[#0D162B]/90 border border-slate-700/80 hover:border-cyan-400/40 transition-all shadow-lg"
+              >
+                <div className="p-2.5 w-fit rounded-xl bg-blue-500/10 text-cyan-400 border border-cyan-400/20 mb-4">
+                  <Map className="w-5 h-5" />
+                </div>
+                <span className="text-3xl font-black font-mono text-white block">32</span>
+                <span className="text-xs text-slate-400 font-medium mt-1 block">Departamentos</span>
+              </motion.div>
+
+              {/* Métrica 2 */}
+              <motion.div
+                variants={fluidFadeUp}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: false, amount: 0.2 }}
+                className="p-6 rounded-2xl bg-[#0D162B]/90 border border-slate-700/80 hover:border-cyan-400/40 transition-all shadow-lg"
+              >
+                <div className="p-2.5 w-fit rounded-xl bg-blue-500/10 text-cyan-400 border border-cyan-400/20 mb-4">
+                  <Building2 className="w-5 h-5" />
+                </div>
+                <span className="text-3xl font-black font-mono text-white block">+1.102</span>
+                <span className="text-xs text-slate-400 font-medium mt-1 block">Municipios</span>
+              </motion.div>
+
+              {/* Métrica 3 */}
+              <motion.div
+                variants={fluidFadeUp}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: false, amount: 0.2 }}
+                className="p-6 rounded-2xl bg-[#0D162B]/90 border border-slate-700/80 hover:border-cyan-400/40 transition-all shadow-lg"
+              >
+                <div className="p-2.5 w-fit rounded-xl bg-blue-500/10 text-cyan-400 border border-cyan-400/20 mb-4">
+                  <Radio className="w-5 h-5" />
+                </div>
+                <span className="text-3xl font-black font-mono text-white block">1.102</span>
+                <span className="text-xs text-slate-400 font-medium mt-1 block">Zonas electorales</span>
+              </motion.div>
+
+              {/* Métrica 4 */}
+              <motion.div
+                variants={fluidFadeUp}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: false, amount: 0.2 }}
+                className="p-6 rounded-2xl bg-[#0D162B]/90 border border-slate-700/80 hover:border-cyan-400/40 transition-all shadow-lg"
+              >
+                <div className="p-2.5 w-fit rounded-xl bg-blue-500/10 text-cyan-400 border border-cyan-400/20 mb-4">
+                  <Building className="w-5 h-5" />
+                </div>
+                <span className="text-3xl font-black font-mono text-white block">+12.000</span>
+                <span className="text-xs text-slate-400 font-medium mt-1 block">Puestos de votación</span>
+              </motion.div>
+
+              {/* Métrica 5 */}
+              <motion.div
+                variants={fluidFadeUp}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: false, amount: 0.2 }}
+                className="p-6 rounded-2xl bg-[#0D162B]/90 border border-slate-700/80 hover:border-cyan-400/40 transition-all shadow-lg"
+              >
+                <div className="p-2.5 w-fit rounded-xl bg-blue-500/10 text-cyan-400 border border-cyan-400/20 mb-4">
+                  <Vote className="w-5 h-5" />
+                </div>
+                <span className="text-3xl font-black font-mono text-white block">+106.000</span>
+                <span className="text-xs text-slate-400 font-medium mt-1 block">Mesas de votación</span>
+              </motion.div>
+
+              {/* Métrica 6 */}
+              <motion.div
+                variants={fluidFadeUp}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: false, amount: 0.2 }}
+                className="p-6 rounded-2xl bg-[#0D162B]/90 border border-slate-700/80 hover:border-cyan-400/40 transition-all shadow-lg"
+              >
+                <div className="p-2.5 w-fit rounded-xl bg-blue-500/10 text-cyan-400 border border-cyan-400/20 mb-4">
+                  <Users className="w-5 h-5" />
+                </div>
+                <span className="text-3xl font-black font-mono text-white block">+39.000.000</span>
+                <span className="text-xs text-slate-400 font-medium mt-1 block">Ciudadanos habilitados</span>
+              </motion.div>
+            </div>
+          </div>
+
+          {/* Horizonte Iluminado Curvo de la Tierra en el Fondo */}
+          <div className="mt-16 w-full h-36 relative overflow-hidden pointer-events-none rounded-b-3xl">
+            <div className="absolute inset-0 bg-gradient-to-t from-blue-600/20 via-transparent to-transparent" />
+            <div className="absolute -bottom-24 left-1/2 -translate-x-1/2 w-[140%] h-[160px] rounded-[100%] border-t border-cyan-400/50 shadow-[0_-15px_40px_rgba(0,210,255,0.3)] bg-gradient-to-b from-[#0F1E3D] to-transparent" />
+          </div>
+        </section>
+
+        {/* =========================================================================
+            E. SECCIÓN DE COBERTURA NACIONAL (CONTRASTE CLARO #F1F5F9 - #FFFFFF)
+            ========================================================================= */}
+        <section
+          id="cobertura"
+          className="py-20 sm:py-28 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-[#F1F5F9] to-white text-slate-900 transition-colors"
+        >
+          <div className="max-w-7xl mx-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+              {/* Columna Izquierda: Mockup Perspectivado de Pantallas */}
+              <motion.div
+                variants={fluidFadeUp}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: false, amount: 0.2 }}
+                className="lg:col-span-4 relative flex items-center justify-center"
+              >
+                {/* Pantallas Oscuras en Capas */}
+                <div className="relative w-full max-w-[340px] h-[360px]">
+                  {/* Capa Trasera 1 */}
+                  <div className="absolute top-4 left-0 w-56 h-64 rounded-2xl bg-[#091124] border border-slate-700 shadow-xl transform -rotate-12 overflow-hidden opacity-75">
+                    <div className="p-3 w-full h-full">
+                      <ColombiaHologramMap variant="cyber" />
+                    </div>
+                  </div>
+
+                  {/* Capa Trasera 2 */}
+                  <div className="absolute top-2 left-10 w-60 h-72 rounded-2xl bg-[#0A142B] border border-cyan-500/30 shadow-2xl transform -rotate-6 overflow-hidden">
+                    <div className="p-4 w-full h-full">
+                      <ColombiaHologramMap variant="cyber" />
+                    </div>
+                  </div>
+
+                  {/* Tarjeta Frontal Blanca con Opciones */}
+                  <div className="absolute top-10 left-16 w-64 rounded-2xl bg-white border border-slate-200 shadow-2xl p-4 text-left space-y-2 z-10">
+                    <div className="p-2.5 rounded-xl hover:bg-slate-50 flex items-center justify-between transition-colors border border-slate-100">
+                      <div className="flex items-center gap-2.5">
+                        <span className="p-1.5 rounded-lg bg-amber-500/10 text-amber-600 font-bold text-xs">
+                          <Map className="w-4 h-4" />
+                        </span>
+                        <span className="text-xs font-bold text-slate-800">Gobernación</span>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-slate-400" />
+                    </div>
+
+                    <div className="p-2.5 rounded-xl hover:bg-slate-50 flex items-center justify-between transition-colors border border-slate-100">
+                      <div className="flex items-center gap-2.5">
+                        <span className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 font-bold text-xs">
+                          <Landmark className="w-4 h-4" />
+                        </span>
+                        <span className="text-xs font-bold text-slate-800">Asamblea</span>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-slate-400" />
+                    </div>
+
+                    <div className="p-2.5 rounded-xl hover:bg-slate-50 flex items-center justify-between transition-colors border border-slate-100">
+                      <div className="flex items-center gap-2.5">
+                        <span className="p-1.5 rounded-lg bg-rose-500/10 text-rose-600 font-bold text-xs">
+                          <Building2 className="w-4 h-4" />
+                        </span>
+                        <span className="text-xs font-bold text-slate-800">Alcaldía</span>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-slate-400" />
+                    </div>
+
+                    <div className="p-2.5 rounded-xl hover:bg-slate-50 flex items-center justify-between transition-colors border border-slate-100">
+                      <div className="flex items-center gap-2.5">
+                        <span className="p-1.5 rounded-lg bg-blue-500/10 text-blue-600 font-bold text-xs">
+                          <Users className="w-4 h-4" />
+                        </span>
+                        <span className="text-xs font-bold text-slate-800">Concejo</span>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-slate-400" />
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Columna Centro: Información Oficial */}
+              <motion.div
+                variants={fluidFadeUp}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: false, amount: 0.2 }}
+                className="lg:col-span-5 text-left space-y-4"
+              >
+                <span className="text-xs font-mono font-bold uppercase tracking-wider text-blue-600 block">
+                  COBERTURA NACIONAL
+                </span>
+
+                <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 leading-tight">
+                  Información electoral para todo el país
+                </h2>
+
+                <p className="text-sm text-slate-600 leading-relaxed">
+                  Accede a los datos oficiales de la Registraduría Nacional del Estado Civil y del censo electoral, con cobertura en los 32 departamentos y Bogotá D.C., incluyendo la información de los cargos locales y regionales.
+                </p>
+
+                {/* 4 Botones de Categorías */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-3">
+                  <div className="p-3 rounded-xl bg-white border border-slate-200 shadow-xs flex flex-col items-center gap-1.5 text-center">
+                    <Map className="w-5 h-5 text-blue-600" />
+                    <span className="text-xs font-bold text-slate-800">Gobernación</span>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-white border border-slate-200 shadow-xs flex flex-col items-center gap-1.5 text-center">
+                    <Landmark className="w-5 h-5 text-blue-600" />
+                    <span className="text-xs font-bold text-slate-800">Asamblea</span>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-white border border-slate-200 shadow-xs flex flex-col items-center gap-1.5 text-center">
+                    <Building2 className="w-5 h-5 text-blue-600" />
+                    <span className="text-xs font-bold text-slate-800">Alcaldía</span>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-white border border-slate-200 shadow-xs flex flex-col items-center gap-1.5 text-center">
+                    <Users className="w-5 h-5 text-blue-600" />
+                    <span className="text-xs font-bold text-slate-800">Concejo</span>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Columna Derecha: Silueta Vectorial de Colombia con Nodos Celestes */}
+              <motion.div
+                variants={fluidFadeUp}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: false, amount: 0.2 }}
+                className="lg:col-span-3 flex items-center justify-center"
+              >
+                <div className="w-[260px] h-[340px]">
+                  <ColombiaHologramMap variant="light" />
+                </div>
+              </motion.div>
+            </div>
+          </div>
+        </section>
+
+        {/* =========================================================================
+            F. CALL TO ACTION FINAL (HERO FOOTER BANNER CIUDAD NOCTURNA)
+            ========================================================================= */}
+        <section className="relative py-24 sm:py-32 px-4 sm:px-6 lg:px-8 text-center overflow-hidden bg-[#070B19] border-t border-slate-800/80">
+          {/* Fondo Panorámico Nocturno con Montañas y Luces */}
+          <div className="absolute inset-0 opacity-40 pointer-events-none -z-10">
+            {/* Silueta de Cordillera */}
+            <svg viewBox="0 0 1440 320" className="w-full h-full object-cover" preserveAspectRatio="none">
+              <path
+                fill="#0A142A"
+                d="M0,192L48,176C96,160,192,128,288,138.7C384,149,480,203,576,213.3C672,224,768,192,864,165.3C960,139,1056,117,1152,128C1248,139,1344,181,1392,202.7L1440,224L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"
+              />
+            </svg>
+            <div className="absolute bottom-0 inset-x-0 h-28 bg-gradient-to-t from-[#070B19] to-transparent" />
+          </div>
+
+          <motion.div
+            variants={fluidFadeUp}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: false, amount: 0.2 }}
+            className="max-w-3xl mx-auto space-y-6 relative z-10"
+          >
+            <h2 className="text-3xl sm:text-5xl font-black text-white tracking-tight">
+              Sé parte del cambio
+            </h2>
+
+            <p className="text-sm sm:text-base text-slate-300 leading-relaxed max-w-xl mx-auto">
+              La democracia se construye con tecnología, información y personas como tú.
+            </p>
+
+            <div className="pt-2 flex justify-center">
+              <button
+                type="button"
+                onClick={onNavigateToLogin}
+                className="px-8 py-3.5 rounded-full bg-[#155EEF] hover:bg-blue-500 active:scale-[0.98] text-white text-sm font-bold tracking-wide transition-all shadow-xl shadow-blue-600/40 hover:shadow-blue-500/60 cursor-pointer flex items-center gap-2.5 border border-blue-400/40"
+              >
+                <span>Comenzar ahora</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
             </div>
           </motion.div>
+        </section>
+
+        {/* =========================================================================
+            SECCIÓN FAQ RÁPIDA PARA CUMPLIR NAVEGACIÓN
+            ========================================================================= */}
+        <section id="contacto" className="py-16 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto border-t border-slate-800/80 text-left">
+          <div className="text-center mb-10 space-y-2">
+            <span className="text-xs font-mono font-bold uppercase tracking-wider text-cyan-400">
+              RESOLUCIÓN DE DUDAS
+            </span>
+            <h3 className="text-2xl sm:text-3xl font-extrabold text-white">
+              Preguntas Frecuentes
+            </h3>
+          </div>
+
+          <div className="space-y-3">
+            {[
+              {
+                q: '¿Cómo garantiza la plataforma la transparencia electoral?',
+                a: 'El sistema integra los datos oficiales de censo y puestos DIVIPOLE con auditoría criptográfica, eliminando discrepancias y blindando el registro de simpatizantes con trazabilidad completa.',
+              },
+              {
+                q: '¿Es compatible con cualquier tipo de campaña (Alcaldía, Concejo, Gobernación)?',
+                a: 'Sí. La arquitectura modular permite configurar cualquier contienda municipal o departamental con asignación de metas automáticas.',
+              },
+            ].map((faq, idx) => (
+              <div key={faq.q} className="rounded-2xl bg-[#0D162B] border border-slate-700/60 overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => toggleFaq(idx)}
+                  className="w-full px-5 py-4 text-left flex items-center justify-between font-bold text-sm text-white hover:text-cyan-400 transition-colors cursor-pointer"
+                >
+                  <span>{faq.q}</span>
+                  <ChevronRight
+                    className={`w-4 h-4 transition-transform duration-300 ${openFaq === idx ? 'rotate-90 text-cyan-400' : ''}`}
+                  />
+                </button>
+                {openFaq === idx && (
+                  <div className="px-5 pb-4 text-xs text-slate-400 leading-relaxed border-t border-slate-800 pt-3">
+                    {faq.a}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </section>
       </main>
 
       {/* =========================================================================
-          10. FOOTER CORPORATIVO Y METADATOS TÉCNICOS
+          G. PIE DE PÁGINA (DARK PRO FOOTER)
           ========================================================================= */}
-      <footer className="border-t border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-[#050811] py-10 px-4 sm:px-6 lg:px-8 transition-colors">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-5 text-xs text-slate-500 dark:text-slate-400">
-          <div className="flex items-center gap-3">
-            <Shield className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-            <span className="font-bold text-slate-900 dark:text-slate-200">PADRÓN ELECTORAL</span>
-            <span className="text-slate-400 dark:text-slate-600">·</span>
-            <span className="text-[11px] font-mono">ELECTORAL COMMAND CENTER 2026</span>
+      <footer className="border-t border-slate-800/80 bg-[#070B19] py-10 px-4 sm:px-6 lg:px-8 transition-colors">
+        <div className="max-w-7xl mx-auto space-y-6">
+          {/* Fila Superior */}
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            {/* Logo */}
+            <div className="flex items-center gap-2.5">
+              <div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center text-white">
+                <Shield className="w-4 h-4 text-white" strokeWidth={2.5} />
+              </div>
+              <div className="flex flex-col text-left">
+                <span className="text-[10px] font-mono tracking-widest text-slate-400 uppercase font-bold leading-none">
+                  PLATAFORMA
+                </span>
+                <span className="text-base font-extrabold text-white leading-none mt-0.5">
+                  ELECTORAL
+                </span>
+              </div>
+            </div>
+
+            {/* Links */}
+            <div className="flex flex-wrap items-center gap-6 text-xs text-slate-400">
+              <a href="#inicio" className="hover:text-white transition-colors">
+                Inicio
+              </a>
+              <a href="#caracteristicas" className="hover:text-white transition-colors">
+                Características
+              </a>
+              <a href="#cobertura" className="hover:text-white transition-colors">
+                Cobertura
+              </a>
+              <a href="#seguridad" className="hover:text-white transition-colors">
+                Seguridad
+              </a>
+              <a href="#contacto" className="hover:text-white transition-colors">
+                Contacto
+              </a>
+            </div>
+
+            {/* Redes Sociales e Indicador Institucional */}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3 text-slate-400">
+                {/* Facebook */}
+                <a href="#inicio" className="hover:text-cyan-400 transition-colors" aria-label="Facebook">
+                  <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                    <path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" />
+                  </svg>
+                </a>
+                {/* X (Twitter) */}
+                <a href="#inicio" className="hover:text-cyan-400 transition-colors" aria-label="X">
+                  <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                  </svg>
+                </a>
+                {/* Instagram */}
+                <a href="#inicio" className="hover:text-cyan-400 transition-colors" aria-label="Instagram">
+                  <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+                  </svg>
+                </a>
+                {/* YouTube */}
+                <a href="#inicio" className="hover:text-cyan-400 transition-colors" aria-label="YouTube">
+                  <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+                  </svg>
+                </a>
+              </div>
+
+              <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">
+                Tecnología que fortalece la democracia
+              </span>
+            </div>
           </div>
 
-          <div className="flex items-center gap-4 text-[11px] font-mono text-slate-500 dark:text-slate-400">
-            <span className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              SLA 99.99% Edge
-            </span>
-            <span>·</span>
-            <span>PostgreSQL RLS</span>
-            <span>·</span>
-            <span>Cifrado AES-256</span>
+          {/* Fila Inferior */}
+          <div className="pt-4 border-t border-slate-800/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-slate-500">
+            <p>© 2026 Plataforma Electoral. Todos los derechos reservados.</p>
+            <div className="flex items-center gap-4">
+              <a href="#inicio" className="hover:text-slate-300 transition-colors">
+                Términos y condiciones
+              </a>
+              <span>|</span>
+              <a href="#inicio" className="hover:text-slate-300 transition-colors">
+                Política de privacidad
+              </a>
+            </div>
           </div>
-
-          <p className="text-center sm:text-right text-[11px] text-slate-500 dark:text-slate-400">
-            Plataforma reservada para comités electorales acreditados. © {new Date().getFullYear()}.
-          </p>
         </div>
       </footer>
     </div>
