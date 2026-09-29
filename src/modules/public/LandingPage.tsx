@@ -4,13 +4,11 @@ import {
   Shield,
   ArrowRight,
   Lock,
-  UploadCloud,
   ShieldCheck,
   Database,
   ChevronRight,
   Layers,
   CheckCircle2,
-  MapPin,
   Activity,
   Vote,
   Sparkles,
@@ -19,6 +17,9 @@ import {
   Server,
   Check,
   HelpCircle,
+  AlertTriangle,
+  Smartphone,
+  Zap,
 } from 'lucide-react';
 import { ThemeToggle } from '../../components/ui/ThemeToggle';
 
@@ -40,18 +41,118 @@ const fadeInUp: Variants = {
   }),
 };
 
-const staggerContainer: Variants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.12,
-      delayChildren: 0.08,
-    },
+// Datos estructurados del Studio de Capacidades Electorales
+const capabilitiesData = [
+  {
+    id: 'anti-colision',
+    number: '01',
+    navTitle: 'Anti-Colisión',
+    tag: 'INTEGRIDAD TERRITORIAL',
+    title: 'Blindaje Anti-Colisión y Bloqueo de Duplicados en Tiempo Real',
+    subtitle: 'Protege a tu comando de campaña contra la doble militancia y listados inflados.',
+    description:
+      'En contiendas políticas decisivas, múltiples líderes y coordinadores intentan adjudicarse a los mismos electores. El motor anti-colisión valida cada documento de identidad en milisegundos. Si una cédula ya fue ingresada en la campaña, el sistema bloquea inmediatamente el registro y revela con total transparencia qué líder la inscribió primero, en qué fecha y en qué mesa de votación.',
+    highlights: [
+      'Detección instantánea a nivel de base de datos indexada por tenant_id',
+      'Trazabilidad inmutable: preserva el mérito y fecha del primer líder que registró al elector',
+      'Eliminación total de votantes ficticios en el cálculo estratégico del umbral de victoria',
+    ],
+    badgeText: '0 Duplicados Garantizados',
+    accentColor: 'emerald',
   },
-};
+  {
+    id: 'censo',
+    number: '02',
+    navTitle: 'Censo & Edad',
+    tag: 'ENRIQUECIMIENTO OFICIAL',
+    title: 'Autocorrección Oficial de Censo y Cálculo Instantáneo de Edad',
+    subtitle: 'Convierte datos incompletos en información oficial y depurada sin esfuerzo.',
+    description:
+      'Al registrar una cédula o procesar listados masivos, el servicio en background se comunica en tiempo real con la base oficial del censo nacional (DNP / Registraduría). Normaliza automáticamente los nombres y apellidos oficiales, calcula la edad exacta y descarta de forma preventiva cédulas canceladas o no aptas para votar.',
+    highlights: [
+      'Cálculo exacto de edad al instante sin exigir fecha de nacimiento manual al digitador',
+      'Autocorrección ortográfica de nombres cruzados con el registro nacional electoral',
+      'Sugerencia automática de puesto y mesa oficial según el censo histórico del votante',
+    ],
+    badgeText: 'Censo Oficial Enriquecido',
+    accentColor: 'blue',
+  },
+  {
+    id: 'divipole',
+    number: '03',
+    navTitle: 'Zonificación DIVIPOLE',
+    tag: 'ESTRUCTURA GEOGRÁFICA',
+    title: 'Catálogo Territorial DIVIPOLE: Puestos y Mesas Exactas',
+    subtitle: 'La División Político-Administrativa de Colombia precargada y organizada.',
+    description:
+      'Control absoluto de la geografía electoral: Departamento, Municipio, Comuna/Zona, Puestos de Votación y número de Mesas habilitadas. Permite auditar la capacidad y saturación de cada recinto electoral, identificar zonas con bajo rendimiento y fijar metas de votos proporcionales al potencial de cada puesto.',
+    highlights: [
+      'Jerarquía oficial: Departamento > Municipio > Comuna/Zona > Puesto > Mesa',
+      'Monitoreo de saturación y cálculo de capacidad electoral por recinto',
+      'Fijación de metas cuantitativas por puesto para garantizar el umbral de victoria',
+    ],
+    badgeText: 'DIVIPOLE Colombia',
+    accentColor: 'amber',
+  },
+  {
+    id: 'carga-masiva',
+    number: '04',
+    navTitle: 'Carga Masiva Batch',
+    tag: 'PROCESAMIENTO POR LOTES',
+    title: 'Carga Masiva Inteligente Multi-Hilo (Excel & CSV)',
+    subtitle: 'Importa y enriquece miles de registros en segundos sin congelar la interfaz.',
+    description:
+      'Olvídate de digitar planilla por planilla. Sube archivos de Excel o CSV de cualquier formato; el mapeador inteligente detecta las columnas, limpia números telefónicos, elimina espacios en blanco y ejecuta una pre-auditoría reactiva con concurrencia controlada para procesar miles de electores sin saturar la red.',
+    highlights: [
+      'Pool de trabajadores concurrentes: velocidad extrema sin saturar el servidor ni el navegador',
+      'Pre-auditoría con informe exportable de cédulas duplicadas, inconsistentes o erróneas',
+      'Normalización automática de prefijos telefónicos para la logística del Día D',
+    ],
+    badgeText: 'Pool Concurrente Activo',
+    accentColor: 'indigo',
+  },
+  {
+    id: 'lider-movil',
+    number: '05',
+    navTitle: 'Terminal del Líder',
+    tag: 'ENROLAMIENTO TERRITORIAL',
+    title: 'Espacio Móvil del Líder con Memoria de Lote Inteligente',
+    subtitle: 'Enrolamiento ágil desde el teléfono inteligente en barrios, veredas y comunas.',
+    description:
+      'Una interfaz limpia, intuitiva y ultrarrápida diseñada para el líder que recorre el territorio. Cuenta con memoria de lote que recuerda automáticamente el último puesto y mesa seleccionados, permitiendo registrar decenas de votantes en minutos sin tener que volver a buscar el puesto.',
+    highlights: [
+      'Memoria de sesión inteligente: ahorra hasta un 70% del tiempo de digitación en campo',
+      'Medidor visual de cumplimiento hacia la meta asignada por el comando central',
+      'Privacidad estricta: cada líder solo visualiza y administra a sus propios electores',
+    ],
+    badgeText: 'Mobile First · Memoria de Lote',
+    accentColor: 'purple',
+  },
+  {
+    id: 'seguridad-rls',
+    number: '06',
+    navTitle: 'Seguridad RLS',
+    tag: 'GOBERNANZA CRIPTOGRÁFICA',
+    title: 'Aislamiento Criptográfico PostgreSQL Row-Level Security',
+    subtitle: 'Seguridad a nivel de fila y confidencialidad absoluta para tu información política.',
+    description:
+      'El padrón electoral es el activo más estratégico de tu campaña. Implementamos políticas de Row-Level Security en el motor de base de datos PostgreSQL: cada campaña (tenant) está completamente aislada, los coordinadores auditan su zona y los administradores tienen bitácora forense de cada exportación.',
+    highlights: [
+      'Seguridad a Nivel de Fila (RLS): imposibilidad de filtraciones entre campañas o líderes',
+      'Cifrado en reposo AES-256 y en tránsito TLS 1.3 de grado bancario',
+      'Exportaciones seguras en Excel con codificación oficial UTF-8 con BOM',
+    ],
+    badgeText: 'PostgreSQL RLS · AES-256',
+    accentColor: 'sky',
+  },
+];
 
 export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) => {
+  // Pestaña activa en el Studio de Capacidades (reemplaza los recuadros estáticos)
+  const [activeCapIndex, setActiveCapIndex] = useState<number>(0);
+  const activeCap = capabilitiesData[activeCapIndex];
+
+  // Acordeón de preguntas frecuentes
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
   const toggleFaq = (index: number) => {
@@ -94,8 +195,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
 
           {/* Menú Rápido */}
           <nav className="hidden lg:flex items-center gap-7 text-xs font-semibold text-slate-600 dark:text-slate-300">
-            <a href="#modulos" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-              Módulos del Sistema
+            <a href="#capacidades-studio" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+              Capacidades Clave
             </a>
             <a href="#flujo" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
               Flujo Operativo
@@ -104,10 +205,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
               Padrón vs. Excel
             </a>
             <a href="#roles" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-              Gobernanza & Roles
+              Gobernanza
             </a>
             <a href="#faq" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-              Preguntas Frecuentes
+              Preguntas
             </a>
           </nav>
 
@@ -130,10 +231,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
 
       <main className="flex-1 z-10">
         {/* =========================================================================
-            2. HERO SECTION: PROPUESTA DE VALOR AUTÓNOMA Y CONTUNDENTE
+            2. HERO SECTION: TITULAR DE IMPACTO & MOCKUP DEL DASHBOARD
             ========================================================================= */}
         <section className="relative pt-14 pb-20 sm:pt-24 sm:pb-28 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-center">
-          {/* Pill Badge Superior */}
           <motion.div
             initial={{ opacity: 0, y: -15 }}
             animate={{ opacity: 1, y: 0 }}
@@ -144,7 +244,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
             <span>Centro de Operaciones Electorales & Censo Propio</span>
           </motion.div>
 
-          {/* Titular Principal */}
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -157,7 +256,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
             </span>
           </motion.h1>
 
-          {/* Subtítulo Descriptivo del Sistema */}
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -167,7 +265,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
             Sustituye la incertidumbre de las planillas de Excel por precisión territorial: cruce automático con el censo oficial, detección instantánea de doble registro entre líderes, metas en tiempo real y trazabilidad puesto a puesto.
           </motion.p>
 
-          {/* Botones de Acción */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -184,14 +281,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
             </button>
 
             <a
-              href="#modulos"
+              href="#capacidades-studio"
               className="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-white dark:bg-slate-800/90 hover:bg-slate-100 dark:hover:bg-slate-700/80 border border-slate-200 dark:border-slate-700/60 text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white text-sm font-semibold transition-all flex items-center justify-center gap-2 shadow-xs"
             >
-              <span>Ver Módulos del Sistema</span>
+              <span>Explorar Capacidades en Vivo</span>
             </a>
           </motion.div>
 
-          {/* Cuatro Pilares Fundamentales de la Plataforma */}
+          {/* Métricas Principales */}
           <motion.div
             initial={{ opacity: 0, y: 25 }}
             animate={{ opacity: 1, y: 0 }}
@@ -235,9 +332,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
             </div>
           </motion.div>
 
-          {/* =========================================================================
-              SHOWCASE INTERACTIVO: VISTA REAL DE LA APLICACIÓN
-              ========================================================================= */}
+          {/* Showcase del Dashboard */}
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
@@ -245,7 +340,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
             className="mt-14 max-w-5xl mx-auto"
           >
             <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-2xl overflow-hidden text-left relative">
-              {/* Barra Superior de la Aplicación */}
               <div className="px-4 py-3 bg-slate-100/90 dark:bg-slate-950/80 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="w-3 h-3 rounded-full bg-red-400 dark:bg-red-500/80 inline-block" />
@@ -264,9 +358,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
                 </div>
               </div>
 
-              {/* Contenido Interior del Mockup */}
               <div className="p-4 sm:p-6 space-y-5 bg-gradient-to-b from-white to-slate-50/50 dark:from-slate-900 dark:to-[#0B1120]">
-                {/* Métricas Reales del Dashboard */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
                     <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
@@ -317,7 +409,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
                   </div>
                 </div>
 
-                {/* Tabla de Demostración del Padrón Electoral */}
                 <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900/90 shadow-xs">
                   <div className="px-4 py-2.5 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
                     <span className="font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
@@ -402,201 +493,356 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
         </section>
 
         {/* =========================================================================
-            3. SECCIÓN: MÓDULOS DEL SISTEMA (BENTO GRID CON ANIMACIONES EN SCROLL)
+            3. SECCIÓN REESTRUCTURADA: STUDIO INTERACTIVO DE CAPACIDADES CLAVE
+               (SE ELIMINARON LOS 6 RECUADROS ESTÁTICOS Y SE REEMPLAZARON POR UN
+                ESCENARIO INTERACTIVO DINÁMICO CON SELECTOR Y SIMULACIÓN EN VIVO)
             ========================================================================= */}
-        <section id="modulos" className="py-20 sm:py-28 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-slate-200/80 dark:border-slate-800/80">
+        <section
+          id="capacidades-studio"
+          className="py-20 sm:py-28 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-slate-200/80 dark:border-slate-800/80"
+        >
+          {/* Encabezado Editorial */}
           <motion.div
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, margin: '-80px' }}
             variants={fadeInUp}
-            className="text-center max-w-3xl mx-auto mb-16 space-y-3"
+            className="text-center max-w-3xl mx-auto mb-12 space-y-3"
           >
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 text-xs font-semibold">
-              <Layers className="w-3.5 h-3.5" />
-              <span>Módulos Nativos de la Plataforma</span>
+              <Zap className="w-3.5 h-3.5" />
+              <span>Studio Interactivo de Capacidades</span>
             </div>
             <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-              Arquitectura Integral para el Comando de Campaña
+              Tecnología Diseñada para Operar en Territorio
             </h2>
             <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300">
-              Cada módulo resuelve un cuello de botella crítico en la operación electoral: desde la ingesta de bases de datos hasta el escrutinio de votos.
+              Selecciona una capacidad para explorar cómo opera el motor electoral en tiempo real durante la campaña.
             </p>
           </motion.div>
 
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: '-60px' }}
-            variants={staggerContainer}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-          >
-            {/* Módulo 1: Motor Anti-Colisión */}
-            <motion.div
-              variants={fadeInUp}
-              className="rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 hover:border-emerald-500/50 p-6 sm:p-7 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between group"
-            >
-              <div>
-                <div className="h-12 w-12 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center text-emerald-600 dark:text-emerald-400 mb-5 group-hover:scale-105 transition-transform">
-                  <ShieldCheck className="w-6 h-6" />
+          {/* Barra Selectora de Pestañas (Pills Horizontales) */}
+          <div className="flex items-center justify-start lg:justify-center gap-2 overflow-x-auto pb-4 mb-10 scrollbar-none px-2">
+            {capabilitiesData.map((cap, idx) => {
+              const isSelected = activeCapIndex === idx;
+              return (
+                <button
+                  key={cap.id}
+                  type="button"
+                  onClick={() => setActiveCapIndex(idx)}
+                  className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold tracking-wide whitespace-nowrap transition-all flex items-center gap-2 cursor-pointer border ${
+                    isSelected
+                      ? 'bg-blue-600 text-white border-blue-500 shadow-md shadow-blue-500/25'
+                      : 'bg-white dark:bg-slate-900/80 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-blue-300 dark:hover:border-slate-700'
+                  }`}
+                >
+                  <span
+                    className={`font-mono text-[10px] px-1.5 py-0.5 rounded ${
+                      isSelected
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                    }`}
+                  >
+                    {cap.number}
+                  </span>
+                  <span>{cap.navTitle}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Escenario de Exhibición Split-View Dinámico */}
+          <div className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 sm:p-10 shadow-2xl overflow-hidden relative">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeCap.id}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -16 }}
+                transition={{ duration: 0.45, ease: [0.21, 0.47, 0.32, 0.98] }}
+                className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center"
+              >
+                {/* Columna Izquierda: Información Estratégica y Garantías */}
+                <div className="lg:col-span-6 space-y-5 text-left">
+                  <div className="flex items-center gap-3">
+                    <span className="text-3xl sm:text-4xl font-black font-mono text-blue-600 dark:text-blue-400">
+                      {activeCap.number}
+                    </span>
+                    <div className="h-6 w-px bg-slate-200 dark:border-slate-800" />
+                    <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      {activeCap.tag}
+                    </span>
+                  </div>
+
+                  <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white leading-tight">
+                    {activeCap.title}
+                  </h3>
+
+                  <p className="text-sm sm:text-base font-medium text-blue-600 dark:text-blue-400">
+                    {activeCap.subtitle}
+                  </p>
+
+                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                    {activeCap.description}
+                  </p>
+
+                  <div className="space-y-2.5 pt-2">
+                    {activeCap.highlights.map((item) => (
+                      <div key={item} className="flex items-start gap-2.5 text-xs sm:text-sm text-slate-700 dark:text-slate-200">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                        <span>{item}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="pt-3">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-mono font-semibold text-slate-700 dark:text-slate-300">
+                      <Sparkles className="w-3.5 h-3.5 text-blue-500" />
+                      {activeCap.badgeText}
+                    </span>
+                  </div>
                 </div>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
-                  Motor Anti-Colisión Territorial
-                </h3>
-                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                  Evita que dos o más líderes registren al mismo votante en sus listas de apoyo. El sistema valida la cédula en milisegundos; si ya existe, bloquea la duplicación y muestra exactamente quién la registró primero, en qué fecha y en qué mesa.
-                </p>
-              </div>
 
-              <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2 text-[11px] font-mono text-emerald-600 dark:text-emerald-400 font-semibold">
-                <span className="px-2.5 py-1 rounded bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800/40">
-                  Cero Duplicados
-                </span>
-                <span className="px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                  Trazabilidad Inmutable
-                </span>
-              </div>
-            </motion.div>
+                {/* Columna Derecha: Simulación Viva y Específica de Cada Módulo */}
+                <div className="lg:col-span-6 w-full">
+                  {/* Vista 1: Anti-Colisión (Alerta de duplicado en vivo) */}
+                  {activeCap.id === 'anti-colision' && (
+                    <div className="p-6 rounded-2xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 shadow-xl space-y-4 text-left">
+                      <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800 text-xs">
+                        <span className="font-mono text-slate-500 dark:text-slate-400 font-semibold">
+                          VERIFICADOR DE REGISTRO EN TIEMPO REAL
+                        </span>
+                        <span className="px-2 py-0.5 rounded bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-400 font-mono text-[10px] font-bold">
+                          CONFLICTO BLOQUEADO
+                        </span>
+                      </div>
 
-            {/* Módulo 2: Enriquecimiento Oficial de Censo */}
-            <motion.div
-              variants={fadeInUp}
-              className="rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 hover:border-blue-500/50 p-6 sm:p-7 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between group"
-            >
-              <div>
-                <div className="h-12 w-12 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 flex items-center justify-center text-blue-600 dark:text-blue-400 mb-5 group-hover:scale-105 transition-transform">
-                  <Database className="w-6 h-6" />
+                      <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 font-mono text-xs space-y-1">
+                        <span className="text-[10px] text-slate-400 uppercase">Cédula Ingresada por Líder 2:</span>
+                        <p className="text-base font-bold text-slate-900 dark:text-white">1.098.742.110</p>
+                      </div>
+
+                      <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-800/60 space-y-2">
+                        <div className="flex items-center gap-2 text-amber-800 dark:text-amber-400 font-bold text-xs">
+                          <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+                          <span>¡Cédula Ya Existente en la Campaña!</span>
+                        </div>
+                        <p className="text-[11px] text-amber-900/80 dark:text-amber-300/90 leading-relaxed">
+                          Este elector ya fue registrado previamente por <strong>Líder Andrés Castro (Zona Norte)</strong> para la <strong>Mesa 04 (Normal Superior)</strong> hace 2 días.
+                        </p>
+                      </div>
+
+                      <div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 flex items-center justify-between text-xs">
+                        <span className="text-emerald-700 dark:text-emerald-300 font-medium">
+                          Garantía: Se preserva la titularidad del primer líder
+                        </span>
+                        <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">0 FUGAS</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Vista 2: Censo & Edad (Cruce con Registraduría / DNP) */}
+                  {activeCap.id === 'censo' && (
+                    <div className="p-6 rounded-2xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 shadow-xl space-y-4 text-left">
+                      <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800 text-xs">
+                        <span className="font-mono text-slate-500 dark:text-slate-400 font-semibold">
+                          PIPELINE CENSO NACIONAL (DNP)
+                        </span>
+                        <span className="px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-mono text-[10px] font-bold">
+                          LATENCIA 0.04s
+                        </span>
+                      </div>
+
+                      <div className="space-y-3 font-mono text-xs">
+                        <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex justify-between items-center">
+                          <span className="text-slate-500">Documento Consultado:</span>
+                          <span className="font-bold text-slate-900 dark:text-white">1.053.819.245</span>
+                        </div>
+
+                        <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex justify-between items-center">
+                          <span className="text-slate-500">Nombre Oficial Registraduría:</span>
+                          <span className="font-bold text-blue-600 dark:text-blue-400 font-sans">Martha Lucía Restrepo Gómez</span>
+                        </div>
+
+                        <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex justify-between items-center">
+                          <span className="text-slate-500">Edad Calculada Oficial:</span>
+                          <span className="font-bold text-emerald-600 dark:text-emerald-400">36 años (Habilitada)</span>
+                        </div>
+
+                        <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex justify-between items-center">
+                          <span className="text-slate-500">Puesto Oficial Sugerido:</span>
+                          <span className="font-bold text-slate-800 dark:text-slate-200 font-sans">Coliseo Municipal (Mesa 12)</span>
+                        </div>
+                      </div>
+
+                      <div className="p-2.5 rounded-lg bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-[11px] text-blue-700 dark:text-blue-300 font-medium">
+                        ✓ Autocorrección aplicada en cliente sin intervención del digitador.
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Vista 3: DIVIPOLE (Zonificación y Metas) */}
+                  {activeCap.id === 'divipole' && (
+                    <div className="p-6 rounded-2xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 shadow-xl space-y-4 text-left">
+                      <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800 text-xs">
+                        <span className="font-mono text-slate-500 dark:text-slate-400 font-semibold">
+                          ÁRBOL DIVIPOLE COLOMBIA
+                        </span>
+                        <span className="px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 font-mono text-[10px] font-bold">
+                          68001 · BUCARAMANGA
+                        </span>
+                      </div>
+
+                      <div className="space-y-3 font-mono text-xs">
+                        <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                          <span className="text-[10px] text-slate-400 uppercase">Recinto Seleccionado:</span>
+                          <p className="font-sans font-bold text-slate-900 dark:text-white">I.E. Normal Superior (Zona Norte)</p>
+                          <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 font-sans">
+                            <span>18 Mesas de Votación</span>
+                            <span className="font-mono font-bold text-blue-600">Capacidad: 6.300 sufragios</span>
+                          </div>
+                        </div>
+
+                        <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2">
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="text-slate-600 dark:text-slate-300 font-sans">Meta de Campaña Asignada:</span>
+                            <span className="font-bold text-emerald-600 font-mono">4.850 / 6.000 votos (80.8%)</span>
+                          </div>
+                          <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                            <div className="h-full bg-gradient-to-r from-blue-500 to-emerald-500 rounded-full w-[80.8%]" />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="p-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-[11px] text-amber-800 dark:text-amber-300 font-medium">
+                        ✓ Asignación balanceada de electores para evitar colapsos logísticos.
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Vista 4: Carga Masiva (Monitor de Lotes) */}
+                  {activeCap.id === 'carga-masiva' && (
+                    <div className="p-6 rounded-2xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 shadow-xl space-y-4 text-left">
+                      <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800 text-xs">
+                        <span className="font-mono text-slate-500 dark:text-slate-400 font-semibold">
+                          POOL MULTI-HILO (WORKERS)
+                        </span>
+                        <span className="px-2 py-0.5 rounded bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-mono text-[10px] font-bold">
+                          CONCURRENCIA: 4
+                        </span>
+                      </div>
+
+                      <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 font-mono text-xs flex justify-between items-center">
+                        <span className="text-slate-500">Archivo:</span>
+                        <span className="font-bold text-slate-800 dark:text-slate-200">electores_comuna_4.xlsx</span>
+                      </div>
+
+                      <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2">
+                        <div className="flex justify-between text-xs font-mono">
+                          <span className="text-slate-600 dark:text-slate-300">Progreso de Enriquecimiento:</span>
+                          <span className="font-bold text-indigo-600 dark:text-indigo-400">1.450 / 1.450 (100%)</span>
+                        </div>
+                        <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                          <div className="h-full bg-indigo-500 rounded-full w-full" />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-2 font-mono text-center text-xs">
+                        <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-600">
+                          <span className="block font-bold">1.436</span>
+                          <span className="text-[10px]">Válidos</span>
+                        </div>
+                        <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-600">
+                          <span className="block font-bold">14</span>
+                          <span className="text-[10px]">Colisiones</span>
+                        </div>
+                        <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600">
+                          <span className="block font-bold">0</span>
+                          <span className="text-[10px]">Errores</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Vista 5: Espacio del Líder Móvil */}
+                  {activeCap.id === 'lider-movil' && (
+                    <div className="p-6 rounded-2xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 shadow-xl space-y-4 text-left">
+                      <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800 text-xs">
+                        <span className="font-mono text-slate-500 dark:text-slate-400 font-semibold flex items-center gap-1.5">
+                          <Smartphone className="w-3.5 h-3.5 text-purple-500" />
+                          TERMINAL MÓVIL DEL LÍDER
+                        </span>
+                        <span className="px-2 py-0.5 rounded bg-purple-100 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 font-mono text-[10px] font-bold">
+                          MEMORIA ACTIVA
+                        </span>
+                      </div>
+
+                      <div className="p-3 rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800/60 flex items-center justify-between text-xs">
+                        <div>
+                          <span className="font-bold text-purple-900 dark:text-purple-200 block">Líder Andrés Castro</span>
+                          <span className="text-[10px] text-purple-700 dark:text-purple-400 font-mono">Meta: 120 / 150 electores (80%)</span>
+                        </div>
+                        <span className="font-mono font-bold text-sm text-purple-600">80%</span>
+                      </div>
+
+                      <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2 text-xs font-mono">
+                        <div className="p-2 rounded bg-slate-50 dark:bg-slate-800/60 text-slate-500">
+                          Puesto Fijo Recordado: <strong className="text-slate-900 dark:text-white font-sans">Normal Superior (Mesa 04)</strong>
+                        </div>
+                        <div className="p-2 rounded bg-slate-50 dark:bg-slate-800/60 text-slate-500">
+                          Próximo Registro: <strong className="text-blue-500">Listo para digitar Cédula</strong>
+                        </div>
+                      </div>
+
+                      <div className="p-2.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-[11px] text-emerald-700 dark:text-emerald-300 font-medium">
+                        ✓ No requiere volver a buscar el puesto en cada registro de la jornada.
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Vista 6: Seguridad RLS (Aislamiento Multi-Tenant) */}
+                  {activeCap.id === 'seguridad-rls' && (
+                    <div className="p-6 rounded-2xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 shadow-xl space-y-4 text-left">
+                      <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800 text-xs">
+                        <span className="font-mono text-slate-500 dark:text-slate-400 font-semibold">
+                          POLÍTICA POSTGRESQL RLS
+                        </span>
+                        <span className="px-2 py-0.5 rounded bg-sky-100 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 font-mono text-[10px] font-bold">
+                          ESTRICTO
+                        </span>
+                      </div>
+
+                      <div className="p-3.5 rounded-xl bg-slate-900 text-sky-400 font-mono text-[11px] space-y-1.5 overflow-x-auto">
+                        <span className="text-slate-400 block">// Regla nativa en base de datos:</span>
+                        <p className="text-emerald-400 font-bold">CREATE POLICY tenant_isolation_policy</p>
+                        <p className="text-slate-300">ON public.electores FOR ALL</p>
+                        <p className="text-sky-300">USING (tenant_id = auth.current_tenant());</p>
+                      </div>
+
+                      <div className="space-y-2 text-xs">
+                        <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                          <span className="text-slate-600 dark:text-slate-300">Aislamiento de Campaña:</span>
+                          <span className="font-mono font-bold text-emerald-600">HERMÉTICO</span>
+                        </div>
+                        <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                          <span className="text-slate-600 dark:text-slate-300">Visibilidad de Líderes:</span>
+                          <span className="font-mono font-bold text-blue-600">SOLO SUS ELECTORES</span>
+                        </div>
+                      </div>
+
+                      <div className="p-2.5 rounded-lg bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800 text-[11px] text-sky-800 dark:text-sky-300 font-medium">
+                        ✓ Ningún usuario puede hackear ni ver electores de otra campaña u otro líder.
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
-                  Enriquecimiento Automático de Censo
-                </h3>
-                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                  Al digitar la cédula o cargar lotes, el servicio en background consulta el censo oficial. Resuelve nombres completos, corrige errores ortográficos, calcula la edad exacta y sugiere automáticamente el puesto y mesa de votación oficial.
-                </p>
-              </div>
-
-              <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2 text-[11px] font-mono text-blue-600 dark:text-blue-400 font-semibold">
-                <span className="px-2.5 py-1 rounded bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800/40">
-                  Pool Concurrente
-                </span>
-                <span className="px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                  Cálculo de Edad en Vivo
-                </span>
-              </div>
-            </motion.div>
-
-            {/* Módulo 3: DIVIPOLE Integrado */}
-            <motion.div
-              variants={fadeInUp}
-              className="rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 hover:border-amber-500/50 p-6 sm:p-7 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between group"
-            >
-              <div>
-                <div className="h-12 w-12 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 flex items-center justify-center text-amber-600 dark:text-amber-400 mb-5 group-hover:scale-105 transition-transform">
-                  <MapPin className="w-6 h-6" />
-                </div>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
-                  División Político-Administrativa (DIVIPOLE)
-                </h3>
-                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                  Catálogo oficial de Departamentos, Municipios, Zonas, Puestos de Votación y Mesas. Monitorea la saturación por recinto electoral, identifica mesas desatendidas y asigna metas territoriales con base en el potencial electoral real.
-                </p>
-              </div>
-
-              <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2 text-[11px] font-mono text-amber-600 dark:text-amber-400 font-semibold">
-                <span className="px-2.5 py-1 rounded bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800/40">
-                  Puestos & Mesas
-                </span>
-                <span className="px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                  Control de Saturación
-                </span>
-              </div>
-            </motion.div>
-
-            {/* Módulo 4: Carga Masiva Inteligente */}
-            <motion.div
-              variants={fadeInUp}
-              className="rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 hover:border-indigo-500/50 p-6 sm:p-7 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between group"
-            >
-              <div>
-                <div className="h-12 w-12 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 flex items-center justify-center text-indigo-600 dark:text-indigo-400 mb-5 group-hover:scale-105 transition-transform">
-                  <UploadCloud className="w-6 h-6" />
-                </div>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
-                  Carga Masiva Inteligente por Lotes
-                </h3>
-                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                  Importa archivos Excel (.xlsx) y CSV de miles de electores. Mapea columnas automáticamente, normaliza formatos de teléfono, depura espacios en blanco y ejecuta pre-auditoría con enriquecimiento reactivo antes de consolidar en base de datos.
-                </p>
-              </div>
-
-              <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2 text-[11px] font-mono text-indigo-600 dark:text-indigo-400 font-semibold">
-                <span className="px-2.5 py-1 rounded bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800/40">
-                  Excel & CSV
-                </span>
-                <span className="px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                  Pre-flight Audit
-                </span>
-              </div>
-            </motion.div>
-
-            {/* Módulo 5: Espacio de Trabajo del Líder */}
-            <motion.div
-              variants={fadeInUp}
-              className="rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 hover:border-purple-500/50 p-6 sm:p-7 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between group"
-            >
-              <div>
-                <div className="h-12 w-12 rounded-xl bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800 flex items-center justify-center text-purple-600 dark:text-purple-400 mb-5 group-hover:scale-105 transition-transform">
-                  <Vote className="w-6 h-6" />
-                </div>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
-                  Espacio del Líder Móvil (Enrolamiento)
-                </h3>
-                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                  Interfaz móvil optimizada para líderes en territorio. Permite enrolar votantes en segundos, visualizar el porcentaje de cumplimiento hacia su meta personal y cuenta con memoria de lote que recuerda el último puesto y mesa para registro ágil en campo.
-                </p>
-              </div>
-
-              <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2 text-[11px] font-mono text-purple-600 dark:text-purple-400 font-semibold">
-                <span className="px-2.5 py-1 rounded bg-purple-50 dark:bg-purple-950/50 border border-purple-200 dark:border-purple-800/40">
-                  Mobile-First
-                </span>
-                <span className="px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                  Memoria de Lote
-                </span>
-              </div>
-            </motion.div>
-
-            {/* Módulo 6: Seguridad RLS & Auditoría */}
-            <motion.div
-              variants={fadeInUp}
-              className="rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 hover:border-sky-500/50 p-6 sm:p-7 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between group"
-            >
-              <div>
-                <div className="h-12 w-12 rounded-xl bg-sky-50 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-800 flex items-center justify-center text-sky-600 dark:text-sky-400 mb-5 group-hover:scale-105 transition-transform">
-                  <Lock className="w-6 h-6" />
-                </div>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
-                  Seguridad RLS & Auditoría Forense
-                </h3>
-                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                  Aislamiento criptográfico estricto por campaña mediante Row-Level Security en PostgreSQL. Los líderes solo ven sus votantes; los coordinadores auditan su zona; bitácora inalterable de accesos y exportaciones en Excel con codificación UTF-8 BOM.
-                </p>
-              </div>
-
-              <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2 text-[11px] font-mono text-sky-600 dark:text-sky-400 font-semibold">
-                <span className="px-2.5 py-1 rounded bg-sky-50 dark:bg-sky-950/50 border border-sky-200 dark:border-sky-800/40">
-                  PostgreSQL RLS
-                </span>
-                <span className="px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                  UTF-8 BOM Excel
-                </span>
-              </div>
-            </motion.div>
-          </motion.div>
+              </motion.div>
+            </AnimatePresence>
+          </div>
         </section>
 
         {/* =========================================================================
-            4. SECCIÓN: FLUJO OPERATIVO DE CAMPAÑA (PASO A PASO)
+            4. SECCIÓN: FLUJO OPERATIVO CONECTADO (SIN CAJAS REPETITIVAS)
             ========================================================================= */}
         <section id="flujo" className="py-20 sm:py-28 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-slate-200/80 dark:border-slate-800/80">
           <motion.div
@@ -611,85 +857,62 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
               <span>Metodología de Campaña</span>
             </div>
             <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-              Flujo Operativo de la Campaña Electoral
+              Línea de Tiempo Operativa: De la Inscripción al Escrutinio
             </h2>
             <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300">
-              Un ciclo de gestión estructurado para llevar la campaña desde el censo inicial hasta la defensa del voto en el escrutinio.
+              Un ciclo de gestión continuo que sincroniza a todo el equipo electoral con precisión matemática.
             </p>
           </motion.div>
 
+          {/* Stepper Horizontal Continuo */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 relative">
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-60px' }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-              className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm relative"
-            >
+            <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm relative text-left">
               <span className="w-9 h-9 rounded-xl bg-blue-600 text-white font-mono font-bold text-sm flex items-center justify-center mb-4 shadow-md shadow-blue-500/20">
                 01
               </span>
               <h4 className="text-base font-bold text-slate-900 dark:text-white mb-2">
-                Configuración DIVIPOLE
+                Zonificación DIVIPOLE
               </h4>
               <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                El comando de campaña define municipio, puestos de votación y asigna metas numéricas a coordinadores y líderes barriales.
+                El comando define municipio, carga los puestos oficiales y distribuye las metas cuantitativas por comuna y mesa.
               </p>
-            </motion.div>
+            </div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-60px' }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm relative"
-            >
+            <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm relative text-left">
               <span className="w-9 h-9 rounded-xl bg-indigo-600 text-white font-mono font-bold text-sm flex items-center justify-center mb-4 shadow-md shadow-indigo-500/20">
                 02
               </span>
               <h4 className="text-base font-bold text-slate-900 dark:text-white mb-2">
-                Enrolamiento & Censo
+                Enrolamiento con Censo
               </h4>
               <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                Los líderes registran votantes desde su celular o cargan archivos Excel. El censo oficial valida edad y nombres en tiempo real.
+                Los líderes registran en territorio; la plataforma enriquece edad y nombres en tiempo real, bloqueando duplicados al instante.
               </p>
-            </motion.div>
+            </div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-60px' }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-              className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm relative"
-            >
+            <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm relative text-left">
               <span className="w-9 h-9 rounded-xl bg-purple-600 text-white font-mono font-bold text-sm flex items-center justify-center mb-4 shadow-md shadow-purple-500/20">
                 03
               </span>
               <h4 className="text-base font-bold text-slate-900 dark:text-white mb-2">
-                Auditoría en Realtime
+                Supervisión en Realtime
               </h4>
               <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                El tablero central se actualiza vía WebSockets: detecta puestos con déficit de electores y audita el cumplimiento por líder.
+                El tablero central se sincroniza vía WebSockets: detecta puestos desatendidos y audita el rendimiento individual de cada líder.
               </p>
-            </motion.div>
+            </div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-60px' }}
-              transition={{ duration: 0.6, delay: 0.4 }}
-              className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm relative"
-            >
+            <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm relative text-left">
               <span className="w-9 h-9 rounded-xl bg-emerald-600 text-white font-mono font-bold text-sm flex items-center justify-center mb-4 shadow-md shadow-emerald-500/20">
                 04
               </span>
               <h4 className="text-base font-bold text-slate-900 dark:text-white mb-2">
-                Movilización Día D
+                Defensa del Voto (Día D)
               </h4>
               <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                 Listados organizados mesa a mesa con teléfonos y direcciones validadas para movilizar el voto efectivo con precisión militar.
               </p>
-            </motion.div>
+            </div>
           </div>
         </section>
 
@@ -831,13 +1054,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-60px' }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-              className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm"
-            >
+            <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm text-left">
               <div className="p-3 w-fit rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 mb-4">
                 <Shield className="w-6 h-6" />
               </div>
@@ -850,15 +1067,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
               <span className="text-[11px] font-mono text-blue-600 dark:text-blue-400 font-semibold">
                 Control Total · Gestión de Campaña
               </span>
-            </motion.div>
+            </div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-60px' }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm"
-            >
+            <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm text-left">
               <div className="p-3 w-fit rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 mb-4">
                 <Layers className="w-6 h-6" />
               </div>
@@ -871,15 +1082,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
               <span className="text-[11px] font-mono text-indigo-600 dark:text-indigo-400 font-semibold">
                 Carga Masiva · Auditoría Territorial
               </span>
-            </motion.div>
+            </div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-60px' }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-              className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm"
-            >
+            <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm text-left">
               <div className="p-3 w-fit rounded-xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 mb-4">
                 <Vote className="w-6 h-6" />
               </div>
@@ -892,7 +1097,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
               <span className="text-[11px] font-mono text-purple-600 dark:text-purple-400 font-semibold">
                 Enrolamiento Móvil · Cero Fugas
               </span>
-            </motion.div>
+            </div>
           </div>
         </section>
 
