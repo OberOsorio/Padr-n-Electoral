@@ -2,6 +2,7 @@ import React from 'react';
 import {
   LayoutGrid,
   Building2,
+  Users,
   Activity,
   ShieldAlert,
   Layers,
@@ -13,7 +14,7 @@ import { ThemeToggle } from '../ui/ThemeToggle';
 import { MasterUserCard } from './MasterUserCard';
 import { motion } from 'framer-motion';
 
-export type MasterTab = 'overview' | 'tenants' | 'health' | 'audit';
+export type MasterTab = 'overview' | 'tenants' | 'users' | 'health' | 'audit';
 
 interface MasterSidebarProps {
   activeTab: MasterTab;
@@ -44,27 +45,41 @@ export const MasterSidebar: React.FC<MasterSidebarProps> = ({
     }
   };
 
-  const navItems = [
+  interface NavItem {
+    id: MasterTab;
+    label: string;
+    icon: React.ComponentType<{ className?: string }>;
+    description: string;
+    badge?: string;
+  }
+
+  const navItems: NavItem[] = [
     {
-      id: 'overview' as MasterTab,
+      id: 'overview',
       label: 'Resumen Global',
       icon: LayoutGrid,
       description: 'Métricas y capacidad SaaS',
     },
     {
-      id: 'tenants' as MasterTab,
+      id: 'tenants',
       label: 'Campañas y Clientes',
       icon: Building2,
       description: 'Gestión y estado de tenants',
     },
     {
-      id: 'health' as MasterTab,
+      id: 'users',
+      label: 'Usuarios',
+      icon: Users,
+      description: 'Gestión global de directores y credenciales',
+    },
+    {
+      id: 'health',
       label: 'Salud e Infraestructura',
       icon: Activity,
       description: 'Rendimiento y estado de servicios',
     },
     {
-      id: 'audit' as MasterTab,
+      id: 'audit',
       label: 'Auditoría de Accesos',
       icon: ShieldAlert,
       description: 'Seguridad y logs inmutables',
@@ -164,13 +179,20 @@ export const MasterSidebar: React.FC<MasterSidebarProps> = ({
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <p className={`text-xs font-bold leading-tight ${
-                      isActive
-                        ? 'text-purple-950 dark:text-white'
-                        : 'text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white'
-                    }`}>
-                      {item.label}
-                    </p>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <p className={`text-xs font-bold leading-tight ${
+                        isActive
+                          ? 'text-purple-950 dark:text-white'
+                          : 'text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white'
+                      }`}>
+                        {item.label}
+                      </p>
+                      {item.badge && (
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-100 text-purple-700 border border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800/40">
+                          {item.badge}
+                        </span>
+                      )}
+                    </div>
                     <p className={`text-[10px] truncate mt-0.5 ${
                       isActive
                         ? 'text-purple-700 dark:text-purple-300/80 font-medium'

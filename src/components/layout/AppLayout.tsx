@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Sidebar, type SidebarTabId } from './Sidebar';
 import { DirectorDashboardView } from '../../modules/dashboard/DirectorDashboardView';
 import { RegisterElectorView } from '../../modules/electors/RegisterElectorView';
@@ -7,7 +7,7 @@ import { BulkUploadView } from '../../modules/electors/BulkUploadView';
 import { TeamManagementView } from '../../modules/team/TeamManagementView';
 import { ExportReportsView } from '../../modules/reports/ExportReportsView';
 import { TenantSwitcher } from './TenantSwitcher';
-import { Construction, ArrowLeft, Shield, UserPlus, Sparkles, ShieldCheck } from 'lucide-react';
+import { Construction, ArrowLeft, Shield, UserPlus } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ThemeToggle } from '../ui/ThemeToggle';
 import { useSidebar } from '../../context/SidebarContext';
@@ -61,13 +61,28 @@ export const AppLayout = ({
   userName = 'Administrador General',
   userRole = 'Admin',
   onSignOut,
-  isSuperAdminInspection = false,
+  isSuperAdminInspection: _isSuperAdminInspection = false,
   onBackToMasterPlatform,
   onOpenGateway,
 }: AppLayoutProps) => {
   const [activeTab, setActiveTab] = useState<SidebarTabId>('dashboard');
   const { isOpen: isMobileMenuOpen, setSidebarOpen: setIsMobileMenuOpen } = useSidebar();
   const isOnline = useOnlineStatus();
+  const [electorInitialFilter, setElectorInitialFilter] = useState<string>('all');
+
+  // Callbacks de navegación estables para evitar re-renderizados en cascada (React.memo)
+  const navigateToDashboard = useCallback(() => setActiveTab('dashboard'), []);
+  const navigateToRegister = useCallback(() => setActiveTab('register'), []);
+  const navigateToElectors = useCallback((puestoFilter?: string) => {
+    if (puestoFilter) {
+      setElectorInitialFilter(puestoFilter);
+    } else {
+      setElectorInitialFilter('all');
+    }
+    setActiveTab('electors');
+  }, []);
+  const navigateToBulkUpload = useCallback(() => setActiveTab('bulk-upload'), []);
+  const navigateToTeam = useCallback(() => setActiveTab('coordinators'), []);
 
   // Si se pierde la conexión y está en reportes, volver al dashboard
   useEffect(() => {
@@ -100,90 +115,63 @@ export const AppLayout = ({
         userName={userName}
         userRole={userRole}
         onSignOut={onSignOut}
+        onBackToMasterPlatform={onBackToMasterPlatform}
+        onOpenGateway={onOpenGateway}
         className="hidden md:flex"
       />
 
-      {/* 2. Drawer Lateral Móvil (Off-canvas) con AnimatePresence */}
-      <AnimatePresence>
-        {isMobileMenuOpen && (
-          <div className="fixed inset-0 z-50 md:hidden" role="dialog" aria-modal="true">
-            {/* 1. BACKDROP OSCURO CON DESENFOQUE (Cubre 100% de la pantalla) */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.25 }}
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-40 md:hidden cursor-pointer"
-              aria-hidden="true"
-            />
+      {/* 2. Drawer Lateral Móvil (Off-canvas) con Aceleración por Hardware y CERO GPU LAG */}
+      <div
+        className={`fixed inset-0 z-50 md:hidden transition-opacity duration-200 ${
+          isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+        role="dialog"
+        aria-modal="true"
+        aria-hidden={!isMobileMenuOpen}
+      >
+        {/* Overlay oscuro plano CERO GPU Lag (Sin backdrop-blur para 60 FPS garantizados) */}
+        <div
+          onClick={() => setIsMobileMenuOpen(false)}
+          className="fixed inset-0 bg-slate-950/70 z-40 md:hidden transition-opacity duration-200 cursor-pointer"
+          aria-hidden="true"
+        />
 
-            {/* 2. PANEL LATERAL DESLIZANTE NATIVO (Drawer Móvil) */}
-            <motion.aside
-              initial={{ x: '-100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '-100%' }}
-              transition={{ type: 'spring', damping: 28, stiffness: 260 }}
-              className="fixed inset-y-0 left-0 z-50 w-[85vw] max-w-xs h-[100dvh] max-h-[100dvh] bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col justify-between overflow-hidden"
-            >
-              <Sidebar
-                activeTab={activeTab}
-                onSelectTab={(tab) => {
-                  setActiveTab(tab);
-                  setIsMobileMenuOpen(false);
-                }}
-                userEmail={userEmail}
-                userName={userName}
-                userRole={userRole}
-                onSignOut={onSignOut}
-                onCloseMobile={() => setIsMobileMenuOpen(false)}
-                className="flex w-full h-full static border-r-0"
-              />
-            </motion.aside>
-          </div>
-        )}
-      </AnimatePresence>
+        {/* Panel lateral deslizante con composición en capa GPU independiente */}
+        <aside
+          className={`fixed inset-y-0 left-0 z-50 w-[80vw] max-w-xs h-[100dvh] max-h-[100dvh] bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col justify-between overflow-hidden transform transition-transform duration-200 ease-out will-change-transform ${
+            isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
+          style={{
+            transform: isMobileMenuOpen ? 'translate3d(0, 0, 0)' : 'translate3d(-100%, 0, 0)',
+            willChange: 'transform',
+          }}
+        >
+          <Sidebar
+            activeTab={activeTab}
+            onSelectTab={(tab) => {
+              setActiveTab(tab);
+              setIsMobileMenuOpen(false);
+            }}
+            userEmail={userEmail}
+            userName={userName}
+            userRole={userRole}
+            onSignOut={onSignOut}
+            onBackToMasterPlatform={onBackToMasterPlatform}
+            onOpenGateway={onOpenGateway}
+            onCloseMobile={() => setIsMobileMenuOpen(false)}
+            className="flex w-full h-full static border-r-0"
+          />
+        </aside>
+      </div>
 
-      {/* 3. Área de Contenido Principal Scrolleable */}
-      <div className="flex-1 h-full overflow-y-auto overflow-x-hidden w-full max-w-full bg-slate-50 dark:bg-[#0F172A] transition-colors duration-200 flex flex-col">
-        {/* Banner Superior Modo Inspección SuperAdmin (Zero-Knowledge) */}
-        {isSuperAdminInspection && (
-          <div className="w-full max-w-full shrink-0 sticky top-0 z-40 bg-gradient-to-r from-purple-950/95 via-slate-900/95 to-purple-950/95 text-purple-200 border-b border-purple-500/40 px-3 py-1.5 sm:px-4 sm:py-2.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1.5 sm:gap-3 text-xs backdrop-blur-md shadow-lg shadow-purple-950/20 overflow-x-hidden">
-            <div className="flex items-center gap-2">
-              <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-mono font-bold tracking-wider uppercase border border-purple-500/40 text-[9px] sm:text-[10px] flex items-center gap-1 shadow-[0_0_10px_rgba(168,85,247,0.2)]">
-                <Sparkles className="w-3 h-3 text-purple-400" />
-                SuperAdmin Sandbox
-              </span>
-              <span className="font-medium text-slate-200 hidden sm:inline">
-                Modo Inspección de Interfaz y Funciones (Zero-Knowledge Sandbox)
-              </span>
-            </div>
-
-            <div className="flex items-center gap-1.5 w-full sm:w-auto justify-between sm:justify-end">
-              {onOpenGateway && (
-                <button
-                  type="button"
-                  onClick={onOpenGateway}
-                  className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 hover:border-slate-600 transition-colors font-medium text-[10px] sm:text-[11px] cursor-pointer"
-                >
-                  Cambiar Entorno
-                </button>
-              )}
-              {onBackToMasterPlatform && (
-                <button
-                  type="button"
-                  onClick={onBackToMasterPlatform}
-                  className="px-2.5 py-1 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-semibold shadow-xs transition-colors flex items-center gap-1 text-[10px] sm:text-[11px] cursor-pointer"
-                >
-                  <ShieldCheck className="w-3 h-3" />
-                  Volver al Master
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-        {/* Header Móvil Superior Fijo (Visible únicamente en < md) */}
-        <header className="md:hidden sticky top-0 z-30 w-full shrink-0 bg-white/95 dark:bg-[#161F30]/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-700/60 px-4 py-3 flex items-center justify-between transition-colors shadow-xs">
+      {/* 3. Área de Contenido Principal (Prevención de Scroll de Fondo sin reflows pesados) */}
+      <div
+        className={`flex-1 h-full ${
+          isMobileMenuOpen ? 'overflow-hidden' : 'overflow-y-auto'
+        } overflow-x-hidden w-full max-w-full bg-slate-50 dark:bg-[#0F172A] transition-colors duration-200 flex flex-col`}
+      >
+        {/* Header Móvil Superior Fijo (Visible únicamente en < md, sin backdrop-filter pesado) */}
+        <header className="md:hidden sticky top-0 z-30 w-full shrink-0 bg-white dark:bg-[#161F30] border-b border-slate-200 dark:border-slate-700/60 px-4 py-3 flex items-center justify-between transition-colors shadow-xs">
           {/* Logo e Isotipo */}
           <div className="flex items-center gap-2">
             <div className="h-7 w-7 rounded-lg bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-500/40 flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-xs relative shrink-0">
@@ -192,35 +180,34 @@ export const AppLayout = ({
             <TenantSwitcher userRole={userRole} />
           </div>
 
-          {/* Selector de Tema y Botón Hamburguesa Animado */}
+          {/* Selector de Tema y Botón Hamburguesa Optimizado para Móvil (Touch Manipulation Instantáneo) */}
           <div className="flex items-center gap-1.5">
             <ThemeToggle size="sm" />
 
-            <motion.button
+            <button
               type="button"
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              whileTap={{ scale: 0.92 }}
-              className="p-1.5 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer border border-slate-200 dark:border-slate-700/60"
+              onClick={() => setIsMobileMenuOpen((prev) => !prev)}
+              className="p-2 rounded-xl text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95 touch-manipulation transition-transform duration-100 cursor-pointer border border-slate-200 dark:border-slate-700/60"
               aria-label={isMobileMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
             >
-              <div className="w-4 h-3 flex flex-col justify-between items-center relative">
-                <motion.span
-                  animate={isMobileMenuOpen ? { rotate: 45, y: 5 } : { rotate: 0, y: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="w-4 h-0.5 bg-current rounded-full origin-center"
+              <div className="w-5 h-4 flex flex-col justify-between items-center relative" aria-hidden="true">
+                <span
+                  className={`w-4 h-0.5 bg-current rounded-full transition-transform duration-200 ease-out origin-center ${
+                    isMobileMenuOpen ? 'rotate-45 translate-y-[7px]' : ''
+                  }`}
                 />
-                <motion.span
-                  animate={isMobileMenuOpen ? { opacity: 0, scale: 0 } : { opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.15 }}
-                  className="w-4 h-0.5 bg-current rounded-full"
+                <span
+                  className={`w-4 h-0.5 bg-current rounded-full transition-opacity duration-150 ${
+                    isMobileMenuOpen ? 'opacity-0' : 'opacity-100'
+                  }`}
                 />
-                <motion.span
-                  animate={isMobileMenuOpen ? { rotate: -45, y: -5 } : { rotate: 0, y: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="w-4 h-0.5 bg-current rounded-full origin-center"
+                <span
+                  className={`w-4 h-0.5 bg-current rounded-full transition-transform duration-200 ease-out origin-center ${
+                    isMobileMenuOpen ? '-rotate-45 -translate-y-[7px]' : ''
+                  }`}
                 />
               </div>
-            </motion.button>
+            </button>
           </div>
         </header>
 
@@ -238,35 +225,36 @@ export const AppLayout = ({
             >
               {activeTab === 'dashboard' ? (
                 <DirectorDashboardView
-                  onNavigateToElectors={() => setActiveTab('electors')}
-                  onNavigateToRegister={() => setActiveTab('register')}
-                  onNavigateToBulkUpload={() => setActiveTab('bulk-upload')}
-                  onNavigateToTeam={() => setActiveTab('coordinators')}
+                  onNavigateToElectors={navigateToElectors}
+                  onNavigateToRegister={navigateToRegister}
+                  onNavigateToBulkUpload={navigateToBulkUpload}
+                  onNavigateToTeam={navigateToTeam}
                   userName={userName}
                 />
               ) : activeTab === 'register' ? (
                 <RegisterElectorView
-                  onNavigateToDashboard={() => setActiveTab('dashboard')}
+                  onNavigateToDashboard={navigateToDashboard}
                 />
               ) : activeTab === 'electors' ? (
                 <ElectorsListView
-                  onNavigateToRegister={() => setActiveTab('register')}
-                  onNavigateToBulkUpload={() => setActiveTab('bulk-upload')}
+                  onNavigateToRegister={navigateToRegister}
+                  onNavigateToBulkUpload={navigateToBulkUpload}
                   isAdmin={isAdmin}
+                  initialPuestoFilter={electorInitialFilter}
                 />
               ) : activeTab === 'bulk-upload' ? (
                 <BulkUploadView
-                  onNavigateToElectors={() => setActiveTab('electors')}
-                  onNavigateToDashboard={() => setActiveTab('dashboard')}
+                  onNavigateToElectors={navigateToElectors}
+                  onNavigateToDashboard={navigateToDashboard}
                 />
               ) : activeTab === 'coordinators' ? (
                 <TeamManagementView
                   isAdmin={isAdmin}
-                  onNavigateToDashboard={() => setActiveTab('dashboard')}
+                  onNavigateToDashboard={navigateToDashboard}
                 />
               ) : activeTab === 'reports' ? (
                 <ExportReportsView
-                  onNavigateToDashboard={() => setActiveTab('dashboard')}
+                  onNavigateToDashboard={navigateToDashboard}
                   userName={userName}
                   userEmail={userEmail}
                   userRole={userRole}

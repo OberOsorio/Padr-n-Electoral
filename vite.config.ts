@@ -62,12 +62,13 @@ function dnpLookupDevPlugin(): Plugin {
                 if (ruiData && ruiData.ok && ruiData.nombre) {
                   const { nombres, apellidos } = parseNombreCompleto(ruiData.nombre);
 
+                  const edadVal = ruiData.edad || ruiData.anios || ruiData.fechaNacimiento || ruiData.fecNac || null;
                   res.setHeader('Content-Type', 'application/json');
                   res.end(JSON.stringify({
                     encontrado: true,
                     nombres,
                     apellidos,
-                    edad: ruiData.edad ? Number(ruiData.edad) : null,
+                    edad: edadVal,
                     municipio: ruiData.municipio || null,
                     departamento: ruiData.departamento || null,
                     raw: ruiData
@@ -91,12 +92,14 @@ function dnpLookupDevPlugin(): Plugin {
                     `${sisbenData.primerNombre || ''} ${sisbenData.segundoNombre || ''} ${sisbenData.primerApellido || ''} ${sisbenData.segundoApellido || ''}`.trim();
                   if (rawNombre) {
                     const { nombres, apellidos } = parseNombreCompleto(rawNombre);
+                    const edadVal = sisbenData.edad || sisbenData.fechaNacimiento || sisbenData.fecNac || null;
 
                     res.setHeader('Content-Type', 'application/json');
                     res.end(JSON.stringify({
                       encontrado: true,
                       nombres,
                       apellidos,
+                      edad: edadVal,
                       raw: sisbenData
                     }));
                     return;
@@ -127,5 +130,10 @@ export default defineConfig({
     tailwindcss(),
     dnpLookupDevPlugin(),
   ],
+  server: {
+    host: true, // Permite escuchar en la red local
+    port: 5173,
+    allowedHosts: true, // Permite el acceso desde cualquier túnel como trycloudflare.com
+  },
 })
 

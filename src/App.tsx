@@ -2,15 +2,17 @@ import { useEffect, useState, useCallback } from 'react';
 import { supabase } from './lib/supabase';
 import type { Profile, ActiveSessionData } from './types';
 import { LoginPage } from './modules/auth/LoginPage';
+import { ResetPasswordView } from './modules/auth/ResetPasswordView';
 import { LandingPage } from './modules/public/LandingPage';
 import { AppRouter } from './routes/AppRouter';
 import { TenantProvider } from './context/TenantContext';
 import { useIdleTimeout } from './hooks/useIdleTimeout';
 import { Loader2 } from 'lucide-react';
+import { Toaster } from 'react-hot-toast';
 
 const SUPERADMIN_EMAILS = ['oberosorio1@gmail.com'];
 
-async function buildSessionFromAuthUser(authUser: any): Promise<ActiveSessionData> {
+async function buildSessionFromAuthUser(authUser: any): Promise<ActiveSessionData | null> {
   const email = (authUser.email || '').toLowerCase().trim();
   const isSuperAdminEmail = SUPERADMIN_EMAILS.includes(email);
 
@@ -21,6 +23,11 @@ async function buildSessionFromAuthUser(authUser: any): Promise<ActiveSessionDat
     .maybeSingle();
 
   let profile = profileData as Profile | null;
+
+  if (profile && profile.is_active === false) {
+    await supabase.auth.signOut();
+    return null;
+  }
 
   // Si el usuario autenticado no tiene un perfil creado en la base de datos, crearlo automáticamente
   if (!profile && authUser.id) {
@@ -91,7 +98,12 @@ async function buildSessionFromAuthUser(authUser: any): Promise<ActiveSessionDat
 export default function App() {
   const [session, setSession] = useState<ActiveSessionData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [publicView, setPublicView] = useState<'landing' | 'login'>('landing');
+  const [publicView, setPublicView] = useState<'landing' | 'login' | 'reset-password'>(() => {
+    if (typeof window !== 'undefined' && window.location.pathname === '/reset-password') {
+      return 'reset-password';
+    }
+    return 'landing';
+  });
 
   useEffect(() => {
     // 1. Limpiar cualquier almacenamiento residual de sesiones demo previas
@@ -110,6 +122,11 @@ export default function App() {
 
     // 2. Obtener sesión activa de Supabase (ahora en sessionStorage)
     supabase.auth.getSession().then(async ({ data: { session: currentSession } }) => {
+      if (window.location.pathname === '/reset-password') {
+        setPublicView('reset-password');
+        setLoading(false);
+        return;
+      }
       if (currentSession?.user) {
         const sessionData = await buildSessionFromAuthUser(currentSession.user);
         setSession(sessionData);
@@ -120,7 +137,12 @@ export default function App() {
     // 3. Escuchar cambios de estado en Supabase Auth
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, currentSession) => {
+    } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
+      if (event === 'PASSWORD_RECOVERY' || window.location.pathname === '/reset-password') {
+        setPublicView('reset-password');
+        setLoading(false);
+        return;
+      }
       if (currentSession?.user) {
         const sessionData = await buildSessionFromAuthUser(currentSession.user);
         setSession(sessionData);
@@ -193,6 +215,10 @@ export default function App() {
     );
   }
 
+  if (publicView === 'reset-password') {
+    return <ResetPasswordView />;
+  }
+
   // Si no hay sesión activa: Mostrar Landing Page pública o Login administrativo
   if (!session) {
     if (publicView === 'login') {
@@ -214,6 +240,13 @@ export default function App() {
   // Al autenticar, cargar el AppRouter envuelto en TenantProvider con aislamiento de datos
   return (
     <TenantProvider userRole={session.role} userTenantId={session.tenantId}>
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 4500,
+          className: '!rounded-2xl !bg-white dark:!bg-[#0d172e] !text-slate-800 dark:!text-slate-100 !border !border-slate-200/90 dark:!border-[#1e293b] !shadow-2xl !text-xs !p-3',
+        }}
+      />
       <AppRouter
         session={session}
         onSignOut={handleSignOut}

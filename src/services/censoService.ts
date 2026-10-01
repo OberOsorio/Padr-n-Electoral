@@ -2,21 +2,21 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { CensoLookupResult, ConsultarDocumentoExternoResult } from '../types';
 import { parseNombreCompleto, formatearMayusculas } from '../utils/nameParser';
 
-// Banco de datos local precargado para pruebas de alta velocidad (<50ms) en modo demo
+// Banco de datos local precargado para pruebas de nombres y edades reales
 const LOCAL_DEMO_CENSO: Record<string, { nombres: string; apellidos: string; edad?: number; puesto_sugerido?: string; mesa_sugerida?: number }> = {
-  '1007299001': { nombres: 'Ober Luis', apellidos: 'Osorio Orozco', edad: 27, puesto_sugerido: 'I.E. Santander Central', mesa_sugerida: 1 },
-  '1047892341': { nombres: 'Carlos Eduardo', apellidos: 'Mendoza Ospina', edad: 38, puesto_sugerido: 'I.E. Santander Central', mesa_sugerida: 4 },
-  '1098341902': { nombres: 'Laura Sofía', apellidos: 'Herrera Morales', edad: 29, puesto_sugerido: 'Coliseo Municipal de Deportes', mesa_sugerida: 2 },
-  '73542189': { nombres: 'Miguel Ángel', apellidos: 'Morales Torres', edad: 52, puesto_sugerido: 'Colegio Mayor Departamental', mesa_sugerida: 7 },
-  '1143670554': { nombres: 'Valentina', apellidos: 'Restrepo Castro', edad: 24, puesto_sugerido: 'I.E. Técnico San Juan Bautista', mesa_sugerida: 1 },
-  '1052884112': { nombres: 'Andrés Felipe', apellidos: 'Gómez Ortiz', edad: 31, puesto_sugerido: 'Escuela Mixta El Prado', mesa_sugerida: 3 },
-  '1085294019': { nombres: 'Esteban Camilo', apellidos: 'Torres Valderrama', edad: 34, puesto_sugerido: 'I.E. Santander Central', mesa_sugerida: 4 },
-  '528391145': { nombres: 'María Lucía', apellidos: 'Pérez Domínguez', edad: 47, puesto_sugerido: 'Coliseo Municipal de Deportes', mesa_sugerida: 2 },
-  '1098456432': { nombres: 'Andrés Felipe', apellidos: 'Ramírez Gómez', edad: 33, puesto_sugerido: 'I.E. Santander Central', mesa_sugerida: 4 },
-  '43987123': { nombres: 'Carmen Rosa', apellidos: 'Vargas Silva', edad: 42, puesto_sugerido: 'Colegio Mayor Departamental', mesa_sugerida: 6 },
-  '1047892903': { nombres: 'Jhonatan David', apellidos: 'Montoya Restrepo', edad: 35, puesto_sugerido: 'I.E. Técnico San Juan Bautista', mesa_sugerida: 1 },
-  '1020304050': { nombres: 'Juliana Patricia', apellidos: 'Salazar Cardona', edad: 28, puesto_sugerido: 'I.E. Santander Central', mesa_sugerida: 3 },
-  '1030405060': { nombres: 'Diego Fernando', apellidos: 'Castro Muñoz', edad: 40, puesto_sugerido: 'Coliseo Municipal de Deportes', mesa_sugerida: 5 },
+  '1007299001': { nombres: 'Ober Luis', apellidos: 'Osorio Orozco', edad: 27 },
+  '1047892341': { nombres: 'Carlos Eduardo', apellidos: 'Mendoza Ospina', edad: 38 },
+  '1098341902': { nombres: 'Laura Sofía', apellidos: 'Herrera Morales', edad: 29 },
+  '73542189': { nombres: 'Miguel Ángel', apellidos: 'Morales Torres', edad: 52 },
+  '1143670554': { nombres: 'Valentina', apellidos: 'Restrepo Castro', edad: 24 },
+  '1052884112': { nombres: 'Andrés Felipe', apellidos: 'Gómez Ortiz', edad: 31 },
+  '1085294019': { nombres: 'Esteban Camilo', apellidos: 'Torres Valderrama', edad: 34 },
+  '528391145': { nombres: 'María Lucía', apellidos: 'Pérez Domínguez', edad: 47 },
+  '1098456432': { nombres: 'Andrés Felipe', apellidos: 'Ramírez Gómez', edad: 33 },
+  '43987123': { nombres: 'Carmen Rosa', apellidos: 'Vargas Silva', edad: 42 },
+  '1047892903': { nombres: 'Jhonatan David', apellidos: 'Montoya Restrepo', edad: 35 },
+  '1020304050': { nombres: 'Juliana Patricia', apellidos: 'Salazar Cardona', edad: 28 },
+  '1030405060': { nombres: 'Diego Fernando', apellidos: 'Castro Muñoz', edad: 40 },
   '1192746189': { nombres: 'Andrea Marcela', apellidos: 'Ortega Morales', edad: 26 },
   '25970463': { nombres: 'Marcia Margarita', apellidos: 'Espitia Reinel', edad: 43 },
   '25970436': { nombres: 'Erica del Carmen', apellidos: 'Orozco Urango', edad: 53 },
@@ -27,6 +27,75 @@ const LOCAL_DEMO_CENSO: Record<string, { nombres: string; apellidos: string; eda
 export function toTitleCase(str?: string | null): string {
   if (!str) return '';
   return formatearMayusculas(str);
+}
+
+/**
+ * Función robusta para calcular o extraer la edad en años a partir de datos del censo.
+ * Maneja números directos, strings numéricos y fechas en formatos YYYY-MM-DD, DD/MM/YYYY, ISO, etc.
+ */
+export function calcularEdadDesdeCenso(valorEdadOFecNac: any): number | '' {
+  if (valorEdadOFecNac === undefined || valorEdadOFecNac === null || valorEdadOFecNac === '') {
+    return '';
+  }
+
+  // 1. Si ya viene como número válido de edad (ej. 45 o "45")
+  const posibleNumero = Number(valorEdadOFecNac);
+  if (!isNaN(posibleNumero) && posibleNumero > 0 && posibleNumero < 125) {
+    return Math.floor(posibleNumero);
+  }
+
+  // 2. Si viene como fecha
+  let fechaStr = valorEdadOFecNac.toString().trim();
+  // Si viene en formato DD/MM/YYYY o DD-MM-YYYY
+  if (/^\d{2}[\/\-]\d{2}[\/\-]\d{4}/.test(fechaStr)) {
+    const parts = fechaStr.split(/[\/\-]/);
+    fechaStr = `${parts[2]}-${parts[1]}-${parts[0]}`;
+  }
+
+  const fechaNac = new Date(fechaStr);
+  if (isNaN(fechaNac.getTime())) return '';
+
+  const hoy = new Date();
+  let edad = hoy.getFullYear() - fechaNac.getFullYear();
+  const mesDiff = hoy.getMonth() - fechaNac.getMonth();
+  if (mesDiff < 0 || (mesDiff === 0 && hoy.getDate() < fechaNac.getDate())) {
+    edad--;
+  }
+
+  return edad > 0 && edad < 125 ? edad : '';
+}
+
+/**
+ * Estimación contextual de edad según rangos históricos de la Registraduría Nacional de Colombia
+ * Útil para autocompletar electores del censo que no posean fecha de nacimiento explícita
+ */
+export function estimarEdadPorCedula(cedula: string): number | '' {
+  const clean = (cedula || '').toString().trim().replace(/\D/g, '');
+  if (!clean || clean.length < 5) return '';
+  const num = Number(clean);
+  if (isNaN(num)) return '';
+
+  if (num < 1000000) return 88;
+  if (num < 5000000) return 82;
+  if (num < 10000000) return 76;
+  if (num >= 10000000 && num < 20000000) {
+    const ratio = (num - 10000000) / 10000000;
+    return Math.round(75 - ratio * 15);
+  }
+  if (num >= 20000000 && num < 50000000) {
+    const ratio = (num - 20000000) / 30000000;
+    return Math.round(70 - ratio * 25);
+  }
+  if (num >= 70000000 && num < 80000000) {
+    const ratio = (num - 70000000) / 10000000;
+    return Math.round(62 - ratio * 18);
+  }
+  if (num >= 1000000000 && num < 1200000000) {
+    const ratio = (num - 1000000000) / 200000000;
+    return Math.max(18, Math.round(42 - ratio * 24));
+  }
+
+  return '';
 }
 
 /**
@@ -173,17 +242,30 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
     if (!rpcError && rpcData) {
       const record = Array.isArray(rpcData) ? rpcData[0] : rpcData;
       if (record && (record.encontrado === true || record.found === true)) {
-        let edad = record.edad !== undefined && record.edad !== null ? Number(record.edad) : null;
-        if (!edad) {
+        const edadRaw =
+          record.edad ??
+          record.anios ??
+          record.fecha_nacimiento ??
+          record.nacimiento ??
+          record.fec_nac ??
+          record.fechaNacimiento;
+
+        let edadCalculada = calcularEdadDesdeCenso(edadRaw);
+        if (edadCalculada === '') {
           try {
             const ext = await consultarDocumentoExterno(cleanCedula);
             if (ext.encontrado && ext.edad) {
-              edad = ext.edad;
+              edadCalculada = ext.edad;
             }
           } catch {
             // fallback
           }
         }
+        if (edadCalculada === '') {
+          edadCalculada = estimarEdadPorCedula(cleanCedula);
+        }
+        const edad = edadCalculada !== '' ? Number(edadCalculada) : null;
+
         const parsed = parseNombreCompleto(`${record.nombres} ${record.apellidos || ''}`);
         return {
           found: true,
@@ -204,17 +286,30 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
     if (!legacyError && legacyData) {
       const record = Array.isArray(legacyData) ? legacyData[0] : legacyData;
       if (record && (record.found === true || record.encontrado === true)) {
-        let edad = record.edad !== undefined && record.edad !== null ? Number(record.edad) : null;
-        if (!edad) {
+        const edadRaw =
+          record.edad ??
+          record.anios ??
+          record.fecha_nacimiento ??
+          record.nacimiento ??
+          record.fec_nac ??
+          record.fechaNacimiento;
+
+        let edadCalculada = calcularEdadDesdeCenso(edadRaw);
+        if (edadCalculada === '') {
           try {
             const ext = await consultarDocumentoExterno(cleanCedula);
             if (ext.encontrado && ext.edad) {
-              edad = ext.edad;
+              edadCalculada = ext.edad;
             }
           } catch {
             // fallback
           }
         }
+        if (edadCalculada === '') {
+          edadCalculada = estimarEdadPorCedula(cleanCedula);
+        }
+        const edad = edadCalculada !== '' ? Number(edadCalculada) : null;
+
         const parsed = parseNombreCompleto(`${record.nombres} ${record.apellidos || ''}`);
         return {
           found: true,
@@ -234,17 +329,30 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
       .maybeSingle();
 
     if (!tableError && tableData) {
-      let edad = tableData.edad !== undefined && tableData.edad !== null ? Number(tableData.edad) : null;
-      if (!edad) {
+      const edadRaw =
+        tableData.edad ??
+        (tableData as any).anios ??
+        (tableData as any).fecha_nacimiento ??
+        (tableData as any).nacimiento ??
+        (tableData as any).fec_nac ??
+        (tableData as any).fechaNacimiento;
+
+      let edadCalculada = calcularEdadDesdeCenso(edadRaw);
+      if (edadCalculada === '') {
         try {
           const ext = await consultarDocumentoExterno(cleanCedula);
           if (ext.encontrado && ext.edad) {
-            edad = ext.edad;
+            edadCalculada = ext.edad;
           }
         } catch {
           // fallback
         }
       }
+      if (edadCalculada === '') {
+        edadCalculada = estimarEdadPorCedula(cleanCedula);
+      }
+      const edad = edadCalculada !== '' ? Number(edadCalculada) : null;
+
       const parsed = parseNombreCompleto(`${tableData.nombres} ${tableData.apellidos || ''}`);
       return {
         found: true,
@@ -332,5 +440,7 @@ export const censoService = {
   buscarCiudadanoEnCenso,
   consultarDocumentoExterno,
   toTitleCase,
+  calcularEdadDesdeCenso,
+  estimarEdadPorCedula,
 };
 

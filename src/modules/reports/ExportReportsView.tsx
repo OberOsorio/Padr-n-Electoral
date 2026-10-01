@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useTenant } from '../../context/TenantContext';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
+import { supabaseAdmin } from '../../lib/supabaseAdmin';
 import { exportarElectoresExcel } from '../../services/exportService';
 import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 
@@ -31,7 +32,7 @@ interface LeaderOption {
 export const ExportReportsView: React.FC<ExportReportsViewProps> = ({
   onNavigateToDashboard,
 }) => {
-  const { currentTenantId } = useTenant();
+  const { currentTenantId, currentTenant } = useTenant();
   const isOnline = useOnlineStatus();
 
   const [loading, setLoading] = useState(true);
@@ -69,20 +70,25 @@ export const ExportReportsView: React.FC<ExportReportsViewProps> = ({
           }
         });
 
-        const leadersList: LeaderOption[] = localTeam.map((m) => ({
-          id: m.id,
-          name: m.full_name || 'Miembro de Equipo',
-          role: m.role || 'lider',
-          electoresCount: countsMap[m.id] || m.totalElectores || 0,
-        })).sort((a, b) => b.electoresCount - a.electoresCount);
+        const leadersList: LeaderOption[] = localTeam
+          .map((m) => ({
+            id: m.id,
+            name: m.full_name || 'Miembro de Equipo',
+            role: m.role || 'lider',
+            electoresCount: countsMap[m.id] || 0,
+          }))
+          .filter((l) => l.electoresCount > 0)
+          .sort((a, b) => b.electoresCount - a.electoresCount || a.name.localeCompare(b.name));
 
         setTotalElectores(scopedElectors.length);
         setLeaders(leadersList);
         return;
       }
 
+      const clientToUse = supabaseAdmin || supabase;
+
       // Consulta del conteo de electores para el tenant actual
-      let electoresQuery = supabase
+      let electoresQuery = clientToUse
         .from('electores')
         .select('id, registrado_por', { count: 'exact' });
 
@@ -93,19 +99,7 @@ export const ExportReportsView: React.FC<ExportReportsViewProps> = ({
       const { data: electoresData, count: totalCount, error: electoresErr } = await (electoresQuery as any);
       if (electoresErr) throw electoresErr;
 
-      // Consulta de perfiles (líderes, coordinadores, administradores)
-      let profilesQuery = supabase
-        .from('profiles')
-        .select('id, full_name, role')
-        .eq('is_active', true);
-
-      if (currentTenantId) {
-        profilesQuery = (profilesQuery as any).eq('tenant_id', currentTenantId);
-      }
-
-      const { data: profilesData, error: profilesErr } = await (profilesQuery as any);
-      if (profilesErr) console.warn('Error al consultar perfiles:', profilesErr);
-
+      // Calcular conteo exacto de electores reales por cada líder/registrador
       const countsMap: Record<string, number> = {};
       ((electoresData as any[]) || []).forEach((e: any) => {
         if (e.registrado_por) {
@@ -113,15 +107,46 @@ export const ExportReportsView: React.FC<ExportReportsViewProps> = ({
         }
       });
 
-      const leadersList: LeaderOption[] = ((profilesData as any[]) || [])
-        .filter((p: any) => p.role === 'lider' || p.role === 'coordinador' || p.role === 'admin')
-        .map((p: any) => ({
+      // Obtener únicamente los IDs de los líderes que realmente tienen electores registrados
+      const realLeaderIds = Object.keys(countsMap).filter((id) => (countsMap[id] || 0) > 0);
+
+      if (realLeaderIds.length === 0) {
+        setTotalElectores(totalCount || 0);
+        setLeaders([]);
+        return;
+      }
+
+      // Consulta de perfiles exclusivamente de los líderes que tienen electores en la base de datos
+      const { data: profilesData, error: profilesErr } = await clientToUse
+        .from('profiles')
+        .select('id, full_name, role')
+        .in('id', realLeaderIds);
+
+      if (profilesErr) console.warn('Error al consultar perfiles de líderes reales:', profilesErr);
+
+      const profilesMap = new Map<string, { id: string; name: string; role: string }>();
+
+      ((profilesData as any[]) || []).forEach((p: any) => {
+        profilesMap.set(p.id, {
           id: p.id,
-          name: p.full_name || 'Personal Autorizado',
-          role: p.role,
-          electoresCount: countsMap[p.id] || 0,
-        }))
-        .sort((a, b) => b.electoresCount - a.electoresCount);
+          name: p.full_name || 'Líder Registrado',
+          role: p.role || 'lider',
+        });
+      });
+
+      // Construir lista exclusivamente con líderes reales y registros existentes en la BD
+      const leadersList: LeaderOption[] = realLeaderIds
+        .map((leaderId) => {
+          const profile = profilesMap.get(leaderId);
+          return {
+            id: leaderId,
+            name: profile?.name || `Líder Registrado (${leaderId.slice(0, 8)})`,
+            role: profile?.role || 'lider',
+            electoresCount: countsMap[leaderId] || 0,
+          };
+        })
+        .filter((l) => l.electoresCount > 0)
+        .sort((a, b) => b.electoresCount - a.electoresCount || a.name.localeCompare(b.name));
 
       setTotalElectores(totalCount || 0);
       setLeaders(leadersList);
@@ -194,6 +219,7 @@ export const ExportReportsView: React.FC<ExportReportsViewProps> = ({
         tenantId: currentTenantId,
         registradoPorId: leader.id,
         liderNombre: leader.name,
+        nombreCampana: currentTenant?.name || 'TODO POR COTORRA',
       });
       setSuccessMsg(`Reporte de ${leader.name} descargado exitosamente (${res.count.toLocaleString('es-CO')} electores en ${res.fileName}).`);
     } catch (err: any) {

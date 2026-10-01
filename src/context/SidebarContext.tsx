@@ -4,7 +4,7 @@ interface SidebarContextType {
   isOpen: boolean; // Controla el drawer móvil
   isCollapsed: boolean; // Controla el estado colapsado (mini-rail w-20) vs expandido (w-72) en escritorio
   toggleSidebar: () => void;
-  setSidebarOpen: (open: boolean) => void;
+  setSidebarOpen: React.Dispatch<React.SetStateAction<boolean>>;
   setIsCollapsed: (collapsed: boolean) => void;
 }
 

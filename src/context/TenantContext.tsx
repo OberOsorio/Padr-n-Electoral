@@ -80,7 +80,33 @@ export const TenantProvider: React.FC<{ children: React.ReactNode; userRole?: st
 
       if (error) throw error;
 
-      const loadedTenants: Tenant[] = data || [];
+      // Obtener conteo real de electores por tenant desde Supabase
+      const { data: electoresData } = await (supabase.from('electores') as any)
+        .select('tenant_id');
+
+      const electoresCountMap: Record<string, number> = {};
+      (electoresData || []).forEach((e: any) => {
+        if (e.tenant_id) {
+          electoresCountMap[e.tenant_id] = (electoresCountMap[e.tenant_id] || 0) + 1;
+        }
+      });
+
+      // Obtener conteo real de perfiles/usuarios por tenant
+      const { data: profilesData } = await (supabase.from('profiles') as any)
+        .select('tenant_id');
+
+      const usersCountMap: Record<string, number> = {};
+      (profilesData || []).forEach((p: any) => {
+        if (p.tenant_id) {
+          usersCountMap[p.tenant_id] = (usersCountMap[p.tenant_id] || 0) + 1;
+        }
+      });
+
+      const loadedTenants: Tenant[] = (data || []).map((t: any) => ({
+        ...t,
+        totalElectores: electoresCountMap[t.id] ?? 0,
+        totalUsers: usersCountMap[t.id] ?? 1,
+      }));
 
       if (loadedTenants.length === 0) {
         // Preservar tenants locales si Supabase devuelve vacío

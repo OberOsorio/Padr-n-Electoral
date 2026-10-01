@@ -9,26 +9,28 @@ import {
   Power,
   Loader2,
   Trash2,
-  Infinity,
   MapPin,
   Eye,
   EyeOff,
   Copy,
   Check,
+  Edit3,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTenant } from '../../context/TenantContext';
 import { useAccessAuditLogs } from './useAccessAuditLogs';
 import { ColombiaGeoSelector } from '../../components/ui/ColombiaGeoSelector';
+import { EditCampaignModal } from './EditCampaignModal';
 import type { Tenant } from '../../types';
 
 export const TenantsManagementView: React.FC = () => {
-  const { tenants, toggleTenantStatus, createCampaignWithAdmin, deleteTenantPermanently, refetchTenants } = useTenant();
+  const { tenants, toggleTenantStatus, createCampaignWithAdmin, deleteTenantPermanently, refetchTenants, updateTenant } = useTenant();
   const { recordAccessEvent } = useAccessAuditLogs();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'suspended'>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingCampaign, setEditingCampaign] = useState<Tenant | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
   // Estado para Modal de Eliminación Definitiva (Security-First UX)
@@ -292,7 +294,6 @@ export const TenantsManagementView: React.FC = () => {
               <tr>
                 <th className="py-3 px-4 font-semibold">Campaña</th>
                 <th className="py-3 px-4 font-semibold">Director / Admin</th>
-                <th className="py-3 px-4 font-semibold">Capacidad</th>
                 <th className="py-3 px-4 font-semibold">Electores Registrados</th>
                 <th className="py-3 px-4 font-semibold">Contratación</th>
                 <th className="py-3 px-4 font-semibold">Estado</th>
@@ -302,7 +303,7 @@ export const TenantsManagementView: React.FC = () => {
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
               {filteredTenants.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-400">
+                  <td colSpan={6} className="py-12 text-center text-slate-400">
                     No se encontraron campañas coincidentes con los filtros.
                   </td>
                 </tr>
@@ -360,14 +361,6 @@ export const TenantsManagementView: React.FC = () => {
                         </div>
                       </td>
 
-                      {/* Capacidad */}
-                      <td className="py-3.5 px-4 font-mono">
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 shadow-2xs">
-                          <Infinity className="w-3 h-3 text-emerald-500 shrink-0" />
-                          <span>Ilimitada</span>
-                        </span>
-                      </td>
-
                       {/* Electores Registrados */}
                       <td className="py-3.5 px-4 font-mono">
                         <span className="font-semibold text-slate-900 dark:text-white">
@@ -396,9 +389,19 @@ export const TenantsManagementView: React.FC = () => {
                         )}
                       </td>
 
-                      {/* Acciones: Suspensión y Eliminación Definitiva */}
+                      {/* Acciones: Edición, Suspensión y Eliminación Definitiva */}
                       <td className="py-3.5 px-4 text-right">
                         <div className="flex items-center justify-end gap-2">
+                          {/* Botón Editar Campaña */}
+                          <button
+                            type="button"
+                            onClick={() => setEditingCampaign(t)}
+                            className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-400 hover:text-sky-400 hover:bg-sky-950/40 hover:border-sky-800/50 transition-colors cursor-pointer"
+                            title="Editar configuración de campaña"
+                          >
+                            <Edit3 className="w-4 h-4" />
+                          </button>
+
                           <button
                             type="button"
                             onClick={() => handleToggleStatus(t)}
@@ -825,6 +828,20 @@ export const TenantsManagementView: React.FC = () => {
           </div>
         )}
       </AnimatePresence>
+
+      {/* MODAL: Edición de Campaña / Tenant */}
+      {editingCampaign && (
+        <EditCampaignModal
+          campaign={editingCampaign}
+          isOpen={Boolean(editingCampaign)}
+          onClose={() => setEditingCampaign(null)}
+          onCampaignUpdated={async (updated) => {
+            await updateTenant(updated.id || editingCampaign.id, updated);
+            setToastMessage(`Campaña "${updated.name || editingCampaign.name}" actualizada con éxito.`);
+            setTimeout(() => setToastMessage(null), 4000);
+          }}
+        />
+      )}
     </div>
   );
 };

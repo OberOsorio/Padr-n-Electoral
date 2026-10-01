@@ -87,3 +87,56 @@
   animation: neonStatusGlow 2.5s infinite ease-in-out;
 }
 
+/* ==========================================================================
+   ANULACIÓN DE FONDO AMARILLO DE AUTOCOMPLETADO (WebKit / iOS Safari / Chrome)
+   ========================================================================== */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus, 
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #070b13 inset !important;
+  box-shadow: 0 0 0 1000px #070b13 inset !important;
+  -webkit-text-fill-color: #f8fafc !important;
+  color: #f8fafc !important;
+  caret-color: #38bdf8 !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px #05080e inset !important;
+  box-shadow: 0 0 0 1000px #05080e inset !important;
+}
+
+.login-input:-webkit-autofill,
+.login-input:-webkit-autofill:hover,
+.login-input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #070b13 inset !important;
+  box-shadow: 0 0 0 1000px #070b13 inset !important;
+  -webkit-text-fill-color: #ffffff !important;
+  color: #ffffff !important;
+  caret-color: #38bdf8 !important;
+}
+
+.login-input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px #05080e inset !important;
+  box-shadow: 0 0 0 1000px #05080e inset !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+/* Scrollbar ultra delgado y elegante para dropdowns y contenedores compactos */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #080e1c;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #1f3258;
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #2b457a;
+}
+
+
+

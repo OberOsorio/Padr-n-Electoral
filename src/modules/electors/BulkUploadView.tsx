@@ -645,18 +645,29 @@ export const BulkUploadView: React.FC<BulkUploadViewProps> = ({
                         </td>
                         <td className="py-2.5 px-3 font-medium text-slate-900 dark:text-white">
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <span>{row.nombres} {row.apellidos}</span>
-                            {row.nombre_fue_corregido ? (
+                            <span className="font-semibold text-slate-800 dark:text-slate-100 text-xs sm:text-sm">
+                              {row.nombre_completo || `${row.nombres || ''} ${row.apellidos || ''}`.trim()}
+                            </span>
+
+                            {/* Badge de edad obtenida */}
+                            {row.edad !== null && row.edad !== undefined && (
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-cyan-400 border border-blue-200 dark:border-blue-800/40 font-mono shrink-0">
+                                {typeof row.edad === 'number' ? `${row.edad}a` : row.edad}
+                              </span>
+                            )}
+
+                            {/* Badge de Corrección */}
+                            {(row.nombre_fue_corregido || row.nombre_corregido) ? (
                               <span
-                                title={row.nombre_original_archivo ? `Original en archivo: "${row.nombre_original_archivo}"` : 'Nombre corregido según Censo Oficial'}
-                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50 shrink-0"
+                                title={`Original del archivo: ${row.nombre_original || row.nombre_original_archivo || 'N/A'}`}
+                                className="px-1.5 py-0.5 rounded text-[9px] font-bold font-mono bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700/60 shrink-0 inline-flex items-center gap-1"
                               >
                                 ✦ Corregido
                               </span>
                             ) : row.verificado_censo ? (
                               <span
                                 title="Verificado plenamente contra el Censo Electoral Oficial"
-                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40 shrink-0"
+                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-mono font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40 shrink-0"
                               >
                                 ✦ Censo
                               </span>
@@ -672,7 +683,9 @@ export const BulkUploadView: React.FC<BulkUploadViewProps> = ({
                         </td>
                         <td className="py-2.5 px-3 text-center font-mono">
                           {row.edad !== null && row.edad !== undefined ? (
-                            <span className="font-bold text-slate-900 dark:text-white font-mono">{row.edad} años</span>
+                            <span className="font-bold text-slate-900 dark:text-white font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700">
+                              {row.edad} años
+                            </span>
                           ) : row.isEnriching ? (
                             <span className="text-slate-400 dark:text-slate-500 italic text-[11px] animate-pulse">Calculando...</span>
                           ) : (

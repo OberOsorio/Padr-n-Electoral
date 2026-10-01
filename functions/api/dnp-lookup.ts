@@ -176,11 +176,13 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
         const ruiData = (await ruiRes.json()) as any;
         if (ruiData && ruiData.ok && ruiData.nombre) {
           const { nombres, apellidos } = parseFullName(ruiData.nombre);
+          const edadVal = ruiData.edad || ruiData.anios || ruiData.fechaNacimiento || ruiData.fecNac || null;
           return new Response(
             JSON.stringify({
               encontrado: true,
               nombres,
               apellidos,
+              edad: edadVal,
               municipio: ruiData.municipio || null,
               departamento: ruiData.departamento || null,
               raw: ruiData,
@@ -210,11 +212,13 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
 
           if (rawNombre) {
             const { nombres, apellidos } = parseFullName(rawNombre);
+            const edadVal = sisbenData.edad || sisbenData.fechaNacimiento || sisbenData.fecNac || null;
             return new Response(
               JSON.stringify({
                 encontrado: true,
                 nombres,
                 apellidos,
+                edad: edadVal,
                 raw: sisbenData,
               }),
               { status: 200, headers: corsHeaders }

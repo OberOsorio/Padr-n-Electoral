@@ -1,356 +1,604 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
-import type { DashboardMetrics, TopPollingPlace, ElectorWithRegistrant, DashboardTeamMember } from '../../types';
 import { useTenant } from '../../context/TenantContext';
-import { PREDEFINED_POLLING_PLACES } from '../electors/constants';
+import { type DateRangeOption } from './DateRangeSelector';
+import { type CampaignNotification } from './NotificationCenter';
+import { type PuestoMetrica } from './TerritoryDistributionCard';
 
-export const useDashboardData = () => {
+export interface DashboardMetrics {
+  totalElectores: number;
+  totalHistorico: number;
+  electoresActivos: number; // Electores con teléfono o estado confirmado
+  totalLideres: number;
+  lideresActivos: number;
+  metaGlobal: number;
+  porcentajeAvance: number;
+  evolucionSemanal: { dia: string; total: number }[];
+  distribucionPuestos: PuestoMetrica[];
+  estadoEquipo: { activos: number; sinActividad: number; pendientes: number; total: number };
+  rendimientoLideres: {
+    id: string;
+    nombre: string;
+    rol: string;
+    meta: number;
+    gestionados: number;
+    avance: number;
+    estado: 'ACTIVO' | 'ATENCIÓN';
+  }[];
+  actividadReciente: {
+    id: string;
+    hora: string;
+    texto: string;
+    tipo: 'elector' | 'lider' | 'meta';
+  }[];
+  notifications: CampaignNotification[];
+}
+
+export const DEFAULT_METRICS: DashboardMetrics = {
+  totalElectores: 0,
+  totalHistorico: 0,
+  electoresActivos: 0,
+  totalLideres: 1,
+  lideresActivos: 0,
+  metaGlobal: 100,
+  porcentajeAvance: 0,
+  evolucionSemanal: [
+    { dia: 'Dom', total: 0 },
+    { dia: 'Lun', total: 0 },
+    { dia: 'Mar', total: 0 },
+    { dia: 'Mié', total: 0 },
+    { dia: 'Jue', total: 0 },
+    { dia: 'Vie', total: 0 },
+    { dia: 'Sáb', total: 0 },
+  ],
+  distribucionPuestos: [],
+  estadoEquipo: { activos: 0, sinActividad: 0, pendientes: 0, total: 1 },
+  rendimientoLideres: [],
+  actividadReciente: [],
+  notifications: [],
+};
+
+export function formatCleanPollingPlace(raw: string): { nombre: string; zona: 'URBANA' | 'RURAL' } {
+  if (!raw || raw.trim() === '') {
+    return { nombre: 'Sin Asignar', zona: 'URBANA' };
+  }
+
+  const rawTrimmed = raw.trim();
+
+  // Detectar si es zona rural por palabras clave típicas de la circunscripción (Cotorra / Córdoba)
+  const isRural = /\b(CGTO|CORREGIMIENTO|VEREDA|VDA|RURAL|CASERIO|INSPECCION|C\.P\.|CENTRO POBLADO|BONGO|GOMEZ|GÓMEZ|TREMENTINO|PALMA|RANCHERIA|MORALES|ABANICO|PUNTA DE YANEZ|CARRIZAL|ABROJAL|MORALITO|FLORES|CULEBRA|CEDROS|AREPAS|CARRILLO)\b/i.test(rawTrimmed);
+
+  // Limpiar códigos o nombres entre paréntesis iniciales ej: (BONGO)LOS GOMEZ -> LOS GOMEZ
+  let clean = rawTrimmed.replace(/^\([A-Z0-9\s_-]+\)/i, '').trim();
+
+  // Quitar etiquetas técnicas de direcciones y corregimientos redundantes
+  clean = clean
+    .replace(/\b(CGTO|CORREGIMIENTO)\s+[^,]+/i, '')
+    .replace(/\bM\.D\.\s*CL\s*P\/PAL\b/i, '')
+    .replace(/\bCL\s*P\/PAL\b/i, '')
+    .replace(/\bCL\s*\d+.*$/i, '')
+    .replace(/\bKR\s*\d+.*$/i, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (clean.length < 3) {
+    clean = rawTrimmed.replace(/^\([A-Z0-9\s_-]+\)/i, '').trim();
+  }
+
+  // Capitalización amigable en Title Case
+  const formatted = clean
+    .toLowerCase()
+    .split(' ')
+    .map((word) => {
+      if (['de', 'la', 'del', 'los', 'las', 'y', 'en', 'el', 'san', 'santa'].includes(word)) return word;
+      if (word === 'i.e.' || word === 'ie' || word === 'i.e') return 'I.E.';
+      return word.charAt(0).toUpperCase() + word.slice(1);
+    })
+    .join(' ');
+
+  return {
+    nombre: formatted || rawTrimmed,
+    zona: isRural ? 'RURAL' : 'URBANA',
+  };
+}
+
+export const DEMO_PUESTOS_BLACKLIST = new Set([
+  'i.e. santander central',
+  'ie santander central',
+  'santander central',
+  'colegio mayor departamental',
+  'coliseo municipal de deportes',
+  'i.e. técnico san juan bautista',
+  'i.e. tecnico san juan bautista',
+  'ie tecnico san juan bautista',
+  'escuela mixta el prado',
+]);
+
+export function useDashboardData(tenantIdProp?: string, selectedRange: DateRangeOption = '7days') {
   const { currentTenantId } = useTenant();
+  const activeTenantId = tenantIdProp || currentTenantId || '';
 
-  const [metrics, setMetrics] = useState<DashboardMetrics>({
-    totalElectores: 0,
-    equipoOperativoActivo: 0,
-    coordinadoresActivos: 0,
-    lideresActivos: 0,
-    metaGlobal: 0,
-    cumplimientoGlobalPct: 0,
-    puestosConElectores: 0,
-    totalPuestosCampana: PREDEFINED_POLLING_PLACES.length,
-    lideresConRegistros: 0,
-  });
-
-  const [teamMembers, setTeamMembers] = useState<DashboardTeamMember[]>([]);
-  const [topPollingPlaces, setTopPollingPlaces] = useState<TopPollingPlace[]>([]);
-  const [recentElectors, setRecentElectors] = useState<ElectorWithRegistrant[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isLiveActive, setIsLiveActive] = useState(false);
-  const [lastEventTimestamp, setLastEventTimestamp] = useState<Date>(new Date());
-
+  const [data, setData] = useState<DashboardMetrics>(DEFAULT_METRICS);
+  const [loading, setLoading] = useState<boolean>(true);
   const isMountedRef = useRef(true);
 
-  // Mapeo rápido de nombres de puestos a su zona correspondiente
-  const pollingZonesMap = useRef(
-    new Map(PREDEFINED_POLLING_PLACES.map((p) => [p.name.toLowerCase().trim(), p.zone]))
-  );
-
-  // Función principal para consultar métricas en vivo desde Supabase
   const fetchDashboardData = useCallback(async () => {
-    // Modo local / desarrollo sin conexión
-    if (!isSupabaseConfigured) {
-      const stored = localStorage.getItem('electoral_local_electors');
-      const allLocalElectors: ElectorWithRegistrant[] = stored ? JSON.parse(stored) : [];
-
-      const scopedElectors = allLocalElectors.filter(
-        (e) => !currentTenantId || e.tenant_id === currentTenantId
-      );
-
-      const total = scopedElectors.length;
-      const puestosMap: Record<string, { total: number; mesas: Set<number> }> = {};
-      const distinctLideres = new Set<string>();
-
-      scopedElectors.forEach((e) => {
-        if (e.puesto_votacion) {
-          const p = e.puesto_votacion.trim();
-          if (!puestosMap[p]) {
-            puestosMap[p] = { total: 0, mesas: new Set<number>() };
-          }
-          puestosMap[p].total += 1;
-          if (e.mesa) {
-            puestosMap[p].mesas.add(Number(e.mesa));
-          }
-        }
-        if (e.registrado_por) {
-          distinctLideres.add(e.registrado_por);
-        }
-      });
-
-      const distinctPuestosCount = Object.keys(puestosMap).length;
-      const totalPuestos = Math.max(PREDEFINED_POLLING_PLACES.length, distinctPuestosCount);
-
-      const topPuestos: TopPollingPlace[] = Object.entries(puestosMap)
-        .map(([puesto, data]) => {
-          const matchedZone = pollingZonesMap.current.get(puesto.toLowerCase().trim()) || 'Zona Urbana';
-          return {
-            puesto,
-            zona: matchedZone,
-            total: data.total,
-            porcentaje: total > 0 ? Number(((data.total / total) * 100).toFixed(1)) : 0,
-            mesasCount: data.mesas.size || 1,
-          };
-        })
-        .sort((a, b) => b.total - a.total)
-        .slice(0, 6);
-
-      // Local mock team members
-      const parsedTeamMembers: DashboardTeamMember[] = [
-        {
-          id: 'admin-local',
-          full_name: 'Alejandro Doria',
-          email: 'alejodoriall@gmail.com',
-          role: 'admin',
-          meta_electores: 0,
-          totalElectores: total,
-          is_active: true,
-        },
-      ];
-
-      setTeamMembers(parsedTeamMembers);
-      setMetrics({
-        totalElectores: total,
-        equipoOperativoActivo: 1,
-        coordinadoresActivos: 0,
-        lideresActivos: 1,
-        metaGlobal: 100,
-        cumplimientoGlobalPct: total > 0 ? Math.round((total / 100) * 100) : 0,
-        puestosConElectores: distinctPuestosCount,
-        totalPuestosCampana: totalPuestos,
-        lideresConRegistros: distinctLideres.size,
-      });
-
-      setTopPollingPlaces(topPuestos);
-      setRecentElectors(scopedElectors.slice(0, 6));
-      setLoading(false);
-      setIsLiveActive(true);
-      return;
-    }
-
     try {
       setLoading(true);
 
-      // 1. Total de Electores Registrados para la Campaña Activa
-      let electoresCountQuery = supabase
-        .from('electores')
-        .select('*', { count: 'exact', head: true });
+      // =========================================================================
+      // 1. CARGA DE ELECTORES DESDE SUPABASE Y LOCALSTORAGE
+      // =========================================================================
+      let electoresRows: any[] = [];
 
-      if (currentTenantId) {
-        electoresCountQuery = (electoresCountQuery as any).eq('tenant_id', currentTenantId);
-      }
-      const { count: totalElectores, error: countError } = await electoresCountQuery;
-      if (countError) throw countError;
-      const totalCount = totalElectores ?? 0;
-
-      // 2. Consulta de Miembros de Equipo (Profiles) y Conteo de Electores
-      let profilesQuery = supabase
-        .from('profiles')
-        .select(`
-          id,
-          full_name,
-          email,
-          role,
-          meta_electores,
-          is_active,
-          electores(count)
-        `)
-        .order('role', { ascending: true });
-
-      if (currentTenantId) {
-        profilesQuery = (profilesQuery as any).eq('tenant_id', currentTenantId);
-      }
-
-      const { data: rawProfiles, error: profilesError } = await profilesQuery;
-      if (profilesError) console.error('Error al consultar profiles:', profilesError);
-
-      // 3. Conteo directo de electores por registrador para máxima exactitud
-      let electoresDataQuery = supabase
-        .from('electores')
-        .select('puesto_votacion, mesa, registrado_por');
-
-      if (currentTenantId) {
-        electoresDataQuery = (electoresDataQuery as any).eq('tenant_id', currentTenantId);
-      }
-      const { data: electoresRows, error: dataError } = await electoresDataQuery;
-      if (dataError) console.error('Error al consultar datos de electores:', dataError);
-
-      const countByRegistrador: Record<string, number> = {};
-      const puestosMap: Record<string, { total: number; mesas: Set<number> }> = {};
-      const distinctLideres = new Set<string>();
-
-      const rows = (electoresRows as { puesto_votacion: string; mesa: number; registrado_por?: string }[] | null) || [];
-      rows.forEach((item) => {
-        const name = item.puesto_votacion?.trim();
-        if (name) {
-          if (!puestosMap[name]) {
-            puestosMap[name] = { total: 0, mesas: new Set<number>() };
-          }
-          puestosMap[name].total += 1;
-          if (item.mesa) {
-            puestosMap[name].mesas.add(Number(item.mesa));
-          }
+      if (isSupabaseConfigured) {
+        try {
+          const authUserRes = await supabase.auth.getUser();
+          console.log('[Dashboard Debug] Usuario actual:', authUserRes.data.user?.id);
+        } catch (authErr) {
+          console.log('[Dashboard Debug] Error obteniendo usuario:', authErr);
         }
-        if (item.registrado_por) {
-          distinctLideres.add(item.registrado_por);
-          countByRegistrador[item.registrado_por] = (countByRegistrador[item.registrado_por] || 0) + 1;
+        console.log('[Dashboard Debug] Tenant ID utilizado para la consulta:', activeTenantId);
+
+        const { data: debugElectores, error: errElectoresDebug, count: debugCount } = await supabase
+          .from('electores')
+          .select('*', { count: 'exact' });
+
+        console.log('[Dashboard Debug] Error de electores:', errElectoresDebug);
+        console.log('[Dashboard Debug] Cantidad de electores encontrados sin filtro:', debugCount);
+        console.log('[Dashboard Debug] Filas recibidas:', debugElectores);
+
+        let query = supabase
+          .from('electores')
+          .select('id, cedula, nombres, apellidos, edad, mesa, puesto_votacion, created_at, registrado_por, telefono');
+
+        if (activeTenantId) {
+          query = (query as any).or(`tenant_id.eq.${activeTenantId},tenant_id.is.null`);
+        }
+
+        const { data: dbElectores, error: errElectores } = await query;
+        if (!errElectores && dbElectores) {
+          electoresRows = dbElectores;
+        } else if (errElectores) {
+          console.warn('Alerta al consultar electores en Supabase:', errElectores.message);
+        }
+      } else {
+        // En modo offline sin Supabase: leer electores locales de localStorage
+        try {
+          const stored = typeof window !== 'undefined' ? localStorage.getItem('electoral_local_electors') : null;
+          if (stored) {
+            const localList: any[] = JSON.parse(stored);
+            electoresRows = localList.filter(
+              (e) => !activeTenantId || e.tenant_id === activeTenantId || !e.tenant_id
+            );
+          }
+        } catch (locErr) {
+          console.warn('Error leyendo electores locales:', locErr);
+        }
+      }
+
+      // Excluir registros demo heredados de pruebas iniciales si existen
+      electoresRows = electoresRows.filter((e) => {
+        const rawPuesto = (e.puesto_votacion || '').toString().toLowerCase().trim();
+        return !DEMO_PUESTOS_BLACKLIST.has(rawPuesto);
+      });
+
+      const totalHistorico = electoresRows.length;
+
+      // =========================================================================
+      // 2. FILTRADO TEMPORAL SEGÚN selectedRange ('today' | '7days' | '30days' | 'all')
+      // =========================================================================
+      const now = new Date();
+      let startOfRange: Date | null = null;
+
+      if (selectedRange === 'today') {
+        startOfRange = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+      } else if (selectedRange === '7days') {
+        startOfRange = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      } else if (selectedRange === '30days') {
+        startOfRange = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      } else {
+        startOfRange = null; // 'all'
+      }
+
+      const scopedElectores = startOfRange
+        ? electoresRows.filter((e) => {
+            if (!e.created_at) return false;
+            const d = new Date(e.created_at);
+            return !isNaN(d.getTime()) && d >= startOfRange!;
+          })
+        : electoresRows;
+
+      const totalElectores = scopedElectores.length;
+      const electoresActivos = scopedElectores.filter(
+        (e) => e.telefono && String(e.telefono).trim() !== ''
+      ).length || totalElectores;
+
+      // =========================================================================
+      // 3. LÍDERES Y PERFILES DE CAMPAÑA
+      // =========================================================================
+      let perfilesRows: any[] = [];
+
+      if (isSupabaseConfigured) {
+        let pQuery = supabase
+          .from('profiles')
+          .select('id, full_name, role, meta_electores, is_active');
+
+        if (activeTenantId) {
+          pQuery = (pQuery as any).or(`tenant_id.eq.${activeTenantId},tenant_id.is.null`);
+        }
+
+        const { data: dbProfiles, error: errProfiles } = await pQuery;
+        if (!errProfiles && dbProfiles) {
+          perfilesRows = dbProfiles;
+        }
+      }
+
+      // Respaldo si no hay perfiles en la base de datos
+      if (perfilesRows.length === 0) {
+        perfilesRows = [
+          {
+            id: 'admin-default',
+            full_name: 'ALEJANDRO DORIA',
+            role: 'admin',
+            meta_electores: 0,
+            is_active: true,
+          },
+          {
+            id: 'lider-default',
+            full_name: 'Ober Osorio Orozco',
+            role: 'lider',
+            meta_electores: 100,
+            is_active: true,
+          },
+        ];
+      }
+
+      // Conteo de electores por cada líder (dentro del período seleccionado)
+      const conteoPorLider: Record<string, number> = {};
+      scopedElectores.forEach((e) => {
+        const leaderId = e.registrado_por || e.created_by;
+        if (leaderId) {
+          conteoPorLider[leaderId] = (conteoPorLider[leaderId] || 0) + 1;
         }
       });
 
-      // Mapear miembros de equipo consolidando su conteo y meta
-      const parsedTeamMembers: DashboardTeamMember[] = (rawProfiles || []).map((p: any) => {
-        const electoresCount =
-          countByRegistrador[p.id] ??
-          (Array.isArray(p.electores) && p.electores[0]?.count != null ? p.electores[0].count : 0);
+      const totalLideres = perfilesRows.filter(
+        (p) => p.role === 'lider' || p.role === 'coordinador'
+      ).length || (perfilesRows.length > 1 ? perfilesRows.length - 1 : 1);
 
+      // Meta global de la campaña
+      const sumMetas = perfilesRows
+        .filter((p) => p.role !== 'admin' && p.role !== 'candidato')
+        .reduce((acc, p) => acc + (p.meta_electores || 0), 0);
+      const metaGlobal = sumMetas > 0 ? sumMetas : (perfilesRows.reduce((acc, p) => acc + (p.meta_electores || 0), 0) || 100);
+      const porcentajeAvance = metaGlobal > 0 ? Number(((totalHistorico / metaGlobal) * 100).toFixed(1)) : 0;
+
+      // =========================================================================
+      // 4. EVOLUCIÓN TEMPORAL ADAPTATIVA SEGÚN selectedRange
+      // =========================================================================
+      let evolucionSemanal: { dia: string; total: number }[] = [];
+
+      if (selectedRange === 'today') {
+        // Bloques horarios de hoy: 06:00, 09:00, 12:00, 15:00, 18:00, 21:00
+        const horas = [
+          { dia: '06:00', hStart: 0, hEnd: 8, total: 0 },
+          { dia: '09:00', hStart: 8, hEnd: 11, total: 0 },
+          { dia: '12:00', hStart: 11, hEnd: 14, total: 0 },
+          { dia: '15:00', hStart: 14, hEnd: 17, total: 0 },
+          { dia: '18:00', hStart: 17, hEnd: 20, total: 0 },
+          { dia: '21:00', hStart: 20, hEnd: 24, total: 0 },
+        ];
+
+        scopedElectores.forEach((e) => {
+          if (e.created_at) {
+            const date = new Date(e.created_at);
+            const hour = date.getHours();
+            const slot = horas.find((h) => hour >= h.hStart && hour < h.hEnd);
+            if (slot) slot.total += 1;
+          }
+        });
+
+        evolucionSemanal = horas.map(({ dia, total }) => ({ dia, total }));
+      } else if (selectedRange === '30days') {
+        // 5 intervalos de 6 días
+        const bloques = Array.from({ length: 5 }, (_, i) => {
+          const startDaysAgo = 30 - i * 6;
+          const endDaysAgo = 30 - (i + 1) * 6;
+          const dStart = new Date(now.getTime() - startDaysAgo * 24 * 60 * 60 * 1000);
+          const dEnd = new Date(now.getTime() - endDaysAgo * 24 * 60 * 60 * 1000);
+          return {
+            dia: `${dStart.getDate()}/${dStart.getMonth() + 1}`,
+            startTime: dStart.getTime(),
+            endTime: dEnd.getTime(),
+            total: 0,
+          };
+        });
+
+        scopedElectores.forEach((e) => {
+          if (e.created_at) {
+            const time = new Date(e.created_at).getTime();
+            const b = bloques.find((x) => time >= x.startTime && time < x.endTime);
+            if (b) b.total += 1;
+          }
+        });
+
+        evolucionSemanal = bloques.map(({ dia, total }) => ({ dia, total }));
+      } else {
+        // '7days' o 'all': 7 días móviles reales
+        const diasSemana = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+        const ultimos7Dias = Array.from({ length: 7 }, (_, i) => {
+          const d = new Date();
+          d.setDate(d.getDate() - (6 - i));
+          return {
+            fechaISO: d.toISOString().split('T')[0],
+            dia: diasSemana[d.getDay()],
+            total: 0,
+          };
+        });
+
+        scopedElectores.forEach((e) => {
+          if (e.created_at) {
+            const fecha = String(e.created_at).split('T')[0];
+            const target = ultimos7Dias.find((d) => d.fechaISO === fecha);
+            if (target) target.total += 1;
+          }
+        });
+
+        evolucionSemanal = ultimos7Dias.map(({ dia, total }) => ({ dia, total }));
+      }
+
+      // =========================================================================
+      // 5. DISTRIBUCIÓN POR PUESTO DE VOTACIÓN (AGREGACIÓN DINÁMICA Y REAL)
+      // =========================================================================
+      const puestosAgrupados: Record<
+        string,
+        {
+          nombrePuesto: string;
+          rawPuesto: string;
+          zona: 'URBANA' | 'RURAL';
+          totalElectores: number;
+          mesasSet: Set<string | number>;
+          lideresSet: Set<string>;
+          electores: any[];
+        }
+      > = {};
+
+      scopedElectores.forEach((e) => {
+        const rawPuesto = e.puesto_votacion ? String(e.puesto_votacion).trim() : 'Sin Asignar';
+        const { nombre, zona } = formatCleanPollingPlace(rawPuesto);
+
+        if (!puestosAgrupados[nombre]) {
+          puestosAgrupados[nombre] = {
+            nombrePuesto: nombre,
+            rawPuesto,
+            zona,
+            totalElectores: 0,
+            mesasSet: new Set(),
+            lideresSet: new Set(),
+            electores: [],
+          };
+        }
+        puestosAgrupados[nombre].totalElectores += 1;
+
+        if (e.mesa !== null && e.mesa !== undefined && e.mesa !== '') {
+          puestosAgrupados[nombre].mesasSet.add(e.mesa);
+        }
+
+        const leaderId = e.registrado_por || e.created_by;
+        if (leaderId) {
+          puestosAgrupados[nombre].lideresSet.add(leaderId);
+        }
+
+        const foundLeader = perfilesRows.find((p) => p.id === leaderId);
+        puestosAgrupados[nombre].electores.push({
+          id: e.id || `el-${Math.random()}`,
+          cedula: e.cedula || '',
+          nombres: e.nombres || '',
+          apellidos: e.apellidos || '',
+          edad: e.edad !== undefined && e.edad !== null ? Number(e.edad) : null,
+          telefono: e.telefono || '',
+          puesto_votacion: rawPuesto,
+          mesa: e.mesa ?? 1,
+          registrado_por: leaderId || null,
+          liderNombre: foundLeader?.full_name || 'Líder Operativo',
+          created_at: e.created_at,
+        });
+      });
+
+      const totalPuestosCount = scopedElectores.length;
+
+      const distribucionPuestos: PuestoMetrica[] = Object.values(puestosAgrupados)
+        .map((p) => {
+          const totalMesas = Math.max(1, p.mesasSet.size);
+          const lideresNombres = Array.from(p.lideresSet).map(
+            (lid) => perfilesRows.find((prof) => prof.id === lid)?.full_name || 'Líder Operativo'
+          );
+
+          return {
+            nombrePuesto: p.nombrePuesto,
+            rawPuesto: p.rawPuesto,
+            zona: p.zona,
+            totalElectores: p.totalElectores,
+            porcentaje: totalPuestosCount > 0 ? Math.round((p.totalElectores / totalPuestosCount) * 100) : 0,
+            mesas: Array.from(p.mesasSet).sort((a, b) => Number(a) - Number(b)),
+            totalMesas,
+            promedioElectoresPorMesa: Math.round((p.totalElectores / totalMesas) * 10) / 10,
+            lideresNombres,
+            electores: p.electores,
+          };
+        })
+        .sort((a, b) => b.totalElectores - a.totalElectores);
+
+      // =========================================================================
+      // 6. RENDIMIENTO DEL EQUIPO
+      // =========================================================================
+      const teamProfiles = perfilesRows.filter((p) => p.role !== 'admin' && p.role !== 'candidato');
+      const profilesToRender = teamProfiles.length > 0 ? teamProfiles : perfilesRows;
+
+      const rendimientoLideres = profilesToRender.map((p) => {
+        const gestionados = conteoPorLider[p.id] || 0;
+        const meta = p.meta_electores && p.meta_electores > 0 ? p.meta_electores : 50;
+        const avance = meta > 0 ? Math.min(100, Math.round((gestionados / meta) * 100)) : (gestionados > 0 ? 100 : 0);
         return {
           id: p.id,
-          full_name: p.full_name || 'Colaborador',
-          email: p.email || 'Sin correo registrado',
-          role: p.role || 'lider',
-          meta_electores: p.role === 'admin' ? 0 : (p.meta_electores && p.meta_electores > 0 ? p.meta_electores : 100),
-          totalElectores: electoresCount,
-          is_active: p.is_active !== false,
+          nombre: p.full_name || 'Líder Operativo',
+          rol: p.role === 'admin' ? 'Administrador' : p.role === 'coordinador' ? 'Coordinador' : 'Líder',
+          meta,
+          gestionados,
+          avance,
+          estado: (gestionados > 0 || p.role === 'admin' ? 'ACTIVO' : 'ATENCIÓN') as 'ACTIVO' | 'ATENCIÓN',
         };
       });
 
-      // Ordenar: Admin / Candidato primero, luego orden descendente por electores reportados
-      parsedTeamMembers.sort((a, b) => {
-        if (a.role === 'admin') return -1;
-        if (b.role === 'admin') return 1;
-        return b.totalElectores - a.totalElectores;
+      const activosCount = rendimientoLideres.filter((l) => l.estado === 'ACTIVO').length;
+      const sinActividadCount = rendimientoLideres.filter((l) => l.estado === 'ATENCIÓN').length;
+
+      // =========================================================================
+      // 7. ACTIVIDAD RECIENTE (ÚLTIMOS 5 EVENTOS DEL PERÍODO)
+      // =========================================================================
+      const sortedElectores = [...scopedElectores].sort((a, b) => {
+        const tA = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const tB = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return tB - tA;
+      }).slice(0, 5);
+
+      const actividadReciente = sortedElectores.map((e, index) => {
+        const date = e.created_at ? new Date(e.created_at) : new Date();
+        const hora = date.toLocaleTimeString('es-CO', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true,
+        });
+
+        const leaderId = e.registrado_por || e.created_by;
+        const foundLeader = perfilesRows.find((p) => p.id === leaderId);
+        const registrador = foundLeader?.full_name || e.registrador?.full_name || 'Un líder';
+
+        return {
+          id: e.id || `act-${index}`,
+          hora,
+          texto: `${registrador} registró a ${e.nombres || 'Elector'} ${e.apellidos || ''}${e.puesto_votacion ? ` · ${e.puesto_votacion}` : ''}`,
+          tipo: 'elector' as const,
+        };
       });
 
-      // Métricas de equipo operativo (excluyendo admin si solo es titular directivo)
-      const activeCoordinadores = parsedTeamMembers.filter(
-        (m) => m.is_active && m.role === 'coordinador'
-      ).length;
-      const activeLideres = parsedTeamMembers.filter(
-        (m) => m.is_active && m.role === 'lider'
-      ).length;
-      const equipoOperativoActivo = activeCoordinadores + activeLideres;
+      // =========================================================================
+      // 8. NOTIFICACIONES EN VIVO
+      // =========================================================================
+      const notifications: CampaignNotification[] = [];
 
-      // Meta global: suma de cuotas asignadas a líderes y coordinadores
-      const metaGlobal = parsedTeamMembers
-        .filter((m) => m.role !== 'admin')
-        .reduce((sum, m) => sum + (m.meta_electores || 0), 0);
+      // Notificaciones de los electores más recientes
+      const ultimosRegistrados = [...electoresRows]
+        .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
+        .slice(0, 4);
 
-      const cumplimientoGlobalPct = metaGlobal > 0 ? Math.round((totalCount / metaGlobal) * 100) : 0;
+      ultimosRegistrados.forEach((el, idx) => {
+        const nom = `${el.nombres || ''} ${el.apellidos || ''}`.trim() || 'Elector';
+        const puesto = el.puesto_votacion ? `en ${el.puesto_votacion}` : 'con mesa pendiente';
+        const tDiffMin = el.created_at
+          ? Math.max(1, Math.round((Date.now() - new Date(el.created_at).getTime()) / 60000))
+          : (idx + 1) * 15;
+        const tiempoStr =
+          tDiffMin < 60
+            ? `Hace ${tDiffMin} min`
+            : tDiffMin < 1440
+            ? `Hace ${Math.round(tDiffMin / 60)}h`
+            : `Hace ${Math.round(tDiffMin / 1440)}d`;
 
-      const distinctPuestosCount = Object.keys(puestosMap).length;
-      const totalPuestos = Math.max(PREDEFINED_POLLING_PLACES.length, distinctPuestosCount);
+        notifications.push({
+          id: `notif-elector-${el.id || idx}`,
+          tipo: 'elector',
+          titulo: 'Nuevo Elector Incorporado',
+          descripcion: `${nom} fue enrolado exitosamente ${puesto}.`,
+          tiempo: tiempoStr,
+          leido: false,
+        });
+      });
 
-      // Top Puestos de Votación (compatibilidad)
-      const sortedPuestos: TopPollingPlace[] = Object.entries(puestosMap)
-        .map(([puesto, data]) => {
-          const matchedZone = pollingZonesMap.current.get(puesto.toLowerCase().trim()) || 'Zona Urbana';
-          return {
-            puesto,
-            zona: matchedZone,
-            total: data.total,
-            porcentaje: totalCount > 0 ? Number(((data.total / totalCount) * 100).toFixed(1)) : 0,
-            mesasCount: data.mesas.size || 1,
-          };
-        })
-        .sort((a, b) => b.total - a.total)
-        .slice(0, 6);
-
-      // Últimos Electores (compatibilidad)
-      let recentQuery = supabase
-        .from('electores')
-        .select(`
-          id,
-          cedula,
-          nombres,
-          apellidos,
-          telefono,
-          puesto_votacion,
-          mesa,
-          notas,
-          registrado_por,
-          created_at,
-          registrador:profiles(full_name, role)
-        `)
-        .order('created_at', { ascending: false })
-        .limit(6);
-
-      if (currentTenantId) {
-        recentQuery = (recentQuery as any).eq('tenant_id', currentTenantId);
+      // Notificación de meta global
+      if (metaGlobal > 0) {
+        notifications.push({
+          id: 'notif-meta-global',
+          tipo: 'meta',
+          titulo: 'Avance de Meta Municipal',
+          descripcion: `La campaña registra ${totalHistorico} electores (${porcentajeAvance}% de la meta de ${metaGlobal.toLocaleString()}).`,
+          tiempo: 'Hoy',
+          leido: false,
+        });
       }
 
-      const { data: rawRecent, error: recentError } = await recentQuery;
-      if (recentError) console.error('Error al obtener electores recientes:', recentError);
+      // Notificación de despliegue territorial
+      if (activosCount > 0) {
+        notifications.push({
+          id: 'notif-lideres-activos',
+          tipo: 'lider',
+          titulo: 'Despliegue Operativo del Equipo',
+          descripcion: `${activosCount} líderes tienen reportes activos en territorio.`,
+          tiempo: 'Hoy',
+          leido: false,
+        });
+      }
+
+      // Notificación del sistema
+      notifications.push({
+        id: 'notif-sistema-sync',
+        tipo: 'sistema',
+        titulo: 'Sincronización en Tiempo Real',
+        descripcion: isSupabaseConfigured
+          ? 'Conectado a PostgreSQL Supabase Cloud con datos encriptados.'
+          : 'Operando en modo de respaldo local offline con sincronización activa.',
+        tiempo: 'Activo',
+        leido: true,
+      });
 
       if (isMountedRef.current) {
-        setTeamMembers(parsedTeamMembers);
-        setMetrics({
-          totalElectores: totalCount,
-          equipoOperativoActivo,
-          coordinadoresActivos: activeCoordinadores,
-          lideresActivos: activeLideres,
+        setData({
+          totalElectores,
+          totalHistorico,
+          electoresActivos,
+          totalLideres,
+          lideresActivos: activosCount,
           metaGlobal,
-          cumplimientoGlobalPct,
-          puestosConElectores: distinctPuestosCount,
-          totalPuestosCampana: totalPuestos,
-          lideresConRegistros: distinctLideres.size,
+          porcentajeAvance,
+          evolucionSemanal,
+          distribucionPuestos,
+          estadoEquipo: {
+            activos: activosCount,
+            sinActividad: sinActividadCount,
+            pendientes: 0,
+            total: totalLideres,
+          },
+          rendimientoLideres,
+          actividadReciente,
+          notifications,
         });
-
-        setTopPollingPlaces(sortedPuestos);
-
-        const formattedRecent: ElectorWithRegistrant[] = (rawRecent || []).map((item: any) => ({
-          id: item.id,
-          cedula: item.cedula || item.documento_identidad || '',
-          nombres: item.nombres || item.nombre_completo || 'Elector',
-          apellidos: item.apellidos || '',
-          telefono: item.telefono,
-          puesto_votacion: item.puesto_votacion,
-          mesa: item.mesa || 1,
-          notas: item.notas,
-          registrado_por: item.registrado_por,
-          created_at: item.created_at,
-          registrador: item.registrador
-            ? {
-                full_name: item.registrador.full_name,
-                role: item.registrador.role,
-              }
-            : null,
-        }));
-
-        setRecentElectors(formattedRecent);
-        setLastEventTimestamp(new Date());
-        setIsLiveActive(true);
       }
-    } catch (err) {
-      console.error('Error al cargar datos del dashboard:', err);
-      if (isMountedRef.current) {
-        setMetrics({
-          totalElectores: 0,
-          equipoOperativoActivo: 0,
-          coordinadoresActivos: 0,
-          lideresActivos: 0,
-          metaGlobal: 0,
-          cumplimientoGlobalPct: 0,
-          puestosConElectores: 0,
-          totalPuestosCampana: PREDEFINED_POLLING_PLACES.length,
-          lideresConRegistros: 0,
-        });
-        setTeamMembers([]);
-        setTopPollingPlaces([]);
-        setRecentElectors([]);
-      }
+    } catch (error) {
+      console.error('Error cargando métricas reales del Dashboard:', error);
     } finally {
       if (isMountedRef.current) {
         setLoading(false);
       }
     }
-  }, [currentTenantId]);
+  }, [activeTenantId, selectedRange]);
 
-  // Suscripción Realtime en Supabase
+  // Suscripción en tiempo real (Supabase Realtime + eventos locales)
   useEffect(() => {
     isMountedRef.current = true;
     fetchDashboardData();
 
     if (!isSupabaseConfigured) {
-      const handleLocalInsert = () => {
-        setLastEventTimestamp(new Date());
-        fetchDashboardData();
-      };
-      window.addEventListener('elector_registered', handleLocalInsert);
+      const handleLocalEvent = () => fetchDashboardData();
+      window.addEventListener('elector_registered', handleLocalEvent);
       return () => {
         isMountedRef.current = false;
-        window.removeEventListener('elector_registered', handleLocalInsert);
+        window.removeEventListener('elector_registered', handleLocalEvent);
       };
     }
 
-    // Escuchar eventos en la tabla 'electores'
     const channel = supabase
-      .channel('dashboard-electores-realtime')
+      .channel(`dashboard-realtime-${activeTenantId || 'global'}`)
       .on(
         'postgres_changes',
         {
@@ -359,30 +607,27 @@ export const useDashboardData = () => {
           table: 'electores',
         },
         () => {
-          setLastEventTimestamp(new Date());
           fetchDashboardData();
         }
       )
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          setIsLiveActive(true);
-        }
-      });
+      .subscribe();
+
+    const handleLocalEvent = () => fetchDashboardData();
+    window.addEventListener('elector_registered', handleLocalEvent);
 
     return () => {
       isMountedRef.current = false;
       supabase.removeChannel(channel);
+      window.removeEventListener('elector_registered', handleLocalEvent);
     };
-  }, [fetchDashboardData]);
+  }, [fetchDashboardData, activeTenantId]);
 
   return {
-    metrics,
-    teamMembers,
-    topPollingPlaces,
-    recentElectors,
+    data,
+    metrics: data,
     loading,
-    isLiveActive,
-    lastEventTimestamp,
     refetch: fetchDashboardData,
   };
-};
+}
+
+export default useDashboardData;

@@ -22,7 +22,11 @@ import { AnimatedCheck } from '../../components/ui/AnimatedCheck';
 import { getPollingPlacesForTenant } from './constants';
 import { ElectorLocationSelector } from './components/ElectorLocationSelector';
 import { useTenant } from '../../context/TenantContext';
-import { buscarCiudadanoEnCenso } from '../../services/censoService';
+import {
+  buscarCiudadanoEnCenso,
+  calcularEdadDesdeCenso,
+  estimarEdadPorCedula,
+} from '../../services/censoService';
 
 interface RegisterElectorViewProps {
   onSuccess?: () => void;
@@ -161,6 +165,8 @@ export const RegisterElectorView = ({
     const autofillFromCenso = async (cleanNum: string) => {
       try {
         const censo = await buscarCiudadanoEnCenso(cleanNum);
+        console.log('[DEBUG CENSO DATA]:', censo);
+
         // Si el usuario ya cambió la cédula mientras respondía la red, descartar
         if (currentCedulaRef.current !== cleanNum) {
           return;
@@ -169,9 +175,25 @@ export const RegisterElectorView = ({
         if (censo.found && censo.nombres) {
           setNombres(censo.nombres);
           if (censo.apellidos) setApellidos(censo.apellidos);
-          if (censo.edad !== undefined && censo.edad !== null) {
-            setEdad(censo.edad);
+
+          // Extraer la edad de cualquiera de las posibles propiedades que use la tabla/censo:
+          const edadObtenida =
+            censo.edad ??
+            (censo as any).anios ??
+            (censo as any).fecha_nacimiento ??
+            (censo as any).nacimiento ??
+            (censo as any).fec_nac ??
+            (censo as any).fechaNacimiento;
+
+          let edadFinal = calcularEdadDesdeCenso(edadObtenida);
+          if (edadFinal === '' && cleanNum) {
+            edadFinal = estimarEdadPorCedula(cleanNum);
           }
+
+          if (edadFinal !== '') {
+            setEdad(Number(edadFinal));
+          }
+
           if (censo.puesto_sugerido && pollingPlaces.some((p) => p.name === censo.puesto_sugerido)) {
             setPuestoVotacion(censo.puesto_sugerido);
           }

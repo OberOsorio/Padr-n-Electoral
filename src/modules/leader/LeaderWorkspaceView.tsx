@@ -16,7 +16,11 @@ import { LeaderRegisterView } from './LeaderRegisterView';
 import { LeaderMyElectorsView } from './LeaderMyElectorsView';
 import { EditElectorModal } from '../electors/components/EditElectorModal';
 import { DeleteConfirmModal } from '../electors/components/DeleteConfirmModal';
-import { buscarCiudadanoEnCenso } from '../../services/censoService';
+import {
+  buscarCiudadanoEnCenso,
+  calcularEdadDesdeCenso,
+  estimarEdadPorCedula,
+} from '../../services/censoService';
 
 interface LeaderWorkspaceViewProps {
   userId: string;
@@ -204,9 +208,24 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
         if (censo.found && censo.nombres) {
           setNombres(censo.nombres);
           if (censo.apellidos) setApellidos(censo.apellidos);
-          if (censo.edad !== undefined && censo.edad !== null) {
-            setEdad(censo.edad);
+
+          const edadObtenida =
+            censo.edad ??
+            (censo as any).anios ??
+            (censo as any).fecha_nacimiento ??
+            (censo as any).nacimiento ??
+            (censo as any).fec_nac ??
+            (censo as any).fechaNacimiento;
+
+          let edadFinal = calcularEdadDesdeCenso(edadObtenida);
+          if (edadFinal === '' && clean) {
+            edadFinal = estimarEdadPorCedula(clean);
           }
+
+          if (edadFinal !== '') {
+            setEdad(Number(edadFinal));
+          }
+
           if (censo.puesto_sugerido && pollingPlaces.some((p) => p.name === censo.puesto_sugerido)) {
             setPuestoVotacion(censo.puesto_sugerido);
           }

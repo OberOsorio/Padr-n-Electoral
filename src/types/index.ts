@@ -6,7 +6,7 @@ export interface Tenant {
   name: string;
   slug: string;
   plan?: TenantPlan | string;
-  max_electors?: number;
+  max_electors?: number | null;
   es_ilimitado?: boolean;
   departamento?: string;
   municipio?: string;

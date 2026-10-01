@@ -9,8 +9,12 @@ import {
   X,
   PanelLeftClose,
   PanelLeftOpen,
+  ChevronDown,
+  ArrowLeftRight,
+  Globe,
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import React, { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ThemeToggle } from '../ui/ThemeToggle';
 import { useSidebar } from '../../context/SidebarContext';
 import { UserProfileCard } from './UserProfileCard';
@@ -32,6 +36,8 @@ interface SidebarProps {
   userRole?: string;
   onSignOut: () => void;
   onCloseMobile?: () => void;
+  onBackToMasterPlatform?: () => void;
+  onOpenGateway?: () => void;
   className?: string;
 }
 
@@ -59,10 +65,35 @@ export const Sidebar = ({
   userRole = 'Admin',
   onSignOut,
   onCloseMobile,
+  onBackToMasterPlatform,
+  onOpenGateway,
   className,
 }: SidebarProps) => {
   const { isCollapsed, toggleSidebar } = useSidebar();
   const isOnline = useOnlineStatus();
+  const [isModuleMenuOpen, setIsModuleMenuOpen] = useState(false);
+  const moduleMenuRef = useRef<HTMLDivElement>(null);
+
+  // Cerrar menú al hacer clic fuera o presionar Escape
+  useEffect(() => {
+    if (!isModuleMenuOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (moduleMenuRef.current && !moduleMenuRef.current.contains(e.target as Node)) {
+        setIsModuleMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsModuleMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isModuleMenuOpen]);
 
   const isAdmin = userRole ? (userRole.toLowerCase().includes('admin') || userRole.toLowerCase().includes('super')) : true;
 
@@ -88,8 +119,8 @@ export const Sidebar = ({
       }}
       transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
       className={`shrink-0 ${
-        onCloseMobile ? 'h-full' : 'h-screen sticky top-0'
-      } bg-white dark:bg-[#161F30]/95 backdrop-blur-xl border-r border-slate-200 dark:border-slate-700/60 flex flex-col justify-between select-none z-30 transition-colors duration-200 overflow-hidden ${
+        onCloseMobile ? 'h-full bg-white dark:bg-slate-950' : 'h-screen sticky top-0 bg-white dark:bg-[#161F30]/95 md:backdrop-blur-xl'
+      } border-r border-slate-200 dark:border-slate-700/60 flex flex-col justify-between select-none z-30 transition-colors duration-200 overflow-hidden ${
         className ?? 'hidden md:flex'
       }`}
     >
@@ -157,7 +188,7 @@ export const Sidebar = ({
                   <button
                     type="button"
                     onClick={onCloseMobile}
-                    className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                    className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 transition-colors cursor-pointer touch-manipulation active:scale-95"
                     title="Cerrar Menú"
                     aria-label="Cerrar Menú"
                   >
@@ -194,7 +225,7 @@ export const Sidebar = ({
                   whileHover={{ x: isEffectivelyCollapsed ? 0 : 2, scale: isEffectivelyCollapsed ? 1.05 : 1 }}
                   whileTap={{ scale: 0.96 }}
                   transition={{ duration: 0.15 }}
-                  className={`relative flex items-center rounded-xl text-xs font-medium cursor-pointer transition-colors duration-150 ${
+                  className={`relative flex items-center rounded-xl text-xs font-medium cursor-pointer transition-colors duration-150 touch-manipulation ${
                     isEffectivelyCollapsed
                       ? 'justify-center h-10 w-10 mx-auto'
                       : 'w-full gap-3 px-3 py-2.5'
@@ -255,7 +286,7 @@ export const Sidebar = ({
         </nav>
       </div>
 
-      {/* 3. Footer del Sidebar: Executive User Profile Card con espaciado inferior seguro para móviles */}
+      {/* 3. Footer del Sidebar: Selector de Módulos y Executive User Profile Card */}
       <div className={`shrink-0 border-t border-slate-200 dark:border-slate-800/80 bg-slate-50/70 dark:bg-slate-900/90 transition-colors ${
         onCloseMobile
           ? 'p-4 pb-8 md:pb-4'
@@ -263,6 +294,95 @@ export const Sidebar = ({
           ? 'p-2 flex flex-col items-center'
           : 'p-3'
       }`}>
+        {/* Opción de Entorno Global (Ubicada arriba de Ober Osorio) */}
+        {(onBackToMasterPlatform || onOpenGateway) && (
+          <div ref={moduleMenuRef} className="relative w-full mb-2.5">
+            {isEffectivelyCollapsed ? (
+              <button
+                type="button"
+                onClick={() => setIsModuleMenuOpen(!isModuleMenuOpen)}
+                className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 flex items-center justify-center text-purple-600 dark:text-purple-400 hover:border-purple-400 dark:hover:border-purple-500 hover:bg-purple-50/50 dark:hover:bg-slate-700/60 shadow-xs transition-all cursor-pointer touch-manipulation"
+                title="Entorno Global"
+              >
+                <Globe className="w-5 h-5" />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsModuleMenuOpen(!isModuleMenuOpen)}
+                className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-white dark:bg-slate-800/90 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700/80 hover:border-purple-400 dark:hover:border-purple-500 text-slate-700 dark:text-slate-200 text-xs font-semibold shadow-xs transition-all cursor-pointer group touch-manipulation"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="w-6 h-6 rounded-lg bg-purple-50 dark:bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center group-hover:scale-105 transition-transform shadow-2xs">
+                    <Globe className="w-3.5 h-3.5" />
+                  </div>
+                  <span className="font-semibold text-slate-800 dark:text-slate-100">Entorno Global</span>
+                </div>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
+                    isModuleMenuOpen ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
+            )}
+
+            {/* Popover hacia arriba SOLO con opciones de Entorno Global */}
+            <AnimatePresence>
+              {isModuleMenuOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                  transition={{ duration: 0.16 }}
+                  className={`absolute bottom-full mb-2 ${
+                    isEffectivelyCollapsed ? 'left-full ml-3 w-64' : 'left-0 right-0'
+                  } bg-white dark:bg-[#1A2333] border border-slate-200 dark:border-slate-700/90 rounded-2xl shadow-2xl p-2 z-50 text-xs backdrop-blur-xl`}
+                >
+                  <div className="space-y-1">
+                    <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">
+                      Entornos Globales
+                    </span>
+
+                    {onBackToMasterPlatform && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsModuleMenuOpen(false);
+                          onBackToMasterPlatform();
+                        }}
+                        className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-950/40 transition-colors font-medium text-left cursor-pointer touch-manipulation"
+                      >
+                        <ShieldCheck className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
+                        <div className="flex-1 truncate">
+                          <p className="font-semibold leading-tight">Plataforma Master</p>
+                          <p className="text-[10px] text-slate-400 leading-tight">Gestión global SuperAdmin</p>
+                        </div>
+                      </button>
+                    )}
+
+                    {onOpenGateway && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsModuleMenuOpen(false);
+                          onOpenGateway();
+                        }}
+                        className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/60 transition-colors font-medium text-left cursor-pointer touch-manipulation"
+                      >
+                        <ArrowLeftRight className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                        <div className="flex-1 truncate">
+                          <p className="font-semibold leading-tight">Cambiar de Entorno</p>
+                          <p className="text-[10px] text-slate-400 leading-tight">Selector Gateway de campañas</p>
+                        </div>
+                      </button>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
+
         <UserProfileCard
           userName={userName}
           userEmail={userEmail}

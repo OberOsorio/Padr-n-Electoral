@@ -18,7 +18,6 @@ import {
   Radio,
   Vote,
 } from 'lucide-react';
-import { ThemeToggle } from '../../components/ui/ThemeToggle';
 
 interface LandingPageProps {
   onNavigateToLogin: () => void;
@@ -42,425 +41,6 @@ const fluidFadeUp: Variants = {
 };
 
 // ============================================================================
-// COMPONENTE VECTORIAL: MAPA HOLOGRÁFICO DE COLOMBIA CON RED DE NODOS, ÓRBITAS Y PEDESTAL HUD
-// ============================================================================
-const ColombiaHologramMap: React.FC<{ variant?: 'cyber' | 'light' }> = ({ variant = 'cyber' }) => {
-  const isLight = variant === 'light';
-  const strokeColor = isLight ? '#0284C7' : '#00D2FF';
-  const fillColor = isLight ? 'rgba(14, 165, 233, 0.05)' : 'rgba(0, 210, 255, 0.07)';
-  const nodeFill = isLight ? '#0284C7' : '#00D2FF';
-  const lineStroke = isLight ? 'rgba(2, 132, 199, 0.35)' : 'rgba(0, 210, 255, 0.45)';
-
-  // Nodos Geográficos de la Constelación (Capitales y Nodos Estratégicos)
-  const constellationNodes = [
-    { cx: 300, cy: 55, label: 'Riohacha' },
-    { cx: 245, cy: 92, label: 'Santa Marta' },
-    { cx: 218, cy: 108, label: 'Barranquilla' },
-    { cx: 195, cy: 126, label: 'Cartagena' },
-    { cx: 270, cy: 116, label: 'Valledupar' },
-    { cx: 185, cy: 168, label: 'Montería' },
-    { cx: 305, cy: 178, label: 'Cúcuta' },
-    { cx: 262, cy: 202, label: 'Bucaramanga' },
-    { cx: 198, cy: 236, label: 'Medellín', isPulseHub: true },
-    { cx: 154, cy: 258, label: 'Quibdó' },
-    { cx: 196, cy: 278, label: 'Manizales' },
-    { cx: 190, cy: 294, label: 'Pereira' },
-    { cx: 256, cy: 268, label: 'Tunja' },
-    { cx: 236, cy: 302, label: 'Bogotá D.C.', isPulseHub: true },
-    { cx: 204, cy: 318, label: 'Ibagué' },
-    { cx: 266, cy: 328, label: 'Villavicencio' },
-    { cx: 168, cy: 342, label: 'Cali', isPulseHub: true },
-    { cx: 214, cy: 368, label: 'Neiva' },
-    { cx: 170, cy: 388, label: 'Popayán' },
-    { cx: 230, cy: 412, label: 'Florencia' },
-    { cx: 144, cy: 420, label: 'Pasto' },
-    { cx: 188, cy: 438, label: 'Mocoa' },
-    { cx: 335, cy: 222, label: 'Arauca' },
-    { cx: 298, cy: 272, label: 'Yopal' },
-    { cx: 374, cy: 262, label: 'Puerto Carreño' },
-    { cx: 368, cy: 338, label: 'Inírida' },
-    { cx: 272, cy: 382, label: 'San José del Guaviare' },
-    { cx: 328, cy: 432, label: 'Mitú' },
-    { cx: 200, cy: 452, label: 'Puerto Asís' },
-    { cx: 266, cy: 540, label: 'Leticia' },
-  ];
-
-  // Red de Triangulación Poligonal (Low-Poly Cyber Mesh)
-  const polygonFacets = [
-    // Caribe y Norte
-    '300,55 270,116 245,92',
-    '245,92 218,108 270,116',
-    '218,108 195,126 270,116',
-    '195,126 185,168 270,116',
-    '270,116 305,178 262,202',
-    '185,168 198,236 262,202',
-    '185,168 154,258 198,236',
-    // Santanderes, Boyacá y Centro
-    '305,178 335,222 298,272',
-    '305,178 262,202 298,272',
-    '262,202 256,268 298,272',
-    '262,202 198,236 256,268',
-    '198,236 196,278 256,268',
-    '198,236 154,258 196,278',
-    '196,278 190,294 236,302',
-    '196,278 256,268 236,302',
-    '256,268 298,272 266,328',
-    '256,268 236,302 266,328',
-    // Eje Cafetero, Valle, Tolima, Huila
-    '190,294 204,318 236,302',
-    '190,294 168,342 204,318',
-    '204,318 236,302 214,368',
-    '236,302 266,328 214,368',
-    '168,342 170,388 214,368',
-    '170,388 144,420 188,438',
-    '170,388 188,438 214,368',
-    '214,368 188,438 230,412',
-    // Orinoquía y Amazonía
-    '298,272 374,262 335,222',
-    '298,272 374,262 368,338',
-    '298,272 266,328 368,338',
-    '266,328 272,382 368,338',
-    '266,328 214,368 272,382',
-    '272,382 368,338 328,432',
-    '272,382 230,412 328,432',
-    '214,368 230,412 272,382',
-    '144,420 188,438 200,452',
-    '188,438 230,412 200,452',
-    '230,412 272,382 200,452',
-    '272,382 328,432 266,540',
-    '272,382 200,452 266,540',
-    '328,432 266,540 266,540',
-  ];
-
-  // Líneas directas de interconexión
-  const networkLines = [
-    [300, 55, 270, 116], [270, 116, 245, 92], [245, 92, 218, 108], [218, 108, 195, 126],
-    [195, 126, 185, 168], [185, 168, 198, 236], [270, 116, 305, 178], [305, 178, 262, 202],
-    [262, 202, 256, 268], [256, 268, 236, 302], [198, 236, 154, 258], [198, 236, 196, 278],
-    [196, 278, 190, 294], [190, 294, 204, 318], [204, 318, 236, 302], [198, 236, 262, 202],
-    [305, 178, 335, 222], [335, 222, 298, 272], [298, 272, 236, 302], [236, 302, 266, 328],
-    [298, 272, 374, 262], [266, 328, 368, 338], [266, 328, 272, 382], [272, 382, 328, 432],
-    [368, 338, 328, 432], [190, 294, 168, 342], [168, 342, 170, 388], [170, 388, 144, 420],
-    [168, 342, 214, 368], [214, 368, 236, 302], [214, 368, 230, 412], [144, 420, 188, 438],
-    [188, 438, 200, 452], [230, 412, 200, 452], [230, 412, 272, 382], [200, 452, 266, 540],
-    [272, 382, 266, 540], [328, 432, 266, 540],
-  ];
-
-  return (
-    <svg
-      viewBox="0 0 540 650"
-      className="w-full h-full drop-shadow-[0_0_45px_rgba(0,210,255,0.45)] select-none"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <defs>
-        {/* Resplandor Neón Multicapa para Contorno */}
-        <filter id="hero-glow-cyan" x="-30%" y="-30%" width="160%" height="160%">
-          <feGaussianBlur stdDeviation="3.5" result="blur1" />
-          <feGaussianBlur stdDeviation="9" result="blur2" />
-          <feMerge>
-            <feMergeNode in="blur2" />
-            <feMergeNode in="blur1" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-
-        {/* Resplandor Concentrado de Nodos */}
-        <filter id="node-glow" x="-60%" y="-60%" width="220%" height="220%">
-          <feGaussianBlur stdDeviation="2.5" result="blur" />
-          <feMerge>
-            <feMergeNode in="blur" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-
-        {/* Resplandor de Destellos Estelares (Star Flare) */}
-        <filter id="flare-glow" x="-100%" y="-100%" width="300%" height="300%">
-          <feGaussianBlur stdDeviation="3" result="blur" />
-          <feMerge>
-            <feMergeNode in="blur" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-
-        {/* Gradiente para Anillos Orbitales */}
-        <linearGradient id="orbit-grad-1" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#00D2FF" stopOpacity="0.85" />
-          <stop offset="45%" stopColor="#155EEF" stopOpacity="0.15" />
-          <stop offset="75%" stopColor="#00D2FF" stopOpacity="0.9" />
-          <stop offset="100%" stopColor="#00D2FF" stopOpacity="0.1" />
-        </linearGradient>
-
-        <linearGradient id="orbit-grad-2" x1="100%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#38BDF8" stopOpacity="0.75" />
-          <stop offset="50%" stopColor="#155EEF" stopOpacity="0.15" />
-          <stop offset="100%" stopColor="#00D2FF" stopOpacity="0.85" />
-        </linearGradient>
-
-        {/* Gradiente para el Haz de Luz Láser Ascendente del Pedestal */}
-        <linearGradient id="laser-cone-grad" x1="50%" y1="100%" x2="50%" y2="0%">
-          <stop offset="0%" stopColor="#00D2FF" stopOpacity="0.8" />
-          <stop offset="35%" stopColor="#155EEF" stopOpacity="0.35" />
-          <stop offset="80%" stopColor="#00D2FF" stopOpacity="0.1" />
-          <stop offset="100%" stopColor="#00D2FF" stopOpacity="0" />
-        </linearGradient>
-
-        {/* Gradiente Radial para el Emitter Core */}
-        <radialGradient id="emitter-radial" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#FFFFFF" stopOpacity="1" />
-          <stop offset="30%" stopColor="#00D2FF" stopOpacity="0.95" />
-          <stop offset="70%" stopColor="#155EEF" stopOpacity="0.6" />
-          <stop offset="100%" stopColor="#060E22" stopOpacity="0" />
-        </radialGradient>
-      </defs>
-
-      {/* =====================================================================
-          1. ANILLOS ORBITALES DE LUZ EN PERSPECTIVA 3D (ESPACIALIDAD)
-          ===================================================================== */}
-      {!isLight && (
-        <g opacity="0.85">
-          {/* Anillo Orbital Mayor Diagonal (rodea el mapa y pasa detrás de la bandera) */}
-          <ellipse
-            cx="265"
-            cy="270"
-            rx="245"
-            ry="115"
-            transform="rotate(-22 265 270)"
-            stroke="url(#orbit-grad-1)"
-            strokeWidth="1.5"
-            fill="none"
-            filter="url(#hero-glow-cyan)"
-          />
-          {/* Anillo Orbital Menor Intermedio (cintura del territorio) */}
-          <ellipse
-            cx="265"
-            cy="375"
-            rx="185"
-            ry="65"
-            transform="rotate(14 265 375)"
-            stroke="url(#orbit-grad-2)"
-            strokeWidth="1.2"
-            fill="none"
-            strokeDasharray="8 6"
-            filter="url(#hero-glow-cyan)"
-          />
-        </g>
-      )}
-
-      {/* =====================================================================
-          2. SILUETA VECTORIAL GEOGRÁFICA PRECISA DE COLOMBIA
-          ===================================================================== */}
-      <path
-        d="M 302 28
-           C 288 44, 278 52, 260 70
-           C 245 82, 230 90, 215 97
-           C 205 104, 198 112, 195 117
-           C 190 130, 188 137, 185 142
-           C 178 152, 168 157, 160 162
-           C 150 158, 142 156, 138 164
-           C 132 174, 128 192, 125 212
-           C 122 232, 126 247, 128 257
-           C 130 277, 134 292, 135 307
-           C 136 327, 130 342, 125 357
-           C 120 377, 116 392, 115 402
-           C 125 412, 138 420, 145 422
-           C 162 427, 175 430, 185 432
-           C 200 434, 215 436, 225 437
-           C 238 452, 248 467, 255 477
-           C 265 497, 272 512, 275 522
-           C 278 542, 270 560, 266 565
-           C 275 555, 288 535, 295 515
-           C 305 490, 312 470, 315 455
-           C 328 440, 340 428, 350 415
-           C 362 395, 370 375, 375 360
-           C 382 340, 388 320, 390 305
-           C 386 280, 382 260, 375 240
-           C 365 230, 350 225, 330 220
-           C 315 215, 305 210, 295 205
-           C 300 188, 308 175, 310 165
-           C 305 150, 300 140, 295 130
-           C 290 115, 285 100, 280 90
-           C 288 75, 295 60, 300 50
-           C 306 40, 308 34, 302 28 Z"
-        stroke={strokeColor}
-        strokeWidth={isLight ? '2.4' : '3.2'}
-        fill={fillColor}
-        filter={isLight ? undefined : 'url(#hero-glow-cyan)'}
-      />
-
-      {/* =====================================================================
-          3. CONSTELACIÓN POLIGONAL TRANSLÚCIDA (FACETAS CIBERNÉTICAS)
-          ===================================================================== */}
-      {!isLight && (
-        <g stroke="rgba(0, 210, 255, 0.4)" strokeWidth="0.8" fill="rgba(0, 210, 255, 0.04)">
-          {polygonFacets.map((pts, i) => (
-            <polygon key={`poly-${i}`} points={pts} />
-          ))}
-        </g>
-      )}
-
-      {/* Líneas de Red Vectorial Interconectada */}
-      <g stroke={lineStroke} strokeWidth="0.85" opacity={isLight ? 0.7 : 0.85}>
-        {networkLines.map(([x1, y1, x2, y2], idx) => (
-          <line key={`line-${idx}`} x1={x1} y1={y1} x2={x2} y2={y2} />
-        ))}
-      </g>
-
-      {/* =====================================================================
-          4. NODOS LUMINOSOS Y DESTELLOS ESTELARES (STAR FLARES)
-          ===================================================================== */}
-      {constellationNodes.map((n) => (
-        <g key={n.label}>
-          {/* Nodo estándar */}
-          <circle
-            cx={n.cx}
-            cy={n.cy}
-            r={n.isPulseHub ? '4' : '2.4'}
-            fill={nodeFill}
-            filter={isLight ? undefined : 'url(#node-glow)'}
-          />
-
-          {/* Nodos de alta intensidad con destellos en cruz (Star Flares) y auras pulsantes */}
-          {!isLight && n.isPulseHub && (
-            <g>
-              {/* Halo circular grande */}
-              <circle cx={n.cx} cy={n.cy} r="12" fill="#00D2FF" opacity="0.35" />
-
-              {/* Anillo de onda expansiva */}
-              <circle
-                cx={n.cx}
-                cy={n.cy}
-                r="18"
-                fill="none"
-                stroke="#00D2FF"
-                strokeWidth="1.2"
-                opacity="0.5"
-                className="animate-ping"
-                style={{ transformOrigin: `${n.cx}px ${n.cy}px`, animationDuration: '3s' }}
-              />
-
-              {/* Centro de luz blanca ultra-brillante */}
-              <circle cx={n.cx} cy={n.cy} r="2.2" fill="#FFFFFF" />
-
-              {/* Destello de lente estelar de 4 puntas (Cross Flare Glint) */}
-              <polygon
-                points={`${n.cx},${n.cy - 16} ${n.cx + 2.5},${n.cy - 2.5} ${n.cx + 16},${n.cy} ${n.cx + 2.5},${n.cy + 2.5} ${n.cx},${n.cy + 16} ${n.cx - 2.5},${n.cy + 2.5} ${n.cx - 16},${n.cy} ${n.cx - 2.5},${n.cy - 2.5}`}
-                fill="#FFFFFF"
-                opacity="0.95"
-                filter="url(#flare-glow)"
-              />
-              <polygon
-                points={`${n.cx},${n.cy - 9} ${n.cx + 1.8},${n.cy - 1.8} ${n.cx + 9},${n.cy} ${n.cx + 1.8},${n.cy + 1.8} ${n.cx},${n.cy + 9} ${n.cx - 1.8},${n.cy + 1.8} ${n.cx - 9},${n.cy} ${n.cx - 1.8},${n.cy - 1.8}`}
-                fill="#00D2FF"
-                opacity="0.85"
-              />
-            </g>
-          )}
-        </g>
-      ))}
-
-      {/* =====================================================================
-          5. PEDESTAL CIBERNÉTICO HUD CON ANILLOS CONCÉNTRICOS Y LUZ ASCENDENTE
-          ===================================================================== */}
-      {!isLight && (
-        <g id="pedestal-hud">
-          {/* Haz de Luz Láser Ascendente que Baña la Punta Sur (Leticia) */}
-          <polygon
-            points="225,565 305,565 275,540 255,540"
-            fill="url(#laser-cone-grad)"
-            filter="url(#hero-glow-cyan)"
-            opacity="0.8"
-          />
-
-          {/* Plataforma Base Reflectante Oscura */}
-          <ellipse
-            cx="266"
-            cy="580"
-            rx="210"
-            ry="44"
-            fill="#060E22"
-            stroke="rgba(0, 210, 255, 0.4)"
-            strokeWidth="1.8"
-          />
-
-          {/* Barras de Luz LED Neón Segmentadas en el Perímetro Exterior */}
-          <path
-            d="M 85,576 A 210 44 0 0 0 165,614"
-            stroke="#00D2FF"
-            strokeWidth="4"
-            strokeLinecap="round"
-            fill="none"
-            filter="url(#hero-glow-cyan)"
-          />
-          <path
-            d="M 195,620 A 210 44 0 0 0 245,624"
-            stroke="#00D2FF"
-            strokeWidth="3.5"
-            strokeLinecap="round"
-            fill="none"
-            filter="url(#hero-glow-cyan)"
-          />
-          <path
-            d="M 285,624 A 210 44 0 0 0 335,620"
-            stroke="#00D2FF"
-            strokeWidth="3.5"
-            strokeLinecap="round"
-            fill="none"
-            filter="url(#hero-glow-cyan)"
-          />
-          <path
-            d="M 365,614 A 210 44 0 0 0 445,576"
-            stroke="#00D2FF"
-            strokeWidth="4"
-            strokeLinecap="round"
-            fill="none"
-            filter="url(#hero-glow-cyan)"
-          />
-
-          {/* Anillo Intermedio Metálico Escalonado */}
-          <ellipse
-            cx="266"
-            cy="570"
-            rx="155"
-            ry="32"
-            fill="#091530"
-            stroke="#155EEF"
-            strokeWidth="2.5"
-          />
-          <ellipse
-            cx="266"
-            cy="566"
-            rx="145"
-            ry="28"
-            fill="none"
-            stroke="#00D2FF"
-            strokeWidth="1.2"
-            strokeDasharray="14 6"
-            opacity="0.8"
-          />
-
-          {/* Anillo Emitter Interior Radiante */}
-          <ellipse
-            cx="266"
-            cy="560"
-            rx="95"
-            ry="20"
-            fill="url(#emitter-radial)"
-            stroke="#00D2FF"
-            strokeWidth="2"
-            filter="url(#hero-glow-cyan)"
-          />
-
-          {/* Núcleo Central de Emisión de Alta Intensidad */}
-          <ellipse cx="266" cy="558" rx="55" ry="11" fill="#00D2FF" filter="url(#node-glow)" />
-          <ellipse cx="266" cy="557" rx="30" ry="6" fill="#FFFFFF" />
-        </g>
-      )}
-    </svg>
-  );
-};
-
-// ============================================================================
 // COMPONENTE PRINCIPAL LANDING PAGE ELECTORAL
 // ============================================================================
 export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) => {
@@ -471,34 +51,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
   };
 
   return (
-    <div className="min-h-screen bg-[#070B19] text-slate-100 selection:bg-[#155EEF] selection:text-white relative overflow-x-hidden w-full flex flex-col justify-between font-sans">
+    <div className="min-h-screen bg-[#070B19] text-white selection:bg-[#155EEF] selection:text-white relative overflow-x-hidden flex flex-col justify-between font-sans">
       {/* =========================================================================
-          RESPLANDORES DE ILUMINACIÓN AMBIENTAL (GLOBAL AMBIENT GLOWS)
+          A. BARRA DE NAVEGACIÓN (HEADER FIJO GLASSMORPHISM)
           ========================================================================= */}
-      <div
-        className="fixed inset-0 pointer-events-none -z-20 select-none overflow-hidden"
-        aria-hidden="true"
-      >
-        {/* Haz de luz radial superior */}
-        <div
-          className="absolute -top-24 left-[15%] sm:left-[30%] w-[800px] sm:w-[1200px] h-[550px] sm:h-[750px] pointer-events-none"
-          style={{
-            background: 'radial-gradient(circle at 60% 15%, rgba(21, 94, 239, 0.22) 0%, rgba(7, 11, 25, 0) 65%)',
-          }}
-        />
-        {/* Haz de luz de apoyo lateral izquierdo */}
-        <div
-          className="absolute top-[10%] -left-32 w-[600px] sm:w-[800px] h-[600px] sm:h-[800px] pointer-events-none"
-          style={{
-            background: 'radial-gradient(circle at 10% 25%, rgba(0, 210, 255, 0.08) 0%, transparent 50%)',
-          }}
-        />
-      </div>
-
-      {/* =========================================================================
-          A. BARRA DE NAVEGACIÓN (STICKY GLASSMORPHISM HEADER)
-          ========================================================================= */}
-      <header className="sticky top-0 z-50 w-full bg-[#070B19]/80 backdrop-blur-xl border-b border-slate-800/60 transition-colors">
+      <header className="fixed top-0 left-0 right-0 z-50 w-full bg-[#070B19]/85 backdrop-blur-xl border-b border-slate-800/60 shadow-lg shadow-black/20 transition-all">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
           {/* Izquierda: Isotipo + Nombre Institucional */}
           <div className="flex items-center gap-3">
@@ -537,8 +94,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
 
           {/* Derecha: Botón CTA Primario en Azul Eléctrico */}
           <div className="flex items-center gap-3">
-            <ThemeToggle />
-
             <button
               type="button"
               onClick={onNavigateToLogin}
@@ -551,21 +106,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
         </div>
       </header>
 
-      <main className="flex-1 z-10" id="inicio">
+      <main className="flex-1 z-10 pt-20" id="inicio">
         {/* =========================================================================
-            B. HERO SECTION (DOBLE COLUMNA + PEDESTAL HUD EN LIENZO + PANEL FLOTANTE)
+            B. HERO SECTION (DOBLE COLUMNA + HOLOGRAMA 3D MAPA COLOMBIA + PANEL FLOTANTE)
             ========================================================================= */}
         <section className="relative pt-10 pb-20 sm:pt-16 sm:pb-28 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto overflow-hidden">
-          {/* Fondo Escénico de Lienzo Continuo Tecnológico (Master Canvas Wallpaper) */}
-          <div className="absolute inset-0 pointer-events-none -z-20 overflow-hidden opacity-55 mix-blend-screen select-none">
-            <img
-              src="/landing_bg_master.jpg"
-              alt=""
-              className="w-full h-full object-cover object-top filter brightness-110 contrast-120"
-            />
-            <div className="absolute inset-0 bg-gradient-to-b from-[#070B19]/25 via-transparent to-[#070B19]" />
-          </div>
-
           {/* Luces Ambientales de Fondo */}
           <div
             className="absolute top-10 left-1/4 w-[600px] h-[400px] bg-blue-600/20 blur-[150px] pointer-events-none -z-10"
@@ -576,14 +121,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
             aria-hidden="true"
           />
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-6 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-8 items-center">
             {/* Columna Izquierda: Información Principal */}
             <motion.div
               variants={fluidFadeUp}
               initial="hidden"
               whileInView="visible"
               viewport={{ once: false, amount: 0.2 }}
-              className="lg:col-span-5 text-left space-y-6"
+              className="lg:col-span-7 text-left space-y-6"
             >
               {/* Badge Píldora Superior */}
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-950/70 border border-cyan-400/30 text-cyan-300 text-xs font-mono font-bold tracking-wider uppercase shadow-[0_0_15px_rgba(0,210,255,0.2)]">
@@ -599,7 +144,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
               </h1>
 
               {/* Párrafo descriptivo fiel */}
-              <p className="text-sm sm:text-base text-slate-300 leading-relaxed max-w-lg">
+              <p className="text-base sm:text-lg text-slate-300 leading-relaxed max-w-xl">
                 Plataforma tecnológica diseñada para gestionar, controlar y hacer seguimiento a todas las etapas del proceso electoral en Colombia. Transparencia, seguridad y eficiencia en un solo lugar.
               </p>
 
@@ -639,79 +184,63 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
               </div>
             </motion.div>
 
-            {/* Columna Central: Espacio Escénico Despejado para el Pedestal y Haz de Luz del Lienzo */}
-            <div
-              className="hidden lg:flex lg:col-span-4 relative flex-col items-center justify-end min-h-[480px] pointer-events-none select-none"
-              aria-hidden="true"
-            >
-              {/* Capa de Piso Luminoso bajo el Pedestal */}
-              <div
-                className="w-[320px] h-[90px] rounded-full pointer-events-none mb-6"
-                style={{
-                  background:
-                    'radial-gradient(ellipse at center, rgba(0, 210, 255, 0.35) 0%, rgba(21, 94, 239, 0.1) 45%, transparent 75%)',
-                  filter: 'blur(20px)',
-                }}
-              />
-            </div>
-
-            {/* Columna Derecha: Panel Lateral Flotante de Métricas (4 Tarjetas Glassmorphic Exactas) */}
+            {/* Columna Derecha: Panel de Métricas Electorales (Grid 2x2) */}
             <motion.div
               variants={fluidFadeUp}
               initial="hidden"
               whileInView="visible"
               viewport={{ once: false, amount: 0.2 }}
-              className="lg:col-span-3 flex flex-col gap-3.5 w-full max-w-[290px] mx-auto lg:mx-0 z-20"
+              className="lg:col-span-5 grid grid-cols-1 sm:grid-cols-2 gap-4 w-full"
             >
-              {/* Tarjeta 1: Departments */}
-              <div className="p-4 rounded-2xl bg-[#081226]/85 backdrop-blur-xl border border-sky-400/25 hover:border-cyan-400/60 hover:shadow-[0_0_25px_rgba(0,210,255,0.2)] transition-all duration-300 flex items-center gap-3.5 shadow-xl group">
-                <div className="w-12 h-12 rounded-full bg-[#051129] border border-cyan-400/50 flex items-center justify-center text-cyan-400 shadow-[0_0_15px_rgba(0,210,255,0.3)] shrink-0 group-hover:scale-105 transition-transform">
-                  <Shield className="w-5.5 h-5.5" strokeWidth={2.2} />
+              {/* Tarjeta 1: Departamentos */}
+              <div className="p-5 rounded-2xl bg-[#081226]/85 backdrop-blur-xl border border-sky-400/25 hover:border-cyan-400/60 hover:shadow-[0_0_25px_rgba(0,210,255,0.2)] transition-all duration-300 flex flex-col justify-between shadow-xl group">
+                <div className="w-12 h-12 rounded-xl bg-[#051129] border border-cyan-400/50 flex items-center justify-center text-cyan-400 shadow-[0_0_15px_rgba(0,210,255,0.3)] shrink-0 group-hover:scale-105 transition-transform mb-4">
+                  <Shield className="w-6 h-6" strokeWidth={2.2} />
                 </div>
-                <div className="text-left">
-                  <span className="text-2xl font-black font-mono text-white tracking-tight leading-none block">
+                <div>
+                  <span className="text-3xl font-black font-mono text-white tracking-tight leading-none block">
                     32
                   </span>
-                  <span className="text-xs text-slate-300 font-semibold block mt-1">Departamentos</span>
+                  <span className="text-sm text-slate-300 font-semibold block mt-1.5">Departamentos</span>
                 </div>
               </div>
 
-              {/* Tarjeta 2: Municipalities */}
-              <div className="p-4 rounded-2xl bg-[#081226]/85 backdrop-blur-xl border border-sky-400/25 hover:border-cyan-400/60 hover:shadow-[0_0_25px_rgba(0,210,255,0.2)] transition-all duration-300 flex items-center gap-3.5 shadow-xl group">
-                <div className="w-12 h-12 rounded-full bg-[#051129] border border-cyan-400/50 flex items-center justify-center text-cyan-400 shadow-[0_0_15px_rgba(0,210,255,0.3)] shrink-0 group-hover:scale-105 transition-transform">
-                  <MapPin className="w-5.5 h-5.5" strokeWidth={2.2} />
+              {/* Tarjeta 2: Municipios */}
+              <div className="p-5 rounded-2xl bg-[#081226]/85 backdrop-blur-xl border border-sky-400/25 hover:border-cyan-400/60 hover:shadow-[0_0_25px_rgba(0,210,255,0.2)] transition-all duration-300 flex flex-col justify-between shadow-xl group">
+                <div className="w-12 h-12 rounded-xl bg-[#051129] border border-cyan-400/50 flex items-center justify-center text-cyan-400 shadow-[0_0_15px_rgba(0,210,255,0.3)] shrink-0 group-hover:scale-105 transition-transform mb-4">
+                  <MapPin className="w-6 h-6" strokeWidth={2.2} />
                 </div>
-                <div className="text-left">
-                  <span className="text-2xl font-black font-mono text-white tracking-tight leading-none block">
+                <div>
+                  <span className="text-3xl font-black font-mono text-white tracking-tight leading-none block">
                     +1.102
                   </span>
-                  <span className="text-xs text-slate-300 font-semibold block mt-1">Municipios</span>
+                  <span className="text-sm text-slate-300 font-semibold block mt-1.5">Municipios</span>
                 </div>
               </div>
 
-              {/* Tarjeta 3: Voting Stations */}
-              <div className="p-4 rounded-2xl bg-[#081226]/85 backdrop-blur-xl border border-sky-400/25 hover:border-cyan-400/60 hover:shadow-[0_0_25px_rgba(0,210,255,0.2)] transition-all duration-300 flex items-center gap-3.5 shadow-xl group">
-                <div className="w-12 h-12 rounded-full bg-[#051129] border border-cyan-400/50 flex items-center justify-center text-cyan-400 shadow-[0_0_15px_rgba(0,210,255,0.3)] shrink-0 group-hover:scale-105 transition-transform">
-                  <Vote className="w-5.5 h-5.5" strokeWidth={2.2} />
+              {/* Tarjeta 3: Puestos de Votación */}
+              <div className="p-5 rounded-2xl bg-[#081226]/85 backdrop-blur-xl border border-sky-400/25 hover:border-cyan-400/60 hover:shadow-[0_0_25px_rgba(0,210,255,0.2)] transition-all duration-300 flex flex-col justify-between shadow-xl group">
+                <div className="w-12 h-12 rounded-xl bg-[#051129] border border-cyan-400/50 flex items-center justify-center text-cyan-400 shadow-[0_0_15px_rgba(0,210,255,0.3)] shrink-0 group-hover:scale-105 transition-transform mb-4">
+                  <Vote className="w-6 h-6" strokeWidth={2.2} />
                 </div>
-                <div className="text-left">
-                  <span className="text-2xl font-black font-mono text-white tracking-tight leading-none block">
+                <div>
+                  <span className="text-3xl font-black font-mono text-white tracking-tight leading-none block">
                     +12.000
                   </span>
-                  <span className="text-xs text-slate-300 font-semibold block mt-1">Puestos de votación</span>
+                  <span className="text-sm text-slate-300 font-semibold block mt-1.5">Puestos de votación</span>
                 </div>
               </div>
 
-              {/* Tarjeta 4: Eligible Citizens */}
-              <div className="p-4 rounded-2xl bg-[#081226]/85 backdrop-blur-xl border border-sky-400/25 hover:border-cyan-400/60 hover:shadow-[0_0_25px_rgba(0,210,255,0.2)] transition-all duration-300 flex items-center gap-3.5 shadow-xl group">
-                <div className="w-12 h-12 rounded-full bg-[#051129] border border-cyan-400/50 flex items-center justify-center text-cyan-400 shadow-[0_0_15px_rgba(0,210,255,0.3)] shrink-0 group-hover:scale-105 transition-transform">
-                  <Users className="w-5.5 h-5.5" strokeWidth={2.2} />
+              {/* Tarjeta 4: Ciudadanos Habilitados */}
+              <div className="p-5 rounded-2xl bg-[#081226]/85 backdrop-blur-xl border border-sky-400/25 hover:border-cyan-400/60 hover:shadow-[0_0_25px_rgba(0,210,255,0.2)] transition-all duration-300 flex flex-col justify-between shadow-xl group">
+                <div className="w-12 h-12 rounded-xl bg-[#051129] border border-cyan-400/50 flex items-center justify-center text-cyan-400 shadow-[0_0_15px_rgba(0,210,255,0.3)] shrink-0 group-hover:scale-105 transition-transform mb-4">
+                  <Users className="w-6 h-6" strokeWidth={2.2} />
                 </div>
-                <div className="text-left">
-                  <span className="text-xl sm:text-2xl font-black font-mono text-white tracking-tight leading-none block">
+                <div>
+                  <span className="text-2xl sm:text-3xl font-black font-mono text-white tracking-tight leading-none block">
                     +39.000.000
                   </span>
-                  <span className="text-xs text-slate-300 font-semibold block mt-1">Ciudadanos habilitados</span>
+                  <span className="text-sm text-slate-300 font-semibold block mt-1.5">Ciudadanos habilitados</span>
                 </div>
               </div>
             </motion.div>
@@ -719,16 +248,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
         </section>
 
         {/* =========================================================================
-            C. SECCIÓN DE CARACTERÍSTICAS (GRID DE 6 TARJETAS + DARK GRID BLUEPRINT)
+            C. SECCIÓN DE CARACTERÍSTICAS (GRID DE 6 TARJETAS EXACTAS)
             ========================================================================= */}
-        <section
-          id="caracteristicas"
-          className="relative py-20 sm:py-28 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-slate-800/80 bg-[#080E21] rounded-3xl my-6"
-          style={{
-            backgroundImage: `linear-gradient(to right, rgba(56, 189, 248, 0.03) 1px, transparent 1px), linear-gradient(to bottom, rgba(56, 189, 248, 0.03) 1px, transparent 1px)`,
-            backgroundSize: '40px 40px',
-          }}
-        >
+        <section id="caracteristicas" className="scroll-mt-20 py-20 sm:py-28 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-slate-800/80">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
             {/* Encabezado Lateral */}
             <motion.div
@@ -874,7 +396,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
             ========================================================================= */}
         <section
           id="seguridad"
-          className="py-20 sm:py-28 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-slate-800/80 relative overflow-hidden bg-[radial-gradient(ellipse_80%_80%_at_50%_-10%,rgba(14,165,233,0.15),transparent)]"
+          className="scroll-mt-20 py-20 sm:py-28 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-slate-800/80 relative overflow-hidden bg-[radial-gradient(ellipse_80%_80%_at_50%_-10%,rgba(14,165,233,0.15),transparent)]"
         >
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
             {/* Encabezado Lateral */}
@@ -1015,133 +537,136 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
             ========================================================================= */}
         <section
           id="cobertura"
-          className="py-20 sm:py-28 px-4 sm:px-6 lg:px-8 bg-[#F8FAFC] text-slate-900 transition-colors"
+          className="scroll-mt-20 py-20 sm:py-28 px-4 sm:px-6 lg:px-8 bg-[#F8FAFC] text-slate-900 transition-colors"
         >
           <div className="max-w-7xl mx-auto">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-              {/* Columna Izquierda: Mockup Perspectivado de Pantallas */}
+              {/* Columna Izquierda: Información Oficial */}
               <motion.div
                 variants={fluidFadeUp}
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: false, amount: 0.2 }}
-                className="lg:col-span-4 relative flex items-center justify-center"
+                className="lg:col-span-7 text-left space-y-6"
               >
-                {/* Pantallas Oscuras en Capas Isométricas */}
-                <div className="relative w-full max-w-[340px] h-[360px]">
-                  {/* Capa Trasera 1 */}
-                  <div className="absolute top-4 left-0 w-56 h-64 rounded-2xl bg-[#091124] border border-slate-700 shadow-xl transform -rotate-12 overflow-hidden opacity-75">
-                    <div className="p-3 w-full h-full">
-                      <ColombiaHologramMap variant="cyber" />
-                    </div>
-                  </div>
-
-                  {/* Capa Trasera 2 */}
-                  <div className="absolute top-2 left-10 w-60 h-72 rounded-2xl bg-[#0A142B] border border-cyan-500/30 shadow-2xl transform -rotate-6 overflow-hidden">
-                    <div className="p-4 w-full h-full">
-                      <ColombiaHologramMap variant="cyber" />
-                    </div>
-                  </div>
-
-                  {/* Tarjeta Frontal Blanca con Opciones */}
-                  <div className="absolute top-10 left-16 w-64 rounded-2xl bg-white border border-slate-200/90 shadow-[0_20px_50px_rgba(0,0,0,0.12)] p-4 text-left space-y-2.5 z-20">
-                    <div className="p-2.5 rounded-xl hover:bg-slate-50 flex items-center justify-between transition-colors border border-slate-100">
-                      <div className="flex items-center gap-2.5">
-                        <span className="p-1.5 rounded-lg bg-amber-500/10 text-amber-600 font-bold text-xs">
-                          <Map className="w-4 h-4" />
-                        </span>
-                        <span className="text-xs font-bold text-slate-800">Gobernación</span>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-slate-400" />
-                    </div>
-
-                    <div className="p-2.5 rounded-xl hover:bg-slate-50 flex items-center justify-between transition-colors border border-slate-100">
-                      <div className="flex items-center gap-2.5">
-                        <span className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 font-bold text-xs">
-                          <Landmark className="w-4 h-4" />
-                        </span>
-                        <span className="text-xs font-bold text-slate-800">Asamblea</span>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-slate-400" />
-                    </div>
-
-                    <div className="p-2.5 rounded-xl hover:bg-slate-50 flex items-center justify-between transition-colors border border-slate-100">
-                      <div className="flex items-center gap-2.5">
-                        <span className="p-1.5 rounded-lg bg-rose-500/10 text-rose-600 font-bold text-xs">
-                          <Building2 className="w-4 h-4" />
-                        </span>
-                        <span className="text-xs font-bold text-slate-800">Alcaldía</span>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-slate-400" />
-                    </div>
-
-                    <div className="p-2.5 rounded-xl hover:bg-slate-50 flex items-center justify-between transition-colors border border-slate-100">
-                      <div className="flex items-center gap-2.5">
-                        <span className="p-1.5 rounded-lg bg-blue-500/10 text-blue-600 font-bold text-xs">
-                          <Users className="w-4 h-4" />
-                        </span>
-                        <span className="text-xs font-bold text-slate-800">Concejo</span>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-slate-400" />
-                    </div>
-                  </div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-mono font-bold uppercase tracking-wider">
+                  <span>COBERTURA NACIONAL</span>
                 </div>
-              </motion.div>
 
-              {/* Columna Centro: Información Oficial */}
-              <motion.div
-                variants={fluidFadeUp}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: false, amount: 0.2 }}
-                className="lg:col-span-5 text-left space-y-4"
-              >
-                <span className="text-xs font-mono font-bold uppercase tracking-wider text-blue-600 block">
-                  COBERTURA NACIONAL
-                </span>
-
-                <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 leading-tight">
+                <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 leading-tight">
                   Información electoral para todo el país
                 </h2>
 
-                <p className="text-sm text-slate-600 leading-relaxed">
-                  Accede a los datos oficiales de la Registraduría Nacional del Estado Civil y del censo electoral, con cobertura en los 32 departamentos y Bogotá D.C., incluyendo la información de los cargos locales y regionales.
+                <p className="text-base text-slate-600 leading-relaxed max-w-xl">
+                  Accede a los datos oficiales de la Registraduría Nacional del Estado Civil y del censo electoral, con cobertura integral en los 32 departamentos y Bogotá D.C., abarcando la gestión de cargos departamentales y municipales.
                 </p>
 
                 {/* 4 Botones de Categorías */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-3">
-                  <div className="p-3 rounded-xl bg-white border border-slate-200 shadow-xs flex flex-col items-center gap-1.5 text-center">
-                    <Map className="w-5 h-5 text-blue-600" />
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+                  <div className="p-4 rounded-xl bg-white border border-slate-200/90 shadow-sm hover:shadow-md hover:border-blue-400 transition-all flex flex-col items-center gap-2 text-center">
+                    <span className="p-2 rounded-lg bg-amber-500/10 text-amber-600">
+                      <Map className="w-5 h-5" />
+                    </span>
                     <span className="text-xs font-bold text-slate-800">Gobernación</span>
                   </div>
 
-                  <div className="p-3 rounded-xl bg-white border border-slate-200 shadow-xs flex flex-col items-center gap-1.5 text-center">
-                    <Landmark className="w-5 h-5 text-blue-600" />
+                  <div className="p-4 rounded-xl bg-white border border-slate-200/90 shadow-sm hover:shadow-md hover:border-blue-400 transition-all flex flex-col items-center gap-2 text-center">
+                    <span className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600">
+                      <Landmark className="w-5 h-5" />
+                    </span>
                     <span className="text-xs font-bold text-slate-800">Asamblea</span>
                   </div>
 
-                  <div className="p-3 rounded-xl bg-white border border-slate-200 shadow-xs flex flex-col items-center gap-1.5 text-center">
-                    <Building2 className="w-5 h-5 text-blue-600" />
+                  <div className="p-4 rounded-xl bg-white border border-slate-200/90 shadow-sm hover:shadow-md hover:border-blue-400 transition-all flex flex-col items-center gap-2 text-center">
+                    <span className="p-2 rounded-lg bg-rose-500/10 text-rose-600">
+                      <Building2 className="w-5 h-5" />
+                    </span>
                     <span className="text-xs font-bold text-slate-800">Alcaldía</span>
                   </div>
 
-                  <div className="p-3 rounded-xl bg-white border border-slate-200 shadow-xs flex flex-col items-center gap-1.5 text-center">
-                    <Users className="w-5 h-5 text-blue-600" />
+                  <div className="p-4 rounded-xl bg-white border border-slate-200/90 shadow-sm hover:shadow-md hover:border-blue-400 transition-all flex flex-col items-center gap-2 text-center">
+                    <span className="p-2 rounded-lg bg-blue-500/10 text-blue-600">
+                      <Users className="w-5 h-5" />
+                    </span>
                     <span className="text-xs font-bold text-slate-800">Concejo</span>
                   </div>
                 </div>
               </motion.div>
 
-              {/* Columna Derecha: Silueta Vectorial de Colombia con Nodos Celestes */}
+              {/* Columna Derecha: Tarjeta Estructurada de Niveles de Elección */}
               <motion.div
                 variants={fluidFadeUp}
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: false, amount: 0.2 }}
-                className="lg:col-span-3 flex items-center justify-center"
+                className="lg:col-span-5 flex justify-center"
               >
-                <div className="w-[260px] h-[340px]">
-                  <ColombiaHologramMap variant="light" />
+                <div className="w-full max-w-md rounded-2xl bg-white border border-slate-200 shadow-xl p-6 text-left space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div>
+                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider font-mono">
+                        ESTRUCTURA ELECTORAL
+                      </span>
+                      <h3 className="text-base font-bold text-slate-900">Niveles Territoriales</h3>
+                    </div>
+                    <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600 text-xs font-bold">
+                      32 Departamentos
+                    </span>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 hover:border-slate-300 transition-colors flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="p-2 rounded-lg bg-amber-500/10 text-amber-600">
+                          <Map className="w-4 h-4" />
+                        </span>
+                        <div>
+                          <div className="text-xs font-bold text-slate-900">Gobernaciones</div>
+                          <div className="text-[11px] text-slate-500">Poder ejecutivo departamental</div>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-slate-400" />
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 hover:border-slate-300 transition-colors flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600">
+                          <Landmark className="w-4 h-4" />
+                        </span>
+                        <div>
+                          <div className="text-xs font-bold text-slate-900">Asambleas Departamentales</div>
+                          <div className="text-[11px] text-slate-500">Corporaciones públicas regionales</div>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-slate-400" />
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 hover:border-slate-300 transition-colors flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="p-2 rounded-lg bg-rose-500/10 text-rose-600">
+                          <Building2 className="w-4 h-4" />
+                        </span>
+                        <div>
+                          <div className="text-xs font-bold text-slate-900">Alcaldías Municipales</div>
+                          <div className="text-[11px] text-slate-500">1.102 municipios y distritos</div>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-slate-400" />
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 hover:border-slate-300 transition-colors flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="p-2 rounded-lg bg-blue-500/10 text-blue-600">
+                          <Users className="w-4 h-4" />
+                        </span>
+                        <div>
+                          <div className="text-xs font-bold text-slate-900">Concejos Municipales</div>
+                          <div className="text-[11px] text-slate-500">Representación local y comunitaria</div>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-slate-400" />
+                    </div>
+                  </div>
                 </div>
               </motion.div>
             </div>
@@ -1149,18 +674,19 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
         </section>
 
         {/* =========================================================================
-            F. CALL TO ACTION FINAL (HERO FOOTER BANNER HORIZONTE PLANETARIO)
+            F. CALL TO ACTION FINAL (HERO FOOTER BANNER CIUDAD NOCTURNA)
             ========================================================================= */}
         <section className="relative py-24 sm:py-32 px-4 sm:px-6 lg:px-8 text-center overflow-hidden bg-[#070B19] border-t border-slate-800/80">
-          {/* Fondo Panorámico de Horizonte Cósmico Terrestre desde Órbita (Master Canvas Wallpaper) */}
-          <div className="absolute inset-0 pointer-events-none -z-10 overflow-hidden select-none">
-            <img
-              src="/landing_bg_master.jpg"
-              alt=""
-              className="w-full h-full object-cover object-bottom opacity-90 filter brightness-110 contrast-115"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#070B19] via-[#070B19]/30 to-[#070B19]" />
-            <div className="absolute bottom-0 inset-x-0 h-32 bg-gradient-to-t from-[#070B19] to-transparent" />
+          {/* Fondo Panorámico Nocturno con Montañas y Luces */}
+          <div className="absolute inset-0 opacity-40 pointer-events-none -z-10">
+            {/* Silueta de Cordillera */}
+            <svg viewBox="0 0 1440 320" className="w-full h-full object-cover" preserveAspectRatio="none">
+              <path
+                fill="#0A142A"
+                d="M0,192L48,176C96,160,192,128,288,138.7C384,149,480,203,576,213.3C672,224,768,192,864,165.3C960,139,1056,117,1152,128C1248,139,1344,181,1392,202.7L1440,224L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"
+              />
+            </svg>
+            <div className="absolute bottom-0 inset-x-0 h-28 bg-gradient-to-t from-[#070B19] to-transparent" />
           </div>
 
           <motion.div
@@ -1194,7 +720,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToLogin }) =
         {/* =========================================================================
             SECCIÓN FAQ RÁPIDA PARA CUMPLIR NAVEGACIÓN
             ========================================================================= */}
-        <section id="contacto" className="py-16 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto border-t border-slate-800/80 text-left">
+        <section id="contacto" className="scroll-mt-20 py-16 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto border-t border-slate-800/80 text-left">
           <div className="text-center mb-10 space-y-2">
             <span className="text-xs font-mono font-bold uppercase tracking-wider text-cyan-400">
               RESOLUCIÓN DE DUDAS

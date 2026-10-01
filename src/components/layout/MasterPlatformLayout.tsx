@@ -5,6 +5,7 @@ import { MasterDashboardView } from '../../modules/superadmin/MasterDashboardVie
 import { TenantsManagementView } from '../../modules/superadmin/TenantsManagementView';
 import { SystemHealthView } from '../../modules/superadmin/SystemHealthView';
 import { SecurityAuditView } from '../../modules/superadmin/SecurityAuditView';
+import { MasterUsersView } from '../../modules/superadmin/MasterUsersView';
 import { ThemeToggle } from '../ui/ThemeToggle';
 import { AnimatePresence, motion } from 'framer-motion';
 
@@ -90,6 +91,8 @@ export const MasterPlatformLayout: React.FC<MasterPlatformLayoutProps> = ({
               )}
 
               {activeTab === 'tenants' && <TenantsManagementView />}
+
+              {activeTab === 'users' && <MasterUsersView />}
 
               {activeTab === 'health' && <SystemHealthView />}
 

@@ -1,17 +1,153 @@
 import * as XLSX from 'xlsx';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { supabaseAdmin } from '../lib/supabaseAdmin';
 import type { ElectorWithRegistrant } from '../types';
 
 export interface ExportFilterParams {
   tenantId?: string | null;
   registradoPorId?: string; // Si se omite, exporta todo el padrón
   liderNombre?: string;
+  nombreCampana?: string;
+}
+
+export interface ElectorExportRow {
+  cedula: string;
+  nombres: string;
+  apellidos: string;
+  telefono?: string;
+  puesto_votacion?: string;
+  mesa?: string | number;
+  created_at?: string;
+  [key: string]: any;
+}
+
+/**
+ * Genera y descarga el reporte individual en Excel (.xlsx) para un líder específico
+ * con membrete institucional, pestaña personalizada y nombre de archivo dinámico.
+ */
+export function exportarReporteIndividualLider(
+  nombreLider: string,
+  electores: ElectorExportRow[],
+  nombreCampana: string = 'TODO POR COTORRA'
+): { count: number; fileName: string } {
+  if (!electores || electores.length === 0) {
+    throw new Error(`El líder ${nombreLider} no tiene electores registrados para exportar.`);
+  }
+
+  // 1. Sanitizar nombre del archivo
+  const anio = new Date().getFullYear();
+  const nombreLiderSanitizado = nombreLider
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // Eliminar tildes
+    .replace(/[^a-zA-Z0-9]/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '');
+  const fileName = `Reporte_Lider_${nombreLiderSanitizado}_${anio}.xlsx`;
+
+  // 2. Nombre de la pestaña: Primer nombre y apellido (máximo 31 caracteres)
+  const partes = nombreLider.trim().split(/\s+/);
+  const primerNombreYApellido = partes.length > 1 ? `${partes[0]} ${partes[1]}` : partes[0] || 'Líder';
+  const sheetName = primerNombreYApellido
+    .replace(/[:\\\/\?\*\[\]]/g, '')
+    .trim()
+    .slice(0, 31) || 'Reporte Líder';
+
+  // 3. Fecha y hora de generación
+  const fechaGeneracion = new Date().toLocaleString('es-CO', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true,
+  });
+
+  // 4. Membrete institucional y encabezados (AOA)
+  const tituloInstitucional = nombreCampana
+    ? `CAMPAÑA ELECTORAL - INFORME INDIVIDUAL DE GESTIÓN (${nombreCampana.toUpperCase()})`
+    : `CAMPAÑA ELECTORAL - INFORME INDIVIDUAL DE GESTIÓN`;
+
+  const aoaData: any[][] = [
+    [tituloInstitucional],
+    [`RESPONSABLE / LÍDER: ${nombreLider.toUpperCase()}`],
+    [`TOTAL ELECTORES REPORTADOS: ${electores.length}`],
+    [`FECHA DE GENERACIÓN: ${fechaGeneracion}`],
+    [], // Fila 5 en blanco
+    [
+      'N°',
+      'DOCUMENTO',
+      'NOMBRE COMPLETO',
+      'TELÉFONO',
+      'PUESTO DE VOTACIÓN',
+      'MESA',
+      'FECHA REGISTRO',
+    ], // Fila 6
+  ];
+
+  // 5. Filas de electores
+  electores.forEach((e, idx) => {
+    const nombreCompleto = `${e.nombres || ''} ${e.apellidos || ''}`.trim().toUpperCase() || 'SIN NOMBRE';
+    
+    let fechaRegistro = '';
+    if (e.created_at) {
+      try {
+        fechaRegistro = new Date(e.created_at).toLocaleDateString('es-CO');
+      } catch {
+        fechaRegistro = String(e.created_at);
+      }
+    }
+
+    const mesaStr = e.mesa !== undefined && e.mesa !== null && String(e.mesa).trim() !== ''
+      ? (String(e.mesa).toUpperCase().startsWith('M') ? String(e.mesa) : `M-${e.mesa}`)
+      : 'M-0';
+
+    aoaData.push([
+      idx + 1,
+      e.cedula || '',
+      nombreCompleto,
+      e.telefono || 'Sin registrar',
+      (e.puesto_votacion || 'Sin asignar').toUpperCase(),
+      mesaStr,
+      fechaRegistro,
+    ]);
+  });
+
+  // 6. Construir hoja y libro
+  const worksheet = XLSX.utils.aoa_to_sheet(aoaData);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+
+  // 7. Configurar anchos de columnas
+  worksheet['!cols'] = [
+    { wch: 6 },  // N°
+    { wch: 18 }, // DOCUMENTO
+    { wch: 38 }, // NOMBRE COMPLETO
+    { wch: 18 }, // TELÉFONO
+    { wch: 34 }, // PUESTO DE VOTACIÓN
+    { wch: 12 }, // MESA
+    { wch: 18 }, // FECHA REGISTRO
+  ];
+
+  // 8. Combinar celdas del membrete (A1:G1, A2:G2, etc.)
+  worksheet['!merges'] = [
+    { s: { r: 0, c: 0 }, e: { r: 0, c: 6 } },
+    { s: { r: 1, c: 0 }, e: { r: 1, c: 6 } },
+    { s: { r: 2, c: 0 }, e: { r: 2, c: 6 } },
+    { s: { r: 3, c: 0 }, e: { r: 3, c: 6 } },
+  ];
+
+  // 9. Descargar archivo
+  XLSX.writeFile(workbook, fileName);
+  return { count: electores.length, fileName };
 }
 
 export async function exportarElectoresExcel({
   tenantId,
   registradoPorId,
   liderNombre,
+  nombreCampana,
 }: ExportFilterParams) {
   let rowsToExport: any[] = [];
 
@@ -40,7 +176,8 @@ export async function exportarElectoresExcel({
       profiles: { full_name: e.registrador?.full_name || 'Personal Autorizado' },
     }));
   } else {
-    let query = supabase
+    const clientToUse = supabaseAdmin || supabase;
+    let query = clientToUse
       .from('electores')
       .select(`
         cedula,
@@ -77,7 +214,12 @@ export async function exportarElectoresExcel({
     throw new Error('No hay electores registrados para exportar.');
   }
 
-  // Mapear columnas claras en español para el archivo Excel oficial
+  // Si se solicitó exportación individual por líder, delegar al formato institucional
+  if (registradoPorId && liderNombre) {
+    return exportarReporteIndividualLider(liderNombre, rowsToExport, nombreCampana);
+  }
+
+  // Mapear columnas claras en español para el consolidado general
   const filasExcel = rowsToExport.map((e, index) => {
     let fechaStr = '';
     try {
@@ -101,10 +243,10 @@ export async function exportarElectoresExcel({
     };
   });
 
-  // Crear hoja de cálculo y libro
+  // Crear hoja de cálculo y libro consolidado
   const worksheet = XLSX.utils.json_to_sheet(filasExcel);
   const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Electores');
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Padrón Consolidado');
 
   // Ajustar anchos automáticos de columna
   worksheet['!cols'] = [
@@ -123,10 +265,7 @@ export async function exportarElectoresExcel({
 
   // Generar nombre de archivo intuitivo
   const fechaHoy = new Date().toISOString().split('T')[0];
-  const nombreLimpio = liderNombre
-    ? `_lider_${liderNombre.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_')}`
-    : '_consolidado';
-  const fileName = `padron_electoral${nombreLimpio}_${fechaHoy}.xlsx`;
+  const fileName = `padron_electoral_consolidado_${fechaHoy}.xlsx`;
 
   XLSX.writeFile(workbook, fileName);
   return { count: filasExcel.length, fileName };

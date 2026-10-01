@@ -2,12 +2,10 @@ import React from 'react';
 import {
   Building2,
   Users,
-  Database,
   Activity,
   ArrowUpRight,
   TrendingUp,
   Server,
-  Infinity,
   MapPin,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -27,7 +25,6 @@ export const MasterDashboardView: React.FC<MasterDashboardViewProps> = ({
   // Métricas agregadas de todos los tenants
   const activeTenantsCount = tenants.filter((t) => t.is_active).length;
   const suspendedTenantsCount = tenants.filter((t) => !t.is_active).length;
-  const totalElectorsGlobal = tenants.reduce((acc, t) => acc + (t.totalElectores || 0), 0);
   const totalUsersGlobal = tenants.reduce((acc, t) => acc + (t.totalUsers || 2), 0);
 
   return (
@@ -55,8 +52,8 @@ export const MasterDashboardView: React.FC<MasterDashboardViewProps> = ({
         </div>
       </div>
 
-      {/* 2. Cuatro Tarjetas KPI Maestras */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4 lg:gap-5">
+      {/* 2. Tres Tarjetas KPI Maestras */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4 lg:gap-5">
         {/* KPI 1: Campañas Activas */}
         <motion.div
           whileHover={{ y: -2 }}
@@ -89,36 +86,6 @@ export const MasterDashboardView: React.FC<MasterDashboardViewProps> = ({
               <span className="text-rose-600 dark:text-rose-400 font-medium">
                 {suspendedTenantsCount} suspendida{suspendedTenantsCount !== 1 ? 's' : ''}
               </span>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* KPI 2: Volumen Total de Electores Registrados */}
-        <motion.div
-          whileHover={{ y: -2 }}
-          transition={{ duration: 0.15 }}
-          className="rounded-2xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-5 shadow-xs relative overflow-hidden"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-mono uppercase font-semibold text-slate-500 dark:text-slate-400">
-              Censo Total Plataforma
-            </span>
-            <div className="h-9 w-9 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800/50 flex items-center justify-center text-blue-600 dark:text-blue-400">
-              <Database className="w-4.5 h-4.5" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-extrabold text-slate-900 dark:text-white font-mono">
-                {totalElectorsGlobal.toLocaleString()}
-              </span>
-              <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">
-                electores
-              </span>
-            </div>
-            <div className="mt-2.5 flex items-center gap-1.5 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
-              <Infinity className="w-3.5 h-3.5 shrink-0" />
-              <span>Capacidad Ilimitada Habilitada</span>
             </div>
           </div>
         </motion.div>
@@ -215,7 +182,6 @@ export const MasterDashboardView: React.FC<MasterDashboardViewProps> = ({
               <tr>
                 <th className="py-3 px-4 font-semibold">Campaña / Cliente</th>
                 <th className="py-3 px-4 font-semibold">Jurisdicción</th>
-                <th className="py-3 px-4 font-semibold">Capacidad</th>
                 <th className="py-3 px-4 font-semibold">Electores Registrados</th>
                 <th className="py-3 px-4 font-semibold">Estado</th>
               </tr>
@@ -251,13 +217,6 @@ export const MasterDashboardView: React.FC<MasterDashboardViewProps> = ({
                       ) : (
                         <span className="text-[11px] text-slate-400 font-mono italic">Nacional</span>
                       )}
-                    </td>
-
-                    <td className="py-3.5 px-4 font-mono">
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">
-                        <Infinity className="w-3 h-3 text-emerald-500 shrink-0" />
-                        Ilimitada
-                      </span>
                     </td>
 
                     <td className="py-3.5 px-4 font-mono font-medium">

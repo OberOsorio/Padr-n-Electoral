@@ -4,6 +4,10 @@ import type { ElectorWithRegistrant, Elector } from '../../types';
 import { PREDEFINED_POLLING_PLACES } from './constants';
 import { useTenant } from '../../context/TenantContext';
 import { useElectorsRealtime } from './useElectorsRealtime';
+import {
+  eliminarElectorEnBaseDatos,
+  eliminarElectoresPorLoteEnBaseDatos,
+} from '../../services/electorService';
 
 export interface CoordinatorOption {
   id: string;
@@ -73,7 +77,7 @@ export async function getElectoresPaginados({
     }
 
     if (puestoFilter && !['all', 'todos', ''].includes(puestoFilter.toLowerCase())) {
-      query = query.eq('puesto_votacion', puestoFilter);
+      query = query.ilike('puesto_votacion', `%${puestoFilter}%`);
     }
 
     if (coordinadorFilter && !['all', 'todos', ''].includes(coordinadorFilter.toLowerCase())) {
@@ -368,16 +372,17 @@ export const useElectorsList = (
     }
 
     try {
-      const { error: delError } = await (supabase.from('electores') as any)
-        .delete()
-        .eq('id', id);
+      await eliminarElectorEnBaseDatos(id);
 
-      if (delError) throw delError;
+      // Actualizar estado local reactivo de inmediato
+      setElectors((prev) => prev.filter((item) => item.id !== id));
+      setTotalCount((prev) => Math.max(0, prev - 1));
 
+      window.dispatchEvent(new Event('elector_registered'));
       fetchElectors(false);
       return true;
     } catch (err) {
-      console.error('Error al eliminar elector:', err);
+      console.error('[Electores] Error al eliminar elector:', err);
       throw err;
     }
   };
@@ -416,6 +421,40 @@ export const useElectorsList = (
     }
   };
 
+  // Función para eliminar electores por lote
+  const deleteElectorsBulk = async (ids: string[]): Promise<boolean> => {
+    if (!ids || ids.length === 0) return false;
+
+    if (!isSupabaseConfigured) {
+      const stored = localStorage.getItem('electoral_local_electors');
+      const list: ElectorWithRegistrant[] = stored
+        ? JSON.parse(stored)
+        : INITIAL_DEMO_ELECTORS;
+      const idSet = new Set(ids);
+      const updated = list.filter((e) => !idSet.has(e.id));
+      localStorage.setItem('electoral_local_electors', JSON.stringify(updated));
+      window.dispatchEvent(new Event('elector_registered'));
+      fetchElectors(false);
+      return true;
+    }
+
+    try {
+      await eliminarElectoresPorLoteEnBaseDatos(ids);
+
+      // Actualizar estado local reactivo de inmediato
+      const idSet = new Set(ids);
+      setElectors((prev) => prev.filter((item) => !idSet.has(item.id)));
+      setTotalCount((prev) => Math.max(0, prev - ids.length));
+
+      window.dispatchEvent(new Event('elector_registered'));
+      fetchElectors(false);
+      return true;
+    } catch (err) {
+      console.error('[Electores] Error al eliminar lote de electores:', err);
+      throw err;
+    }
+  };
+
   return {
     electors,
     totalCount,
@@ -423,6 +462,7 @@ export const useElectorsList = (
     loading,
     error,
     deleteElector,
+    deleteElectorsBulk,
     updateElector,
     refetch: () => fetchElectors(false),
     isRealtimeConnected,

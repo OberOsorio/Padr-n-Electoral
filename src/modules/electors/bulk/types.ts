@@ -15,7 +15,10 @@ export interface NormalizedElectorRow {
   isAutofilled?: boolean;
   autofillSource?: 'censo_maestro' | 'file';
   nombre_original_archivo?: string;
+  nombre_original?: string;
+  nombre_completo?: string;
   nombre_fue_corregido?: boolean;
+  nombre_corregido?: boolean;
   verificado_censo?: boolean;
   isEnriching?: boolean;
 }

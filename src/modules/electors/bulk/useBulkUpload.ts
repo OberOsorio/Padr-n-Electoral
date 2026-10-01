@@ -1,18 +1,20 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { toast } from 'react-hot-toast';
 import { supabase, isSupabaseConfigured } from '../../../lib/supabase';
 import type {
   PreflightSummary,
   BatchProgress,
   CollisionMode,
   PostUploadSummary,
+  NormalizedElectorRow,
 } from './types';
 import {
   parseFileToRawRows,
   downloadOfficialTemplate,
   downloadValidationErrorsReport,
 } from './parser';
-import { validateAndNormalizeRows, aplicarResultadoCenso } from './validator';
-import { censoService } from '../../../services/censoService';
+import { validateAndNormalizeRows } from './validator';
+import { useBulkBackgroundEnrichment } from './useBulkBackgroundEnrichment';
 import type { ElectorWithRegistrant } from '../../../types';
 import { useTenant } from '../../../context/TenantContext';
 
@@ -38,15 +40,62 @@ export const useBulkUpload = () => {
   const [postSummary, setPostSummary] = useState<PostUploadSummary | null>(null);
 
   const isMountedRef = useRef(true);
-  const activeEnrichmentRunId = useRef<number>(0);
+
+  // Notificación Toast flotante para autocorrecciones del censo
+  const handleNotificarCambioNombre = useCallback((mensaje: string, cedula: string) => {
+    toast.success(
+      () =>
+        React.createElement(
+          'div',
+          { className: 'flex flex-col gap-0.5' },
+          React.createElement(
+            'p',
+            { className: 'font-bold text-xs text-slate-800 dark:text-slate-100 flex items-center gap-1.5' },
+            React.createElement('span', { className: 'text-amber-500 font-bold' }, '✦'),
+            `Actualización del Censo (CC: ${cedula})`
+          ),
+          React.createElement(
+            'p',
+            { className: 'text-[11px] text-slate-600 dark:text-slate-300 mt-0.5 leading-snug' },
+            mensaje
+          )
+        ),
+      {
+        duration: 4000,
+        position: 'top-right',
+        icon: '✦',
+      }
+    );
+  }, []);
+
+  const {
+    enriquecerEnSegundoPlano,
+    procesandoEnSegundoPlano,
+    progreso: enrichmentProgress,
+    cancelarEnriquecimiento,
+  } = useBulkBackgroundEnrichment(handleNotificarCambioNombre);
+
+  // Sincronizar el estado de enriquecimiento con el preflight para visualización en tiempo real
+  useEffect(() => {
+    setPreflight((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        isEnrichingInProgress: procesandoEnSegundoPlano,
+        enrichmentProgress: enrichmentProgress
+          ? { processed: enrichmentProgress.actual, total: enrichmentProgress.total }
+          : prev.enrichmentProgress,
+      };
+    });
+  }, [procesandoEnSegundoPlano, enrichmentProgress]);
 
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
-      activeEnrichmentRunId.current++;
+      cancelarEnriquecimiento();
     };
-  }, []);
+  }, [cancelarEnriquecimiento]);
 
   // 1. Procesar archivo seleccionado (Parsing, Validación Previa y Enriquecimiento Concurrente en Background)
   const processFile = useCallback(async (selectedFile: File) => {
@@ -96,92 +145,25 @@ export const useBulkUpload = () => {
         currentChunkMessage: `${summary.validRows.length.toLocaleString('es-CO')} registros listos para revisión y carga masiva.`,
       }));
 
-      // Enriquecimiento y autocorrección automática en background con concurrencia controlada (pool de 4 workers)
-      const total = summary.validRows.length;
-      if (total === 0) return;
-
-      const runId = ++activeEnrichmentRunId.current;
-      const rows = [...summary.validRows];
-      const CONCURRENCY = 4;
-      let cursor = 0;
-      let completados = 0;
-
-      const consultarFila = async () => {
-        while (cursor < total) {
-          if (!isMountedRef.current || activeEnrichmentRunId.current !== runId) return;
-          const idx = cursor++;
-          const rowToQuery = rows[idx];
-          if (!rowToQuery) {
-            completados++;
-            continue;
-          }
-
-          const cedulaLimpia = (rowToQuery.cedula || '').toString().trim().replace(/\D/g, '');
-          if (!cedulaLimpia) {
-            completados++;
-            continue;
-          }
-
-          try {
-            const data = await censoService.consultarPorCedula(cedulaLimpia);
-            if (!isMountedRef.current || activeEnrichmentRunId.current !== runId) return;
-
-            const updatedRow = aplicarResultadoCenso(rowToQuery, data);
-            rows[idx] = updatedRow;
-
-            // Actualización reactiva instantánea en la tabla para esa fila
-            setPreflight((prev) => {
-              if (!prev || activeEnrichmentRunId.current !== runId) return prev;
-              const nextValid = [...prev.validRows];
-              nextValid[idx] = updatedRow;
-              const currentEnriched = nextValid.filter((r) => r.verificado_censo).length;
-              const currentCorrected = nextValid.filter((r) => r.nombre_fue_corregido).length;
-              return {
-                ...prev,
-                validRows: nextValid,
-                enrichedCount: currentEnriched,
-                correctedCount: currentCorrected,
-                enrichmentProgress: {
-                  processed: completados + 1,
-                  total,
-                },
-              };
-            });
-          } catch (err) {
-            console.warn(`Error consultando cédula ${cedulaLimpia}:`, err);
-          } finally {
-            completados++;
-            if (isMountedRef.current && activeEnrichmentRunId.current === runId) {
-              setPreflight((prev) => {
-                if (!prev || activeEnrichmentRunId.current !== runId) return prev;
-                return {
-                  ...prev,
-                  enrichmentProgress: {
-                    processed: Math.min(completados, total),
-                    total,
-                  },
-                };
-              });
-            }
-          }
-        }
-      };
-
-      const pool = Array.from({ length: Math.min(CONCURRENCY, total) }, () => consultarFila());
-      await Promise.all(pool);
-      if (isMountedRef.current && activeEnrichmentRunId.current === runId) {
+      // Enriquecimiento y autocorrección automática en background vía useBulkBackgroundEnrichment (pool concurrente)
+      enriquecerEnSegundoPlano(summary.validRows, (idx, updatedRow) => {
+        if (!isMountedRef.current) return;
         setPreflight((prev) => {
-          if (!prev || activeEnrichmentRunId.current !== runId) return prev;
+          if (!prev) return prev;
+          const nextValid = [...prev.validRows];
+          nextValid[idx] = updatedRow as NormalizedElectorRow;
+          const currentEnriched = nextValid.filter((r) => r.verificado_censo).length;
+          const currentCorrected = nextValid.filter(
+            (r) => r.nombre_fue_corregido || r.nombre_corregido
+          ).length;
           return {
             ...prev,
-            isEnrichingInProgress: false,
-            enrichmentProgress: {
-              processed: total,
-              total,
-            },
+            validRows: nextValid,
+            enrichedCount: currentEnriched,
+            correctedCount: currentCorrected,
           };
         });
-      }
+      });
     } catch (err: any) {
       if (!isMountedRef.current) return;
       console.error('Error durante la validación previa:', err);
@@ -191,7 +173,7 @@ export const useBulkUpload = () => {
         errorMessage: err.message || 'Error al procesar el archivo seleccionado.',
       }));
     }
-  }, []);
+  }, [enriquecerEnSegundoPlano]);
 
   // 2. Motor de Inserción por Lotes (Chunking Engine de 500 registros)
   const startBatchImport = useCallback(async () => {
@@ -543,7 +525,7 @@ export const useBulkUpload = () => {
 
   // 3. Resetear flujo
   const resetUpload = useCallback(() => {
-    activeEnrichmentRunId.current++;
+    cancelarEnriquecimiento();
     setFile(null);
     setPreflight(null);
     setPostSummary(null);
@@ -559,7 +541,7 @@ export const useBulkUpload = () => {
       percentage: 0,
       currentChunkMessage: '',
     });
-  }, []);
+  }, [cancelarEnriquecimiento]);
 
   return {
     file,
@@ -572,6 +554,9 @@ export const useBulkUpload = () => {
     startBatchImport,
     resetUpload,
     downloadOfficialTemplate,
+    procesandoEnSegundoPlano,
+    progresoEnriquecimiento: enrichmentProgress,
+    cancelarEnriquecimiento,
     downloadErrorsReport: () => {
       if (preflight && preflight.invalidRows.length > 0) {
         downloadValidationErrorsReport(preflight.invalidRows, preflight.fileName);
