@@ -112,17 +112,17 @@ export const InfrastructureHealthView: React.FC = () => {
     <div className="space-y-6 max-w-7xl mx-auto p-1 sm:p-2 md:p-4 animate-in fade-in duration-200">
       
       {/* 1. CABECERA PRINCIPAL */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[#141e36]">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-[#141e36]">
         <div>
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 shadow-lg shadow-emerald-500/10">
+            <div className="p-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-600 dark:text-emerald-400 shadow-lg shadow-emerald-500/10">
               <Activity className="w-6 h-6 animate-pulse"/>
             </div>
             <div>
-              <h2 className="text-2xl font-black text-white tracking-tight">
+              <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
                 Monitoreo de Infraestructura y Servicios
               </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                 Telemetría técnica en tiempo real, latencia global de red y disponibilidad de base de datos.
               </p>
             </div>
@@ -135,14 +135,14 @@ export const InfrastructureHealthView: React.FC = () => {
             type="button"
             onClick={handleRunPingTest}
             disabled={testingPing}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#0a1226] border border-[#1b2d56] text-xs font-semibold text-slate-300 hover:text-white hover:border-sky-500 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white dark:bg-[#0a1226] border border-slate-200 dark:border-[#1b2d56] text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:border-sky-500 transition-all cursor-pointer active:scale-95 disabled:opacity-50 shadow-xs"
             title="Medir latencia en vivo"
           >
-            <RefreshCw className={`w-3.5 h-3.5 text-sky-400 ${testingPing ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 text-sky-600 dark:text-sky-400 ${testingPing ? 'animate-spin' : ''}`} />
             <span>{testingPing ? 'Midiendo ping...' : 'Comprobar Red'}</span>
           </button>
 
-          <div className="flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-emerald-950/40 border border-emerald-800/40 text-emerald-300 text-xs font-bold shadow-sm">
+          <div className="flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/40 text-emerald-700 dark:text-emerald-300 text-xs font-bold shadow-sm">
             <span className="relative flex h-2.5 w-2.5 ring-4 ring-emerald-500/20 rounded-full">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
@@ -156,7 +156,7 @@ export const InfrastructureHealthView: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         
         {/* KPI 1: LATENCIA EDGE CON SPARKLINE */}
-        <div className="relative overflow-hidden bg-[#070c18] border border-[#152342] rounded-3xl p-5 shadow-xl group hover:border-sky-500/40 transition-colors">
+        <div className="relative overflow-hidden bg-white dark:bg-[#070c18] border border-slate-200 dark:border-[#152342] rounded-3xl p-5 shadow-sm dark:shadow-xl group hover:border-sky-500/40 transition-colors">
           {/* Micro-Sparkline SVG de fondo */}
           <svg
             className="absolute bottom-9 left-0 w-full h-14 opacity-25 pointer-events-none"
@@ -182,94 +182,94 @@ export const InfrastructureHealthView: React.FC = () => {
           </svg>
 
           <div className="relative z-10 flex items-center justify-between mb-3">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Latencia Edge Cloudflare
             </span>
-            <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20">
+            <div className="p-2 rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20">
               <Globe2 className="w-4 h-4"/>
             </div>
           </div>
           <div className="relative z-10 flex items-baseline gap-2 mb-2">
-            <span className="text-3xl font-black text-white font-mono">{liveLatency}</span>
-            <span className="text-sm font-bold text-slate-400 font-mono">ms</span>
-            <span className="text-[11px] font-bold text-emerald-400 bg-emerald-950/50 border border-emerald-800/40 px-2 py-0.5 rounded-md ml-auto">
+            <span className="text-3xl font-black text-slate-900 dark:text-white font-mono">{liveLatency}</span>
+            <span className="text-sm font-bold text-slate-500 dark:text-slate-400 font-mono">ms</span>
+            <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800/40 px-2 py-0.5 rounded-md ml-auto">
               Excelente
             </span>
           </div>
-          <p className="relative z-10 text-[11px] text-slate-400 truncate">Red Anycast Edge • 285+ POPs globales</p>
-          <div className="relative z-10 mt-3 pt-2.5 border-t border-[#121c33] flex items-center justify-between text-[10px] text-slate-500 font-mono">
+          <p className="relative z-10 text-[11px] text-slate-500 dark:text-slate-400 truncate">Red Anycast Edge • 285+ POPs globales</p>
+          <div className="relative z-10 mt-3 pt-2.5 border-t border-slate-100 dark:border-[#121c33] flex items-center justify-between text-[10px] text-slate-500 font-mono">
             <span className="flex items-center gap-1">
-              <Radio className="w-3 h-3 text-sky-400"/> HTTP/3 • TLS 1.3
+              <Radio className="w-3 h-3 text-sky-600 dark:text-sky-400"/> HTTP/3 • TLS 1.3
             </span>
-            <span className="text-sky-400/80">RTT óptimo</span>
+            <span className="text-sky-600 dark:text-sky-400/80">RTT óptimo</span>
           </div>
         </div>
 
         {/* KPI 2: BASE DE DATOS SUPABASE */}
-        <div className="relative overflow-hidden bg-[#070c18] border border-[#152342] rounded-3xl p-5 shadow-xl group hover:border-purple-500/40 transition-colors">
+        <div className="relative overflow-hidden bg-white dark:bg-[#070c18] border border-slate-200 dark:border-[#152342] rounded-3xl p-5 shadow-sm dark:shadow-xl group hover:border-purple-500/40 transition-colors">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Base de Datos Supabase
             </span>
-            <div className="p-2 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20">
+            <div className="p-2 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
               <Database className="w-4 h-4"/>
             </div>
           </div>
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-2xl font-black text-white">Conectado</span>
-            <span className="text-[10px] font-bold text-purple-300 bg-purple-950/60 border border-purple-800/50 px-2 py-0.5 rounded-md shadow-sm shadow-purple-500/20">
+            <span className="text-2xl font-black text-slate-900 dark:text-white">Conectado</span>
+            <span className="text-[10px] font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800/50 px-2 py-0.5 rounded-md shadow-sm shadow-purple-500/20">
               PgBouncer
             </span>
           </div>
-          <p className="text-[11px] text-slate-400">Pooler Activo • PostgreSQL v15</p>
-          <div className="mt-3 pt-2.5 border-t border-[#121c33] flex items-center gap-1.5 text-[10px] text-emerald-400 font-mono">
+          <p className="text-[11px] text-slate-500 dark:text-slate-400">Pooler Activo • PostgreSQL v15</p>
+          <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-[#121c33] flex items-center gap-1.5 text-[10px] text-emerald-600 dark:text-emerald-400 font-mono">
             <CheckCircle2 className="w-3 h-3"/>
             <span>Latencia query: 8 ms</span>
           </div>
         </div>
 
         {/* KPI 3: CONEXIONES CONCURRENTES */}
-        <div className="relative overflow-hidden bg-[#070c18] border border-[#152342] rounded-3xl p-5 shadow-xl group hover:border-blue-500/40 transition-colors">
+        <div className="relative overflow-hidden bg-white dark:bg-[#070c18] border border-slate-200 dark:border-[#152342] rounded-3xl p-5 shadow-sm dark:shadow-xl group hover:border-blue-500/40 transition-colors">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Conexiones Concurrentes
             </span>
-            <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20">
+            <div className="p-2 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
               <Layers className="w-4 h-4"/>
             </div>
           </div>
           <div className="flex items-baseline gap-2 mb-2">
-            <span className="text-3xl font-black text-white font-mono">39</span>
-            <span className="text-xs text-slate-400">sesiones activas</span>
+            <span className="text-3xl font-black text-slate-900 dark:text-white font-mono">39</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400">sesiones activas</span>
           </div>
-          <div className="w-full bg-[#0c162b] h-1.5 rounded-full overflow-hidden my-2">
+          <div className="w-full bg-slate-100 dark:bg-[#0c162b] h-1.5 rounded-full overflow-hidden my-2">
             <div className="h-full bg-gradient-to-r from-blue-500 to-sky-400 rounded-full w-[32%]" />
           </div>
-          <div className="pt-1 flex items-center justify-between text-[10px] text-slate-400 font-mono">
+          <div className="pt-1 flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 font-mono">
             <span>Capacidad pool: 120 slots</span>
-            <span className="text-slate-300 font-bold">32.5%</span>
+            <span className="text-slate-700 dark:text-slate-300 font-bold">32.5%</span>
           </div>
         </div>
 
         {/* KPI 4: COPIA DE SEGURIDAD */}
-        <div className="relative overflow-hidden bg-[#070c18] border border-[#152342] rounded-3xl p-5 shadow-xl group hover:border-emerald-500/40 transition-colors">
+        <div className="relative overflow-hidden bg-white dark:bg-[#070c18] border border-slate-200 dark:border-[#152342] rounded-3xl p-5 shadow-sm dark:shadow-xl group hover:border-emerald-500/40 transition-colors">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Copia de Seguridad
             </span>
-            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
               <ShieldCheck className="w-4 h-4"/>
             </div>
           </div>
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-lg font-black text-white font-mono">Hoy, 03:00 AM</span>
-            <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-800/40 px-2 py-0.5 rounded-md">
+            <span className="text-lg font-black text-slate-900 dark:text-white font-mono">Hoy, 03:00 AM</span>
+            <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/40 px-2 py-0.5 rounded-md">
               Íntegro
             </span>
           </div>
-          <p className="text-[11px] text-slate-400">WAL Archiving en tiempo real</p>
-          <div className="mt-3 pt-2.5 border-t border-[#121c33] flex items-center gap-1.5 text-[10px] text-slate-400">
-            <Zap className="w-3 h-3 text-emerald-400"/>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400">WAL Archiving en tiempo real</p>
+          <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-[#121c33] flex items-center gap-1.5 text-[10px] text-slate-500 dark:text-slate-400">
+            <Zap className="w-3 h-3 text-emerald-600 dark:text-emerald-400"/>
             <span>Snapshot diario cifrado AES-256</span>
           </div>
         </div>
@@ -277,27 +277,27 @@ export const InfrastructureHealthView: React.FC = () => {
       </div>
 
       {/* 3. TABLA ENTERPRISE DE MICROSERVICIOS Y PROTOCOLOS */}
-      <div className="bg-[#070c18] border border-[#152342] rounded-3xl shadow-xl overflow-hidden">
+      <div className="bg-white dark:bg-[#070c18] border border-slate-200 dark:border-[#152342] rounded-3xl shadow-sm dark:shadow-xl overflow-hidden">
         
         {/* Cabecera de la Tabla */}
-        <div className="p-5 md:px-6 md:py-5 border-b border-[#141e36] flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#060a14]">
+        <div className="p-5 md:px-6 md:py-5 border-b border-slate-200 dark:border-[#141e36] flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/70 dark:bg-[#060a14]">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-purple-600/15 text-purple-400 border border-purple-500/20">
+            <div className="p-2 rounded-xl bg-purple-600/15 text-purple-600 dark:text-purple-400 border border-purple-500/20">
               <Cpu className="w-4 h-4"/>
             </div>
             <div>
-              <h3 className="text-sm font-bold text-white tracking-wide">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-wide">
                 Estado de Microservicios y Componentes
               </h3>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Disponibilidad continua y protocolos de comunicación del ecosistema
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 text-xs text-slate-400 font-mono bg-[#091021] border border-[#16223e] px-3 py-1.5 rounded-xl">
-            <Clock className="w-3.5 h-3.5 text-sky-400"/>
-            <span>Última verificación: <strong className="text-white">{lastCheck}</strong></span>
+          <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400 font-mono bg-white dark:bg-[#091021] border border-slate-200 dark:border-[#16223e] px-3 py-1.5 rounded-xl">
+            <Clock className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400"/>
+            <span>Última verificación: <strong className="text-slate-900 dark:text-white">{lastCheck}</strong></span>
           </div>
         </div>
 
@@ -305,7 +305,7 @@ export const InfrastructureHealthView: React.FC = () => {
         <div className="w-full overflow-x-auto custom-scrollbar">
           <table className="w-full min-w-[700px] text-left border-collapse">
             <thead>
-              <tr className="border-b border-[#141e36] bg-[#070b16]/70 text-[10px] uppercase font-bold tracking-wider text-slate-400">
+              <tr className="border-b border-slate-200 dark:border-[#141e36] bg-slate-50 dark:bg-[#070b16]/70 text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400">
                 <th className="py-3.5 px-6">Servicio / Módulo</th>
                 <th className="py-3.5 px-6">Endpoint & Protocolo</th>
                 <th className="py-3.5 px-6 text-center">Latencia Media</th>
@@ -313,7 +313,7 @@ export const InfrastructureHealthView: React.FC = () => {
                 <th className="py-3.5 px-6 text-right">Estado Operativo</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#121c33] text-xs">
+            <tbody className="divide-y divide-slate-100 dark:divide-[#121c33] text-xs">
               {microservicios.map((s) => {
                 const isFast = s.latencia < 50;
                 const isWarning = s.latencia >= 100;
@@ -324,11 +324,11 @@ export const InfrastructureHealthView: React.FC = () => {
                   : 'bg-sky-400';
 
                 return (
-                  <tr key={s.id} className="hover:bg-[#0b1428]/40 transition-colors group">
+                  <tr key={s.id} className="hover:bg-slate-50 dark:hover:bg-[#0b1428]/40 transition-colors group">
                     
                     {/* Nombre y Engine */}
                     <td className="py-4 px-6">
-                      <span className="font-bold text-slate-100 group-hover:text-sky-300 transition-colors block">
+                      <span className="font-bold text-slate-900 dark:text-slate-100 group-hover:text-sky-600 dark:group-hover:text-sky-300 transition-colors block">
                         {s.nombre}
                       </span>
                       <span className="text-[11px] text-slate-500 block mt-0.5">
@@ -338,7 +338,7 @@ export const InfrastructureHealthView: React.FC = () => {
 
                     {/* Endpoint con diseño Monoespaciado */}
                     <td className="py-4 px-6">
-                      <span className="inline-block bg-[#060a14] border border-[#16223e] rounded-lg px-2.5 py-1 text-[11px] font-mono text-slate-300">
+                      <span className="inline-block bg-slate-100 dark:bg-[#060a14] border border-slate-200 dark:border-[#16223e] rounded-lg px-2.5 py-1 text-[11px] font-mono text-slate-700 dark:text-slate-300">
                         {s.endpoint}
                       </span>
                       <span className="text-[10px] text-slate-500 font-mono block mt-1">
@@ -348,7 +348,7 @@ export const InfrastructureHealthView: React.FC = () => {
 
                     {/* Latencia con Píldora de Red */}
                     <td className="py-4 px-6 text-center">
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#050914] border border-[#152342] font-mono font-bold text-slate-200">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-[#050914] border border-slate-200 dark:border-[#152342] font-mono font-bold text-slate-800 dark:text-slate-200">
                         <span className={`w-1.5 h-1.5 rounded-full ${dotColor} animate-pulse`} />
                         {s.latencia} ms
                       </span>
@@ -357,7 +357,7 @@ export const InfrastructureHealthView: React.FC = () => {
                     {/* Uptime con Tiras de Disponibilidad Visuales (30 días) */}
                     <td className="py-4 px-6">
                       <div className="space-y-1.5">
-                        <span className="font-mono font-bold text-emerald-400 text-xs">
+                        <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-xs">
                           {s.uptime}
                         </span>
                         {/* Tira de 30 barritas verticales de estado continuo (30d) */}
@@ -375,8 +375,8 @@ export const InfrastructureHealthView: React.FC = () => {
 
                     {/* Badge de Estado Operativo */}
                     <td className="py-4 px-6 text-right">
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-950/30 border border-emerald-800/40 text-emerald-400 font-bold text-xs shadow-sm">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40 text-emerald-700 dark:text-emerald-400 font-bold text-xs shadow-sm">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400" />
                         {s.estado}
                       </span>
                     </td>
@@ -389,8 +389,8 @@ export const InfrastructureHealthView: React.FC = () => {
         </div>
 
         {/* Footer de la Tabla */}
-        <div className="p-4 px-6 border-t border-[#141e36] bg-[#060a14] flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 gap-2">
-          <span>Histórico de Uptime global consolidado: <strong className="text-emerald-400 font-mono">99.99% SLA</strong></span>
+        <div className="p-4 px-6 border-t border-slate-200 dark:border-[#141e36] bg-slate-50/70 dark:bg-[#060a14] flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 dark:text-slate-400 gap-2">
+          <span>Histórico de Uptime global consolidado: <strong className="text-emerald-600 dark:text-emerald-400 font-mono">99.99% SLA</strong></span>
           <span className="text-[11px] text-slate-500">Monitoreado por nodos distribuidos en Bogotá, Miami y Frankfurt</span>
         </div>
 

@@ -66,7 +66,7 @@ export const PremiumSelect: React.FC<PremiumSelectProps> = ({
 
   return (
     <div className="space-y-1.5 w-full relative" ref={containerRef}>
-      <label className="text-[10px] font-bold text-slate-300 uppercase tracking-wider block">
+      <label className="text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider block">
         {label}
       </label>
 
@@ -74,29 +74,35 @@ export const PremiumSelect: React.FC<PremiumSelectProps> = ({
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
-        className={`w-full flex items-center justify-between bg-[#060a14] border ${
-          isOpen ? 'border-blue-500 shadow-md shadow-blue-500/10' : 'border-[#16223e] hover:border-slate-700'
+        className={`w-full flex items-center justify-between bg-slate-50 dark:bg-[#060a14] border ${
+          isOpen
+            ? 'border-blue-500 shadow-md shadow-blue-500/10'
+            : 'border-slate-200 dark:border-[#16223e] hover:border-slate-300 dark:hover:border-slate-700'
         } rounded-xl px-3.5 py-2.5 text-sm text-left transition-all cursor-pointer`}
       >
         <div className="flex items-center gap-2.5 min-w-0">
-          {Icon && <Icon className="w-4 h-4 text-sky-400 shrink-0" />}
-          <span className={`truncate font-semibold ${value ? 'text-white' : 'text-slate-500'}`}>
+          {Icon && <Icon className="w-4 h-4 text-blue-600 dark:text-sky-400 shrink-0" />}
+          <span
+            className={`truncate font-semibold ${
+              value ? 'text-slate-900 dark:text-white' : 'text-slate-400 dark:text-slate-500'
+            }`}
+          >
             {value || placeholder}
           </span>
         </div>
         <ChevronDown
           className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
-            isOpen ? 'rotate-180 text-blue-400' : 'text-slate-400'
+            isOpen ? 'rotate-180 text-blue-600 dark:text-blue-400' : 'text-slate-400'
           }`}
         />
       </button>
 
       {/* Menú Desplegable Flotante Premium */}
       {isOpen && (
-        <div className="absolute left-0 top-full mt-1.5 w-full bg-[#0a1226] border border-[#1e325c] rounded-2xl shadow-2xl shadow-black/80 z-50 overflow-hidden animate-in fade-in-50 zoom-in-95 duration-150">
+        <div className="absolute left-0 top-full mt-1.5 w-full bg-white dark:bg-[#0a1226] border border-slate-200 dark:border-[#1e325c] rounded-2xl shadow-2xl dark:shadow-black/80 z-50 overflow-hidden animate-in fade-in-50 zoom-in-95 duration-150">
           {/* Campo de búsqueda integrado */}
-          <div className="p-2.5 border-b border-[#162342] bg-[#070d1c]">
-            <div className="flex items-center bg-[#0d1830] border border-[#1b2b52] rounded-xl px-2.5 py-1.5 focus-within:border-blue-500 transition-colors">
+          <div className="p-2.5 border-b border-slate-100 dark:border-[#162342] bg-slate-50/80 dark:bg-[#070d1c]">
+            <div className="flex items-center bg-white dark:bg-[#0d1830] border border-slate-200 dark:border-[#1b2b52] rounded-xl px-2.5 py-1.5 focus-within:border-blue-500 transition-colors">
               <Search className="w-3.5 h-3.5 text-slate-400 mr-2 shrink-0" />
               <input
                 ref={searchInputRef}
@@ -104,7 +110,7 @@ export const PremiumSelect: React.FC<PremiumSelectProps> = ({
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
                 placeholder={searchPlaceholder}
-                className="w-full bg-transparent text-xs text-white placeholder-slate-500 focus:outline-none font-medium"
+                className="w-full bg-transparent text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none font-medium"
               />
             </div>
           </div>
@@ -128,12 +134,12 @@ export const PremiumSelect: React.FC<PremiumSelectProps> = ({
                     }}
                     className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-left transition-colors cursor-pointer ${
                       isSelected
-                        ? 'bg-blue-600/20 text-blue-300 border border-blue-500/30'
-                        : 'text-slate-300 hover:bg-[#132247] hover:text-white'
+                        ? 'bg-blue-50 dark:bg-blue-600/20 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-500/30'
+                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#132247] hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
                     <span className="truncate">{opcion}</span>
-                    {isSelected && <Check className="w-3.5 h-3.5 text-blue-400 shrink-0" />}
+                    {isSelected && <Check className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />}
                   </button>
                 );
               })

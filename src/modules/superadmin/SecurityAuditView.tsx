@@ -182,16 +182,16 @@ export const SecurityAuditView: React.FC = () => {
     <div className="space-y-6 max-w-7xl mx-auto p-1 sm:p-2 md:p-4 animate-in fade-in duration-150">
       
       {/* 1. HEADER */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[#141e36]">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-[#141e36]">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-2xl bg-purple-600/15 border border-purple-500/25 text-purple-400 shadow-lg shadow-purple-600/10">
+          <div className="p-2.5 rounded-2xl bg-purple-600/15 border border-purple-500/25 text-purple-600 dark:text-purple-400 shadow-lg shadow-purple-600/10">
             <ShieldCheck className="w-6 h-6"/>
           </div>
           <div>
-            <h2 className="text-2xl font-black text-white tracking-tight">
+            <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
               Auditoría de Accesos y Seguridad
             </h2>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               Registro inmutable de trazabilidad, intentos de inicio de sesión, bloqueos y control de campañas.
             </p>
           </div>
@@ -201,14 +201,14 @@ export const SecurityAuditView: React.FC = () => {
           <button
             type="button"
             onClick={fetchLogs}
-            className="p-2.5 rounded-xl bg-[#080e1e] border border-[#182647] text-slate-400 hover:text-white transition-colors cursor-pointer"
+            className="p-2.5 rounded-xl bg-white dark:bg-[#080e1e] border border-slate-200 dark:border-[#182647] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer shadow-xs"
             title="Refrescar logs"
           >
-            <RefreshCw className={`w-4 h-4 text-purple-400 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 text-purple-600 dark:text-purple-400 ${loading ? 'animate-spin' : ''}`} />
           </button>
           
-          <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-purple-950/40 border border-purple-800/40 text-purple-300 text-xs font-semibold">
-            <Hash className="w-3.5 h-3.5 text-purple-400"/>
+          <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800/40 text-purple-700 dark:text-purple-300 text-xs font-semibold">
+            <Hash className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400"/>
             <span>Logs Inmutables (SHA-256)</span>
           </div>
         </div>
@@ -217,54 +217,54 @@ export const SecurityAuditView: React.FC = () => {
       {/* 2. TARJETAS KPI */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         
-        <div className="bg-[#070c18] border border-[#152342] rounded-2xl p-4 sm:p-5 shadow-lg">
+        <div className="bg-white dark:bg-[#070c18] border border-slate-200 dark:border-[#152342] rounded-2xl p-4 sm:p-5 shadow-sm dark:shadow-lg">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Eventos Auditados</span>
-            <div className="p-2 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20">
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Eventos Auditados</span>
+            <div className="p-2 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
               <Terminal className="w-4 h-4"/>
             </div>
           </div>
-          <span className="text-3xl font-black text-white font-mono">{kpis.total}</span>
+          <span className="text-3xl font-black text-slate-900 dark:text-white font-mono">{kpis.total}</span>
           <p className="text-[11px] text-slate-500 mt-2">Registro secuencial inmutable</p>
         </div>
 
-        <div className="bg-[#070c18] border border-[#152342] rounded-2xl p-4 sm:p-5 shadow-lg">
+        <div className="bg-white dark:bg-[#070c18] border border-slate-200 dark:border-[#152342] rounded-2xl p-4 sm:p-5 shadow-sm dark:shadow-lg">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Inicios de Sesión Válidos</span>
-            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Inicios de Sesión Válidos</span>
+            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
               <CheckCircle2 className="w-4 h-4"/>
             </div>
           </div>
-          <span className="text-3xl font-black text-white font-mono">{kpis.validos}</span>
-          <p className="text-[11px] text-emerald-400 mt-2">Autenticación 100% verificada</p>
+          <span className="text-3xl font-black text-slate-900 dark:text-white font-mono">{kpis.validos}</span>
+          <p className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-2">Autenticación 100% verificada</p>
         </div>
 
-        <div className="bg-[#070c18] border border-[#152342] rounded-2xl p-4 sm:p-5 shadow-lg">
+        <div className="bg-white dark:bg-[#070c18] border border-slate-200 dark:border-[#152342] rounded-2xl p-4 sm:p-5 shadow-sm dark:shadow-lg">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Intentos Bloqueados / Alertas</span>
-            <div className="p-2 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20">
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Intentos Bloqueados / Alertas</span>
+            <div className="p-2 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
               <ShieldAlert className="w-4 h-4"/>
             </div>
           </div>
-          <span className="text-3xl font-black text-rose-400 font-mono">{kpis.bloqueos}</span>
+          <span className="text-3xl font-black text-rose-600 dark:text-rose-400 font-mono">{kpis.bloqueos}</span>
           <p className="text-[11px] text-slate-500 mt-2">Protección perimetral WAF & Auth</p>
         </div>
 
-        <div className="bg-[#070c18] border border-[#152342] rounded-2xl p-4 sm:p-5 shadow-lg">
+        <div className="bg-white dark:bg-[#070c18] border border-slate-200 dark:border-[#152342] rounded-2xl p-4 sm:p-5 shadow-sm dark:shadow-lg">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Acciones de Gobierno</span>
-            <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20">
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Acciones de Gobierno</span>
+            <div className="p-2 rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20">
               <Key className="w-4 h-4"/>
             </div>
           </div>
-          <span className="text-3xl font-black text-white font-mono">{kpis.gobierno}</span>
+          <span className="text-3xl font-black text-slate-900 dark:text-white font-mono">{kpis.gobierno}</span>
           <p className="text-[11px] text-slate-500 mt-2">Suspensiones, claves y reportes</p>
         </div>
 
       </div>
 
       {/* 3. BARRA DE HERRAMIENTAS Y FILTRADO */}
-      <div className="bg-[#070c18] border border-[#152342] rounded-2xl p-3.5 flex flex-col md:flex-row items-center justify-between gap-3">
+      <div className="bg-white dark:bg-[#070c18] border border-slate-200 dark:border-[#152342] rounded-2xl p-3.5 flex flex-col md:flex-row items-center justify-between gap-3 shadow-xs">
         {/* Buscador */}
         <div className="relative w-full md:w-80">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"/>
@@ -273,7 +273,7 @@ export const SecurityAuditView: React.FC = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Buscar por IP, usuario, correo o detalle..."
-            className="w-full bg-[#050914] border border-[#182647] rounded-xl pl-9 pr-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500"
+            className="w-full bg-slate-50 dark:bg-[#050914] border border-slate-200 dark:border-[#182647] rounded-xl pl-9 pr-3.5 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-purple-500"
           />
         </div>
 
@@ -281,9 +281,9 @@ export const SecurityAuditView: React.FC = () => {
         <div className="flex items-center gap-1.5 w-full md:w-auto overflow-x-auto">
           {[
             { id: 'TODOS', label: 'Todos los Eventos' },
-            { id: 'INFO', label: 'Accesos Válidos', dot: 'bg-emerald-400' },
-            { id: 'CRITICAL', label: 'Bloqueos y Alertas', dot: 'bg-rose-400' },
-            { id: 'WARNING', label: 'Acciones de Control', dot: 'bg-amber-400' },
+            { id: 'INFO', label: 'Accesos Válidos', dot: 'bg-emerald-500 dark:bg-emerald-400' },
+            { id: 'CRITICAL', label: 'Bloqueos y Alertas', dot: 'bg-rose-500 dark:bg-rose-400' },
+            { id: 'WARNING', label: 'Acciones de Control', dot: 'bg-amber-500 dark:bg-amber-400' },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -291,8 +291,8 @@ export const SecurityAuditView: React.FC = () => {
               onClick={() => setFiltroSeveridad(tab.id as any)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
                 filtroSeveridad === tab.id
-                  ? 'bg-purple-600/20 text-purple-300 border border-purple-500/40'
-                  : 'text-slate-400 hover:text-white hover:bg-[#0c152b]'
+                  ? 'bg-purple-50 dark:bg-purple-600/20 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-500/40'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#0c152b]'
               }`}
             >
               {tab.dot && <span className={`w-1.5 h-1.5 rounded-full ${tab.dot}`} />}
@@ -313,11 +313,11 @@ export const SecurityAuditView: React.FC = () => {
       </div>
 
       {/* 4. TABLA DE AUDITORÍA DE ALTA DENSIDAD */}
-      <div className="bg-[#070c18] border border-[#152342] rounded-3xl shadow-xl overflow-hidden">
+      <div className="bg-white dark:bg-[#070c18] border border-slate-200 dark:border-[#152342] rounded-3xl shadow-sm dark:shadow-xl overflow-hidden">
         <div className="w-full overflow-x-auto custom-scrollbar">
           <table className="w-full min-w-[720px] text-left border-collapse">
             <thead>
-              <tr className="border-b border-[#141e36] bg-[#050811] text-[10px] uppercase font-bold tracking-wider text-slate-400">
+              <tr className="border-b border-slate-200 dark:border-[#141e36] bg-slate-50 dark:bg-[#050811] text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400">
                 <th className="py-3.5 px-5">Marca Temporal</th>
                 <th className="py-3.5 px-5">Usuario y Rol</th>
                 <th className="py-3.5 px-5">Evento & Severidad</th>
@@ -326,7 +326,7 @@ export const SecurityAuditView: React.FC = () => {
                 <th className="py-3.5 px-5 text-right">Firma SHA-256</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#121c33] text-xs">
+            <tbody className="divide-y divide-slate-100 dark:divide-[#121c33] text-xs">
               {logsFiltrados.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-12 text-center text-slate-500 text-xs italic">
@@ -335,11 +335,11 @@ export const SecurityAuditView: React.FC = () => {
                 </tr>
               ) : (
                 logsFiltrados.map((log) => (
-                  <tr key={log.id} className="hover:bg-[#0b1428]/40 transition-colors">
+                  <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-[#0b1428]/40 transition-colors">
                     
                     {/* Timestamp */}
                     <td className="py-3.5 px-5 whitespace-nowrap">
-                      <span className="font-mono text-slate-200 block text-xs">
+                      <span className="font-mono text-slate-800 dark:text-slate-200 block text-xs">
                         {new Date(log.created_at).toLocaleTimeString('es-CO')}
                       </span>
                       <span className="text-[10px] text-slate-500">
@@ -349,10 +349,10 @@ export const SecurityAuditView: React.FC = () => {
 
                     {/* Usuario */}
                     <td className="py-3.5 px-5">
-                      <span className="font-bold text-slate-100 block truncate max-w-[160px]">
+                      <span className="font-bold text-slate-900 dark:text-slate-100 block truncate max-w-[160px]">
                         {log.user_name || 'Desconocido'}
                       </span>
-                      <span className="text-[11px] font-mono text-slate-400 block truncate max-w-[160px]">
+                      <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400 block truncate max-w-[160px]">
                         {log.user_email}
                       </span>
                     </td>
@@ -362,14 +362,14 @@ export const SecurityAuditView: React.FC = () => {
                       <div className="flex items-center gap-2">
                         <span className={`text-[9px] font-bold px-2 py-0.5 rounded-md border ${
                           log.severity === 'CRITICAL'
-                            ? 'bg-rose-950/40 text-rose-300 border-rose-800/40'
+                            ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800/40'
                             : log.severity === 'WARNING'
-                            ? 'bg-amber-950/40 text-amber-300 border-amber-800/40'
-                            : 'bg-emerald-950/40 text-emerald-300 border-emerald-800/40'
+                            ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/40'
+                            : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/40'
                         }`}>
                           {log.severity}
                         </span>
-                        <span className="font-mono text-[11px] text-slate-300">
+                        <span className="font-mono text-[11px] text-slate-700 dark:text-slate-300">
                           {log.event_type}
                         </span>
                       </div>
@@ -377,7 +377,7 @@ export const SecurityAuditView: React.FC = () => {
 
                     {/* Origen */}
                     <td className="py-3.5 px-5">
-                      <span className="font-mono text-xs text-sky-400 block">
+                      <span className="font-mono text-xs text-sky-600 dark:text-sky-400 block">
                         {log.ip_address}
                       </span>
                       <span className="text-[10px] text-slate-500 block truncate max-w-[180px]" title={log.device_info}>
@@ -387,11 +387,11 @@ export const SecurityAuditView: React.FC = () => {
 
                     {/* Detalle */}
                     <td className="py-3.5 px-5">
-                      <p className="text-slate-300 text-xs max-w-xs truncate" title={log.action_detail}>
+                      <p className="text-slate-700 dark:text-slate-300 text-xs max-w-xs truncate" title={log.action_detail}>
                         {log.action_detail}
                       </p>
                       {log.tenant_name && (
-                        <span className="text-[10px] text-purple-400 font-semibold">
+                        <span className="text-[10px] text-purple-600 dark:text-purple-400 font-semibold">
                           {log.tenant_name}
                         </span>
                       )}
@@ -402,7 +402,7 @@ export const SecurityAuditView: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => copiarHash(log.sha256_hash)}
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-[#050914] border border-[#16223e] font-mono text-[10px] text-slate-400 hover:text-white hover:border-purple-500 transition-colors cursor-pointer"
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-50 dark:bg-[#050914] border border-slate-200 dark:border-[#16223e] font-mono text-[10px] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:border-purple-500 transition-colors cursor-pointer"
                         title="Copiar hash de verificación"
                       >
                         <span>
@@ -413,7 +413,7 @@ export const SecurityAuditView: React.FC = () => {
                             : 'Firma OK'}
                         </span>
                         {copiedHash === log.sha256_hash ? (
-                          <Check className="w-3 h-3 text-emerald-400" />
+                          <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                         ) : (
                           <Copy className="w-3 h-3" />
                         )}

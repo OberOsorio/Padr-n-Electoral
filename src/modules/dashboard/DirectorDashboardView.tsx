@@ -382,8 +382,8 @@ export const DirectorDashboardView: React.FC<DirectorDashboardViewProps> = React
               <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 tracking-tight">
                 Evolución de gestión
               </h3>
-              <span className="flex items-center gap-1.5 text-[11px] font-semibold text-sky-400 bg-sky-950/60 border border-sky-800/40 px-2 py-0.5 rounded-full">
-                <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" />
+              <span className="flex items-center gap-1.5 text-[11px] font-semibold text-sky-700 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-800/40 px-2 py-0.5 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-sky-500 dark:bg-sky-400 animate-pulse" />
                 Electores
               </span>
             </div>
@@ -394,11 +394,11 @@ export const DirectorDashboardView: React.FC<DirectorDashboardViewProps> = React
                 <span className="text-2xl font-black font-mono text-slate-900 dark:text-white tracking-tight">
                   {totalTrendElectores.toLocaleString('es-CO')}
                 </span>
-                <span className="text-[11px] text-slate-400 font-medium">
+                <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
                   en este período
                 </span>
               </div>
-              <div className="flex items-center gap-1 text-[11px] font-semibold text-emerald-400 bg-emerald-950/50 px-2 py-0.5 rounded-md border border-emerald-800/40 font-mono">
+              <div className="flex items-center gap-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800/40 font-mono">
                 <TrendingUp className="w-3 h-3" />
                 <span>↗ Pico: {picoTrendDia.dia} ({picoTrendDia.total})</span>
               </div>
@@ -420,9 +420,9 @@ export const DirectorDashboardView: React.FC<DirectorDashboardViewProps> = React
                 </defs>
 
                 {/* Líneas Horizontales del Grid sutiles */}
-                <line x1="40" y1="22" x2="470" y2="22" stroke="#162342" strokeWidth="1" strokeDasharray="3 3" />
-                <line x1="40" y1="66" x2="470" y2="66" stroke="#162342" strokeWidth="1" strokeDasharray="3 3" />
-                <line x1="40" y1="110" x2="470" y2="110" stroke="#1e293b" strokeWidth="1" />
+                <line x1="40" y1="22" x2="470" y2="22" className="stroke-slate-200 dark:stroke-[#162342]" strokeWidth="1" strokeDasharray="3 3" />
+                <line x1="40" y1="66" x2="470" y2="66" className="stroke-slate-200 dark:stroke-[#162342]" strokeWidth="1" strokeDasharray="3 3" />
+                <line x1="40" y1="110" x2="470" y2="110" className="stroke-slate-300 dark:stroke-[#1e293b]" strokeWidth="1" />
 
                 {/* Etiquetas Eje Y */}
                 <text x="10" y="26" className="fill-slate-500 font-mono text-[10px]">{maxCount}</text>
@@ -452,7 +452,7 @@ export const DirectorDashboardView: React.FC<DirectorDashboardViewProps> = React
                       cx={pt.x}
                       cy={pt.y}
                       r={pt.count > 0 ? (pt.count === maxCount ? '4.5' : '3.5') : '2'}
-                      className={pt.count === maxCount ? 'fill-sky-400 stroke-[#0a1224]' : 'fill-[#0a1224] stroke-sky-400'}
+                      className={pt.count === maxCount ? 'fill-sky-500 dark:fill-sky-400 stroke-white dark:stroke-[#0a1224]' : 'fill-white dark:fill-[#0a1224] stroke-sky-500 dark:stroke-sky-400'}
                       strokeWidth="2"
                     />
                     {pt.count > 0 && (
@@ -460,7 +460,7 @@ export const DirectorDashboardView: React.FC<DirectorDashboardViewProps> = React
                         x={pt.x}
                         y={pt.y - 7}
                         textAnchor="middle"
-                        className="fill-sky-400 font-bold font-mono text-[10px]"
+                        className="fill-sky-600 dark:fill-sky-400 font-bold font-mono text-[10px]"
                       >
                         {pt.count}
                       </text>

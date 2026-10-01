@@ -96,14 +96,14 @@ export const MasterUsersView: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-purple-600/15 text-purple-400 border border-purple-500/30">
+            <div className="p-2 rounded-xl bg-purple-50 dark:bg-purple-600/15 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-500/30">
               <Users className="w-5 h-5" />
             </div>
-            <h2 className="text-xl font-bold text-white tracking-tight">
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
               Estructura Jerárquica y Usuarios Globales
             </h2>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
             Visualización y administración en árbol por Campaña &gt; Directores &gt; Coordinadores &gt; Líderes.
           </p>
         </div>
@@ -117,7 +117,7 @@ export const MasterUsersView: React.FC = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Buscar líder, coordinador o email..."
-              className="w-full bg-[#080d1a] border border-[#162342] rounded-xl pl-9 pr-4 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+              className="w-full bg-white dark:bg-[#080d1a] border border-slate-200 dark:border-[#162342] rounded-xl pl-9 pr-4 py-2 text-xs text-slate-900 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
             />
           </div>
 
@@ -125,53 +125,53 @@ export const MasterUsersView: React.FC = () => {
             type="button"
             onClick={() => refetch()}
             disabled={loading}
-            className="p-2 rounded-xl bg-[#080d1a] border border-[#162342] text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-2 rounded-xl bg-white dark:bg-[#080d1a] border border-slate-200 dark:border-[#162342] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             title="Recargar árbol"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-blue-400' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-blue-500 dark:text-blue-400' : ''}`} />
           </button>
         </div>
       </div>
 
       {/* Micro KPIs de Estructura */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-        <div className="bg-[#090f1e] border border-[#162342] rounded-2xl p-4 flex items-center justify-between">
+        <div className="bg-white dark:bg-[#090f1e] border border-slate-200 dark:border-[#162342] rounded-2xl p-4 flex items-center justify-between shadow-xs">
           <div>
-            <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">
+            <span className="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 tracking-wider">
               Campañas en Red
             </span>
-            <p className="text-xl font-bold text-white mt-0.5">{treeData.length}</p>
+            <p className="text-xl font-bold text-slate-900 dark:text-white mt-0.5">{treeData.length}</p>
           </div>
-          <div className="p-2.5 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20">
+          <div className="p-2.5 rounded-xl bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-500/20">
             <Building2 className="w-4 h-4" />
           </div>
         </div>
 
-        <div className="bg-[#090f1e] border border-[#162342] rounded-2xl p-4 flex items-center justify-between">
+        <div className="bg-white dark:bg-[#090f1e] border border-slate-200 dark:border-[#162342] rounded-2xl p-4 flex items-center justify-between shadow-xs">
           <div>
-            <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">
+            <span className="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 tracking-wider">
               Total Integrantes en Jerarquía
             </span>
-            <p className="text-xl font-bold text-white mt-0.5">{totalUsuariosGlobal}</p>
+            <p className="text-xl font-bold text-slate-900 dark:text-white mt-0.5">{totalUsuariosGlobal}</p>
           </div>
-          <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20">
+          <div className="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20">
             <Users className="w-4 h-4" />
           </div>
         </div>
 
-        <div className="bg-[#090f1e] border border-[#162342] rounded-2xl p-4 flex items-center justify-between">
+        <div className="bg-white dark:bg-[#090f1e] border border-slate-200 dark:border-[#162342] rounded-2xl p-4 flex items-center justify-between shadow-xs">
           <div>
-            <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">
+            <span className="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 tracking-wider">
               Usuarios Activos
             </span>
-            <p className="text-xl font-bold text-emerald-400 mt-0.5">
+            <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
               {activeUsersGlobal}
               <span className="text-xs text-slate-500 ml-1 font-normal">
                 / {allUsersList.length - activeUsersGlobal} susp.
               </span>
             </p>
           </div>
-          <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+          <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20">
             <Activity className="w-4 h-4" />
           </div>
         </div>
@@ -179,9 +179,9 @@ export const MasterUsersView: React.FC = () => {
 
       {/* Estado de Carga */}
       {loading && treeData.length === 0 && (
-        <div className="p-12 text-center bg-[#060b17] border border-[#15223e] rounded-3xl">
+        <div className="p-12 text-center bg-white dark:bg-[#060b17] border border-slate-200 dark:border-[#15223e] rounded-3xl">
           <Loader2 className="w-8 h-8 text-blue-500 animate-spin mx-auto mb-3" />
-          <p className="text-sm font-semibold text-slate-300">Cargando jerarquía operativa de campañas...</p>
+          <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">Cargando jerarquía operativa de campañas...</p>
         </div>
       )}
 
@@ -193,30 +193,30 @@ export const MasterUsersView: React.FC = () => {
           return (
             <div
               key={grupo.tenantId}
-              className="bg-[#060b17] border border-[#15223e] rounded-3xl p-4 sm:p-5 shadow-xl transition-all"
+              className="bg-white dark:bg-[#060b17] border border-slate-200 dark:border-[#15223e] rounded-3xl p-4 sm:p-5 shadow-sm dark:shadow-xl transition-all"
             >
               {/* Header de la Campaña (Raíz del Árbol) */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 mb-3 border-b border-[#141e36]">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 mb-3 border-b border-slate-200 dark:border-[#141e36]">
                 <div className="flex items-center gap-3">
                   <button
                     type="button"
                     onClick={() => toggleCampaignCollapse(grupo.tenantId)}
-                    className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                    className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                     title={isCollapsed ? 'Desplegar campaña' : 'Colapsar campaña'}
                   >
                     {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                   </button>
 
-                  <div className="p-2 rounded-2xl bg-purple-600/15 border border-purple-500/25 text-purple-400 shrink-0">
+                  <div className="p-2 rounded-2xl bg-purple-50 dark:bg-purple-600/15 border border-purple-200 dark:border-purple-500/25 text-purple-600 dark:text-purple-400 shrink-0">
                     <Building2 className="w-5 h-5" />
                   </div>
 
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="text-sm font-bold text-white uppercase tracking-wide">
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wide">
                         {grupo.tenantName}
                       </h3>
-                      <span className="text-[10px] font-semibold text-slate-400 bg-slate-900 border border-slate-800 px-2 py-0.5 rounded-md">
+                      <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-2 py-0.5 rounded-md">
                         {grupo.municipio}
                       </span>
                     </div>
@@ -228,8 +228,8 @@ export const MasterUsersView: React.FC = () => {
 
                 {/* Métricas del Grupo / Campaña */}
                 <div className="flex items-center gap-2 self-end sm:self-auto">
-                  <span className="text-xs font-semibold px-2.5 py-1 rounded-xl bg-[#091124] border border-[#1b2b52] text-slate-300">
-                    <strong className="text-white">{grupo.totalUsuarios}</strong> integrantes
+                  <span className="text-xs font-semibold px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-[#091124] border border-slate-200 dark:border-[#1b2b52] text-slate-700 dark:text-slate-300">
+                    <strong className="text-slate-900 dark:text-white">{grupo.totalUsuarios}</strong> integrantes
                   </span>
                 </div>
               </div>
@@ -263,9 +263,9 @@ export const MasterUsersView: React.FC = () => {
         })}
 
         {treeData.length === 0 && !loading && (
-          <div className="p-12 text-center bg-[#060b17] border border-[#15223e] rounded-3xl">
-            <Building2 className="w-10 h-10 text-slate-600 mx-auto mb-3" />
-            <h4 className="text-sm font-bold text-slate-200">No hay campañas registradas</h4>
+          <div className="p-12 text-center bg-white dark:bg-[#060b17] border border-slate-200 dark:border-[#15223e] rounded-3xl">
+            <Building2 className="w-10 h-10 text-slate-400 dark:text-slate-600 mx-auto mb-3" />
+            <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">No hay campañas registradas</h4>
             <p className="text-xs text-slate-500 mt-1">
               Crea una campaña en la sección &ldquo;Campañas y Clientes&rdquo; para comenzar a estructurar el equipo.
             </p>
