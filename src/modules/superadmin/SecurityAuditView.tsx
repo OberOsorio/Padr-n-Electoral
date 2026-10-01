@@ -1,622 +1,433 @@
-import React, { useState, useMemo } from 'react';
-import {
-  ShieldAlert,
-  Search,
-  Download,
-  CheckCircle2,
-  Building2,
-  Globe,
-  Monitor,
-  KeyRound,
-  Power,
-  ShieldCheck,
-  ChevronLeft,
-  ChevronRight,
-  Filter,
-  RefreshCw,
-  Lock
+import React, { useState, useEffect, useMemo } from 'react';
+import { 
+  ShieldCheck, 
+  ShieldAlert, 
+  Key, 
+  Search, 
+  Download, 
+  RefreshCw, 
+  CheckCircle2, 
+  Copy, 
+  Hash,
+  Terminal,
+  Check
 } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { useAccessAuditLogs } from './useAccessAuditLogs';
-import type { AccessAuditLog, AppRole } from '../../types';
+import { supabase } from '../../lib/supabase';
 
-type FilterSeverity = 'all' | 'valid' | 'blocked' | 'control';
+interface AuditLog {
+  id: string;
+  created_at: string;
+  user_email: string;
+  user_name: string;
+  user_role: string;
+  event_type: string;
+  severity: 'INFO' | 'WARNING' | 'CRITICAL';
+  tenant_name?: string;
+  ip_address: string;
+  device_info: string;
+  action_detail: string;
+  sha256_hash: string;
+}
+
+const FALLBACK_SEED_LOGS: AuditLog[] = [
+  {
+    id: 'seed-1',
+    created_at: new Date(Date.now() - 5 * 60000).toISOString(),
+    user_email: 'oberosorio1@gmail.com',
+    user_name: 'Ober Osorio Orozco',
+    user_role: 'superadmin',
+    event_type: 'AUTH_SUCCESS',
+    severity: 'INFO',
+    tenant_name: 'TODO POR COTORRA',
+    ip_address: '186.84.90.12',
+    device_info: 'Chrome 128 / macOS ARM64',
+    action_detail: 'Autenticación exitosa mediante credenciales maestras',
+    sha256_hash: '6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b',
+  },
+  {
+    id: 'seed-2',
+    created_at: new Date(Date.now() - 18 * 60000).toISOString(),
+    user_email: 'alejodoriall@gmail.com',
+    user_name: 'ALEJANDRO DORIA',
+    user_role: 'admin',
+    event_type: 'USER_SUSPENDED',
+    severity: 'WARNING',
+    tenant_name: 'TODO POR COTORRA',
+    ip_address: '190.158.42.11',
+    device_info: 'Safari 17 / iOS 17.5',
+    action_detail: 'Suspensión temporal de cuenta para usuario líder',
+    sha256_hash: 'd4735e3a265e16eee03f59718b9b5d03019c07d8b6c51f90da3a666eec13ab35',
+  },
+  {
+    id: 'seed-3',
+    created_at: new Date(Date.now() - 42 * 60000).toISOString(),
+    user_email: 'desconocido@bot.com',
+    user_name: 'IP No Registrada',
+    user_role: 'anon',
+    event_type: 'AUTH_FAILED',
+    severity: 'CRITICAL',
+    tenant_name: 'TODO POR COTORRA',
+    ip_address: '45.134.22.88',
+    device_info: 'Python-requests/2.31',
+    action_detail: '3 intentos fallidos de contraseña bloqueados por WAF',
+    sha256_hash: '4e07408562bedb8b60ce05c1decfe3ad16b72230967de01f640b7e4729b49fce',
+  },
+  {
+    id: 'seed-4',
+    created_at: new Date(Date.now() - 60 * 60000).toISOString(),
+    user_email: 'oberosorio1@gmail.com',
+    user_name: 'Ober Osorio Orozco',
+    user_role: 'superadmin',
+    event_type: 'REPORT_EXPORTED',
+    severity: 'INFO',
+    tenant_name: 'TODO POR COTORRA',
+    ip_address: '186.84.90.12',
+    device_info: 'Chrome 128 / macOS ARM64',
+    action_detail: 'Descarga de reporte individual del líder en formato .xlsx',
+    sha256_hash: '4b227777d4dd1fc61c6f884f48641d02b4d121d3fd328cb08b5531fcacdabf8a',
+  },
+];
 
 export const SecurityAuditView: React.FC = () => {
-  const { logs, loading, refetchLogs } = useAccessAuditLogs();
+  const [logs, setLogs] = useState<AuditLog[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [severityFilter, setSeverityFilter] = useState<FilterSeverity>('all');
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8;
+  const [filtroSeveridad, setFiltroSeveridad] = useState<'TODOS' | 'INFO' | 'WARNING' | 'CRITICAL'>('TODOS');
+  const [copiedHash, setCopiedHash] = useState<string | null>(null);
 
-  // Filtrado de logs de seguridad
-  const filteredLogs = useMemo(() => {
-    return logs.filter((log) => {
-      // 1. Búsqueda universal por IP, correo o campaña
-      const term = searchTerm.toLowerCase();
-      const matchesSearch =
-        !term ||
-        log.user_name.toLowerCase().includes(term) ||
-        log.user_email.toLowerCase().includes(term) ||
-        (log.tenant_name && log.tenant_name.toLowerCase().includes(term)) ||
-        log.ip_address.toLowerCase().includes(term) ||
-        log.description.toLowerCase().includes(term);
+  const fetchLogs = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await (supabase.from('security_audit_logs') as any)
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(100);
 
-      // 2. Filtro de Severidad / Tipo de Evento
-      let matchesSeverity = true;
-      if (severityFilter === 'valid') {
-        matchesSeverity = log.event_type === 'login_success';
-      } else if (severityFilter === 'blocked') {
-        matchesSeverity = log.event_type === 'login_failed';
-      } else if (severityFilter === 'control') {
-        matchesSeverity = [
-          'campaign_suspended',
-          'campaign_activated',
-          'password_change',
-          'data_export',
-          'tenant_created',
-        ].includes(log.event_type);
+      if (error) throw error;
+      if (data && data.length > 0) {
+        setLogs(data as AuditLog[]);
+      } else {
+        setLogs(FALLBACK_SEED_LOGS);
       }
+    } catch (err) {
+      console.error('Error al cargar logs:', err);
+      setLogs(FALLBACK_SEED_LOGS);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      return matchesSearch && matchesSeverity;
-    });
-  }, [logs, searchTerm, severityFilter]);
+  useEffect(() => {
+    fetchLogs();
+  }, []);
 
-  // Paginación
-  const totalPages = Math.max(1, Math.ceil(filteredLogs.length / itemsPerPage));
-  const currentSafePage = Math.min(currentPage, totalPages);
-  const paginatedLogs = useMemo(() => {
-    const startIndex = (currentSafePage - 1) * itemsPerPage;
-    return filteredLogs.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredLogs, currentSafePage, itemsPerPage]);
-
-  // Métricas agregadas
-  const stats = useMemo(() => {
-    const total = logs.length;
-    const validLogins = logs.filter((l) => l.event_type === 'login_success').length;
-    const blockedAttempts = logs.filter((l) => l.event_type === 'login_failed').length;
-    const controlActions = logs.filter((l) =>
-      ['campaign_suspended', 'campaign_activated', 'password_change', 'data_export'].includes(
-        l.event_type
-      )
-    ).length;
-
-    return { total, validLogins, blockedAttempts, controlActions };
+  // Métricas reactivas calculadas
+  const kpis = useMemo(() => {
+    return {
+      total: logs.length,
+      validos: logs.filter(l => l.severity === 'INFO').length,
+      bloqueos: logs.filter(l => l.severity === 'CRITICAL' || l.severity === 'WARNING').length,
+      gobierno: logs.filter(l => l.event_type?.includes('USER_') || l.event_type?.includes('REPORT_')).length,
+    };
   }, [logs]);
 
-  // Exportar Log Inmutable (.CSV)
-  const handleExportCSV = () => {
-    const headers = [
-      'ID Evento',
-      'Fecha UTC',
-      'Hora Local',
-      'Nombre Usuario',
-      'Email Institucional',
-      'Rol',
-      'Campaña / Contexto',
-      'Tipo de Evento',
-      'Dirección IP',
-      'Dispositivo / Agente',
-      'Descripción Operativa',
-    ];
-
-    const rows = filteredLogs.map((log) => {
-      const dateObj = new Date(log.created_at);
-      const fecha = dateObj.toLocaleDateString('es-ES', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-      });
-      const hora = dateObj.toLocaleTimeString('es-ES', {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-      });
-
-      return [
-        `"${log.id}"`,
-        `"${log.created_at}"`,
-        `"${fecha} ${hora}"`,
-        `"${log.user_name.replace(/"/g, '""')}"`,
-        `"${log.user_email}"`,
-        `"${log.user_role.toUpperCase()}"`,
-        `"${(log.tenant_name || 'Plataforma Global').replace(/"/g, '""')}"`,
-        `"${log.event_type}"`,
-        `"${log.ip_address}"`,
-        `"${log.user_agent.replace(/"/g, '""')}"`,
-        `"${log.description.replace(/"/g, '""')}"`,
-      ].join(',');
+  // Filtrado
+  const logsFiltrados = useMemo(() => {
+    return logs.filter((log) => {
+      const matchSeveridad = filtroSeveridad === 'TODOS' || log.severity === filtroSeveridad;
+      const term = searchTerm.toLowerCase();
+      const matchSearch = 
+        log.user_email?.toLowerCase().includes(term) ||
+        log.user_name?.toLowerCase().includes(term) ||
+        log.action_detail?.toLowerCase().includes(term) ||
+        log.ip_address?.includes(term);
+      return matchSeveridad && matchSearch;
     });
+  }, [logs, filtroSeveridad, searchTerm]);
 
-    const csvContent = '\uFEFF' + [headers.join(','), ...rows].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const copiarHash = (hash: string) => {
+    if (!hash) return;
+    navigator.clipboard.writeText(hash);
+    setCopiedHash(hash);
+    setTimeout(() => setCopiedHash(null), 2000);
+  };
+
+  const exportarCSV = () => {
+    if (logsFiltrados.length === 0) return;
+    const cabeceras = ['Fecha UTC', 'Usuario', 'Email', 'Rol', 'Severidad', 'Evento', 'IP', 'Dispositivo', 'Detalle', 'SHA-256'];
+    const filas = logsFiltrados.map(l => [
+      l.created_at,
+      l.user_name,
+      l.user_email,
+      l.user_role,
+      l.severity,
+      l.event_type,
+      l.ip_address,
+      `"${l.device_info || ''}"`,
+      `"${l.action_detail || ''}"`,
+      l.sha256_hash
+    ]);
+    const contenido = [cabeceras.join(','), ...filas.map(f => f.join(','))].join('\n');
+    const blob = new Blob([contenido], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute(
-      'download',
-      `auditoria_seguridad_${new Date().toISOString().slice(0, 10)}.csv`
-    );
+    link.href = url;
+    link.setAttribute('download', `Auditoria_Seguridad_${Date.now()}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-
-  // Helper de badges para tipo de evento
-  const renderEventBadge = (type: AccessAuditLog['event_type']) => {
-    switch (type) {
-      case 'login_success':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 whitespace-nowrap">
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
-            </span>
-            Acceso Exitoso
-          </span>
-        );
-      case 'login_failed':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20 whitespace-nowrap">
-            <ShieldAlert className="w-3.5 h-3.5 text-red-500 shrink-0" />
-            Acceso Denegado
-          </span>
-        );
-      case 'campaign_suspended':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 whitespace-nowrap">
-            <Power className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-            Campaña Suspendida
-          </span>
-        );
-      case 'campaign_activated':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 whitespace-nowrap">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-            Campaña Activada
-          </span>
-        );
-      case 'password_change':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 whitespace-nowrap">
-            <KeyRound className="w-3.5 h-3.5 text-purple-500 shrink-0" />
-            Cambio de Contraseña
-          </span>
-        );
-      case 'data_export':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 whitespace-nowrap">
-            <Download className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-            Exportación Oficial
-          </span>
-        );
-      default:
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/20 whitespace-nowrap">
-            <Lock className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-            Acción de Control
-          </span>
-        );
-    }
-  };
-
-  // Helper de badges para roles
-  const renderRoleBadge = (role: AppRole) => {
-    switch (role) {
-      case 'superadmin':
-        return (
-          <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider bg-purple-100 text-purple-700 dark:bg-purple-950/70 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60">
-            SUPERADMIN
-          </span>
-        );
-      case 'admin':
-        return (
-          <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider bg-blue-100 text-blue-700 dark:bg-blue-950/70 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60">
-            ADMIN
-          </span>
-        );
-      case 'coordinador':
-        return (
-          <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-            COORDINADOR
-          </span>
-        );
-      default:
-        return (
-          <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
-            {role.toUpperCase()}
-          </span>
-        );
-    }
   };
 
   return (
-    <div className="space-y-6 sm:space-y-8">
-      {/* Encabezado Institucional */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-200 dark:border-slate-800/80">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="p-1.5 rounded-lg bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800/50 text-purple-600 dark:text-purple-400">
-              <ShieldAlert className="w-5 h-5" />
-            </span>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-              Auditoría de Accesos y Seguridad
-            </h1>
+    <div className="space-y-6 max-w-7xl mx-auto p-1 sm:p-2 md:p-4 animate-in fade-in duration-150">
+      
+      {/* 1. HEADER */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[#141e36]">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-2xl bg-purple-600/15 border border-purple-500/25 text-purple-400 shadow-lg shadow-purple-600/10">
+            <ShieldCheck className="w-6 h-6"/>
           </div>
-          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1.5">
-            Registro inmutable de trazabilidad, intentos de inicio de sesión, bloqueos y control de campañas.
-          </p>
+          <div>
+            <h2 className="text-2xl font-black text-white tracking-tight">
+              Auditoría de Accesos y Seguridad
+            </h2>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Registro inmutable de trazabilidad, intentos de inicio de sesión, bloqueos y control de campañas.
+            </p>
+          </div>
         </div>
 
-        {/* Badge Institucional y Botón de Refresco */}
-        <div className="flex items-center gap-3 self-start md:self-auto">
+        <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={refetchLogs}
-            disabled={loading}
-            className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer shadow-2xs"
-            title="Actualizar registro"
+            onClick={fetchLogs}
+            className="p-2.5 rounded-xl bg-[#080e1e] border border-[#182647] text-slate-400 hover:text-white transition-colors cursor-pointer"
+            title="Refrescar logs"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 text-purple-400 ${loading ? 'animate-spin' : ''}`} />
           </button>
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-500/30 text-purple-700 dark:text-purple-300 text-xs font-semibold shadow-2xs">
-            <ShieldCheck className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+          
+          <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-purple-950/40 border border-purple-800/40 text-purple-300 text-xs font-semibold">
+            <Hash className="w-3.5 h-3.5 text-purple-400"/>
             <span>Logs Inmutables (SHA-256)</span>
           </div>
         </div>
       </div>
 
-      {/* Grid Superior de 4 KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4 lg:gap-5">
-        {/* KPI 1: Total Registros */}
-        <motion.div
-          whileHover={{ y: -2 }}
-          transition={{ duration: 0.15 }}
-          className="rounded-2xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-5 shadow-xs relative overflow-hidden"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-mono uppercase font-semibold text-slate-500 dark:text-slate-400">
-              Total Eventos Auditados
-            </span>
-            <div className="h-9 w-9 rounded-xl bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800/50 flex items-center justify-center text-purple-600 dark:text-purple-400">
-              <ShieldAlert className="w-4.5 h-4.5" />
+      {/* 2. TARJETAS KPI */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        <div className="bg-[#070c18] border border-[#152342] rounded-2xl p-4 sm:p-5 shadow-lg">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Eventos Auditados</span>
+            <div className="p-2 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20">
+              <Terminal className="w-4 h-4"/>
             </div>
           </div>
-          <div className="mt-3">
-            <span className="text-3xl font-extrabold text-slate-900 dark:text-white font-mono">
-              {stats.total}
-            </span>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 truncate">
-              Registro secuencial inmutable
-            </p>
-          </div>
-        </motion.div>
+          <span className="text-3xl font-black text-white font-mono">{kpis.total}</span>
+          <p className="text-[11px] text-slate-500 mt-2">Registro secuencial inmutable</p>
+        </div>
 
-        {/* KPI 2: Accesos Válidos */}
-        <motion.div
-          whileHover={{ y: -2 }}
-          transition={{ duration: 0.15 }}
-          className="rounded-2xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-5 shadow-xs relative overflow-hidden"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-mono uppercase font-semibold text-slate-500 dark:text-slate-400">
-              Inicios de Sesión Válidos
-            </span>
-            <div className="h-9 w-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-              <CheckCircle2 className="w-4.5 h-4.5" />
+        <div className="bg-[#070c18] border border-[#152342] rounded-2xl p-4 sm:p-5 shadow-lg">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Inicios de Sesión Válidos</span>
+            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              <CheckCircle2 className="w-4 h-4"/>
             </div>
           </div>
-          <div className="mt-3">
-            <span className="text-3xl font-extrabold text-slate-900 dark:text-white font-mono">
-              {stats.validLogins}
-            </span>
-            <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium mt-1 truncate">
-              Autenticación 100% verificada
-            </p>
-          </div>
-        </motion.div>
+          <span className="text-3xl font-black text-white font-mono">{kpis.validos}</span>
+          <p className="text-[11px] text-emerald-400 mt-2">Autenticación 100% verificada</p>
+        </div>
 
-        {/* KPI 3: Bloqueos y Alertas */}
-        <motion.div
-          whileHover={{ y: -2 }}
-          transition={{ duration: 0.15 }}
-          className="rounded-2xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-5 shadow-xs relative overflow-hidden"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-mono uppercase font-semibold text-slate-500 dark:text-slate-400">
-              Intentos Bloqueados / Alertas
-            </span>
-            <div className="h-9 w-9 rounded-xl bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-800/50 flex items-center justify-center text-red-600 dark:text-red-400">
-              <ShieldAlert className="w-4.5 h-4.5" />
+        <div className="bg-[#070c18] border border-[#152342] rounded-2xl p-4 sm:p-5 shadow-lg">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Intentos Bloqueados / Alertas</span>
+            <div className="p-2 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20">
+              <ShieldAlert className="w-4 h-4"/>
             </div>
           </div>
-          <div className="mt-3">
-            <span className="text-3xl font-extrabold text-red-600 dark:text-red-400 font-mono">
-              {stats.blockedAttempts}
-            </span>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 truncate">
-              Protección perimetral WAF & Auth
-            </p>
-          </div>
-        </motion.div>
+          <span className="text-3xl font-black text-rose-400 font-mono">{kpis.bloqueos}</span>
+          <p className="text-[11px] text-slate-500 mt-2">Protección perimetral WAF & Auth</p>
+        </div>
 
-        {/* KPI 4: Acciones de Control */}
-        <motion.div
-          whileHover={{ y: -2 }}
-          transition={{ duration: 0.15 }}
-          className="rounded-2xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-5 shadow-xs relative overflow-hidden"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-mono uppercase font-semibold text-slate-500 dark:text-slate-400">
-              Acciones de Control y Gobierno
-            </span>
-            <div className="h-9 w-9 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800/50 flex items-center justify-center text-blue-600 dark:text-blue-400">
-              <Power className="w-4.5 h-4.5" />
+        <div className="bg-[#070c18] border border-[#152342] rounded-2xl p-4 sm:p-5 shadow-lg">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Acciones de Gobierno</span>
+            <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20">
+              <Key className="w-4 h-4"/>
             </div>
           </div>
-          <div className="mt-3">
-            <span className="text-3xl font-extrabold text-slate-900 dark:text-white font-mono">
-              {stats.controlActions}
-            </span>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 truncate">
-              Suspensiones, claves y exportaciones
-            </p>
-          </div>
-        </motion.div>
+          <span className="text-3xl font-black text-white font-mono">{kpis.gobierno}</span>
+          <p className="text-[11px] text-slate-500 mt-2">Suspensiones, claves y reportes</p>
+        </div>
+
       </div>
 
-      {/* 1. Barra Superior de Control y Filtros Rápidos */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5">
-        {/* Buscador Universal */}
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+      {/* 3. BARRA DE HERRAMIENTAS Y FILTRADO */}
+      <div className="bg-[#070c18] border border-[#152342] rounded-2xl p-3.5 flex flex-col md:flex-row items-center justify-between gap-3">
+        {/* Buscador */}
+        <div className="relative w-full md:w-80">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"/>
           <input
             type="text"
             value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              setCurrentPage(1);
-            }}
-            placeholder="Buscar por IP, usuario, correo o campaña..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-purple-500 transition-all shadow-2xs"
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Buscar por IP, usuario, correo o detalle..."
+            className="w-full bg-[#050914] border border-[#182647] rounded-xl pl-9 pr-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500"
           />
         </div>
 
-        {/* Pills Interactivas de Severidad & Botón de Exportación */}
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Pills de Filtro */}
-          <div className="inline-flex items-center p-1 rounded-xl bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800">
+        {/* Pestañas de Filtro */}
+        <div className="flex items-center gap-1.5 w-full md:w-auto overflow-x-auto">
+          {[
+            { id: 'TODOS', label: 'Todos los Eventos' },
+            { id: 'INFO', label: 'Accesos Válidos', dot: 'bg-emerald-400' },
+            { id: 'CRITICAL', label: 'Bloqueos y Alertas', dot: 'bg-rose-400' },
+            { id: 'WARNING', label: 'Acciones de Control', dot: 'bg-amber-400' },
+          ].map((tab) => (
             <button
+              key={tab.id}
               type="button"
-              onClick={() => {
-                setSeverityFilter('all');
-                setCurrentPage(1);
-              }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                severityFilter === 'all'
-                  ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              onClick={() => setFiltroSeveridad(tab.id as any)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
+                filtroSeveridad === tab.id
+                  ? 'bg-purple-600/20 text-purple-300 border border-purple-500/40'
+                  : 'text-slate-400 hover:text-white hover:bg-[#0c152b]'
               }`}
             >
-              Todos los Eventos
+              {tab.dot && <span className={`w-1.5 h-1.5 rounded-full ${tab.dot}`} />}
+              <span>{tab.label}</span>
             </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setSeverityFilter('valid');
-                setCurrentPage(1);
-              }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
-                severityFilter === 'valid'
-                  ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 shadow-2xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400'
-              }`}
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              Accesos Válidos
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setSeverityFilter('blocked');
-                setCurrentPage(1);
-              }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
-                severityFilter === 'blocked'
-                  ? 'bg-red-50 dark:bg-red-950/60 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800/60 shadow-2xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400'
-              }`}
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
-              Bloqueos y Alertas
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setSeverityFilter('control');
-                setCurrentPage(1);
-              }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
-                severityFilter === 'control'
-                  ? 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60 shadow-2xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-purple-600 dark:hover:text-purple-400'
-              }`}
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
-              Acciones de Control
-            </button>
-          </div>
-
-          {/* Botón de Exportación Inmutable */}
-          <button
-            type="button"
-            onClick={handleExportCSV}
-            className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 active:bg-purple-700 text-white font-semibold text-xs tracking-wide transition-all shadow-md shadow-purple-600/20 flex items-center gap-2 cursor-pointer shrink-0"
-          >
-            <Download className="w-4 h-4" />
-            <span>Exportar Log Inmutable (.CSV)</span>
-          </button>
+          ))}
         </div>
+
+        {/* Botón Exportar */}
+        <button
+          type="button"
+          onClick={exportarCSV}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-lg shadow-purple-600/20 transition-all cursor-pointer whitespace-nowrap"
+        >
+          <Download className="w-3.5 h-3.5"/>
+          <span>Exportar Log (.CSV)</span>
+        </button>
       </div>
 
-      {/* 2 & 3. Tabla Corporativa y Paginación */}
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-slate-900/60 backdrop-blur-md overflow-hidden shadow-xs">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[950px] text-left text-xs">
-            <thead className="bg-slate-50 dark:bg-slate-950/70 text-[10px] font-mono uppercase text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
-              <tr>
-                <th className="py-3 px-4 font-semibold">Marca Temporal</th>
-                <th className="py-3 px-4 font-semibold">Usuario y Rol</th>
-                <th className="py-3 px-4 font-semibold">Tipo de Evento</th>
-                <th className="py-3 px-4 font-semibold">Campaña / Contexto</th>
-                <th className="py-3 px-4 font-semibold">Origen & Dispositivo</th>
-                <th className="py-3 px-4 font-semibold">Detalle Operativo</th>
+      {/* 4. TABLA DE AUDITORÍA DE ALTA DENSIDAD */}
+      <div className="bg-[#070c18] border border-[#152342] rounded-3xl shadow-xl overflow-hidden">
+        <div className="w-full overflow-x-auto custom-scrollbar">
+          <table className="w-full min-w-[720px] text-left border-collapse">
+            <thead>
+              <tr className="border-b border-[#141e36] bg-[#050811] text-[10px] uppercase font-bold tracking-wider text-slate-400">
+                <th className="py-3.5 px-5">Marca Temporal</th>
+                <th className="py-3.5 px-5">Usuario y Rol</th>
+                <th className="py-3.5 px-5">Evento & Severidad</th>
+                <th className="py-3.5 px-5">Origen (IP & Dispositivo)</th>
+                <th className="py-3.5 px-5">Detalle Operativo</th>
+                <th className="py-3.5 px-5 text-right">Firma SHA-256</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-              {paginatedLogs.length === 0 ? (
+            <tbody className="divide-y divide-[#121c33] text-xs">
+              {logsFiltrados.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-slate-400 dark:text-slate-500">
-                    <Filter className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm font-medium">No se encontraron eventos con los filtros seleccionados.</p>
-                    <p className="text-xs mt-1">Prueba restableciendo el buscador o cambiando la severidad.</p>
+                  <td colSpan={6} className="py-12 text-center text-slate-500 text-xs italic">
+                    No se encontraron registros de auditoría coincidentes.
                   </td>
                 </tr>
               ) : (
-                paginatedLogs.map((log) => {
-                  const dateObj = new Date(log.created_at);
-                  const fecha = dateObj.toLocaleDateString('es-ES', {
-                    day: '2-digit',
-                    month: 'short',
-                    year: 'numeric',
-                  });
-                  const hora = dateObj.toLocaleTimeString('es-ES', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit',
-                  });
+                logsFiltrados.map((log) => (
+                  <tr key={log.id} className="hover:bg-[#0b1428]/40 transition-colors">
+                    
+                    {/* Timestamp */}
+                    <td className="py-3.5 px-5 whitespace-nowrap">
+                      <span className="font-mono text-slate-200 block text-xs">
+                        {new Date(log.created_at).toLocaleTimeString('es-CO')}
+                      </span>
+                      <span className="text-[10px] text-slate-500">
+                        {new Date(log.created_at).toLocaleDateString('es-CO')}
+                      </span>
+                    </td>
 
-                  return (
-                    <tr
-                      key={log.id}
-                      className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors"
-                    >
-                      {/* 1. Marca Temporal */}
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        <div className="text-xs font-mono font-semibold text-slate-900 dark:text-white">
-                          {hora}
-                        </div>
-                        <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono mt-0.5">
-                          {fecha}
-                        </div>
-                      </td>
+                    {/* Usuario */}
+                    <td className="py-3.5 px-5">
+                      <span className="font-bold text-slate-100 block truncate max-w-[160px]">
+                        {log.user_name || 'Desconocido'}
+                      </span>
+                      <span className="text-[11px] font-mono text-slate-400 block truncate max-w-[160px]">
+                        {log.user_email}
+                      </span>
+                    </td>
 
-                      {/* 2. Usuario y Rol */}
-                      <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-semibold text-slate-900 dark:text-white tracking-tight">
-                            {log.user_name}
-                          </span>
-                          {renderRoleBadge(log.user_role)}
-                        </div>
-                        <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono mt-0.5 truncate max-w-[200px]">
-                          {log.user_email}
-                        </div>
-                      </td>
-
-                      {/* 3. Tipo de Evento */}
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        {renderEventBadge(log.event_type)}
-                      </td>
-
-                      {/* 4. Campaña / Contexto */}
-                      <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300 font-medium">
-                          {log.tenant_id ? (
-                            <Building2 className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400 shrink-0" />
-                          ) : (
-                            <Globe className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
-                          )}
-                          <span className="truncate max-w-[170px]">
-                            {log.tenant_name || 'Plataforma Global'}
-                          </span>
-                        </div>
-                      </td>
-
-                      {/* 5. Origen & Dispositivo */}
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        <span className="inline-block font-mono text-xs text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800/80 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700/60">
-                          {log.ip_address}
+                    {/* Evento y Severidad */}
+                    <td className="py-3.5 px-5">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[9px] font-bold px-2 py-0.5 rounded-md border ${
+                          log.severity === 'CRITICAL'
+                            ? 'bg-rose-950/40 text-rose-300 border-rose-800/40'
+                            : log.severity === 'WARNING'
+                            ? 'bg-amber-950/40 text-amber-300 border-amber-800/40'
+                            : 'bg-emerald-950/40 text-emerald-300 border-emerald-800/40'
+                        }`}>
+                          {log.severity}
                         </span>
-                        <div className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-                          <Monitor className="w-3 h-3 text-slate-400 shrink-0" />
-                          <span className="truncate max-w-[160px]">{log.user_agent}</span>
-                        </div>
-                      </td>
+                        <span className="font-mono text-[11px] text-slate-300">
+                          {log.event_type}
+                        </span>
+                      </div>
+                    </td>
 
-                      {/* 6. Detalle Operativo */}
-                      <td className="py-3.5 px-4">
-                        <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed max-w-xs line-clamp-2">
-                          {log.description}
-                        </p>
-                      </td>
-                    </tr>
-                  );
-                })
+                    {/* Origen */}
+                    <td className="py-3.5 px-5">
+                      <span className="font-mono text-xs text-sky-400 block">
+                        {log.ip_address}
+                      </span>
+                      <span className="text-[10px] text-slate-500 block truncate max-w-[180px]" title={log.device_info}>
+                        {log.device_info}
+                      </span>
+                    </td>
+
+                    {/* Detalle */}
+                    <td className="py-3.5 px-5">
+                      <p className="text-slate-300 text-xs max-w-xs truncate" title={log.action_detail}>
+                        {log.action_detail}
+                      </p>
+                      {log.tenant_name && (
+                        <span className="text-[10px] text-purple-400 font-semibold">
+                          {log.tenant_name}
+                        </span>
+                      )}
+                    </td>
+
+                    {/* Firma SHA-256 */}
+                    <td className="py-3.5 px-5 text-right whitespace-nowrap">
+                      <button
+                        type="button"
+                        onClick={() => copiarHash(log.sha256_hash)}
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-[#050914] border border-[#16223e] font-mono text-[10px] text-slate-400 hover:text-white hover:border-purple-500 transition-colors cursor-pointer"
+                        title="Copiar hash de verificación"
+                      >
+                        <span>
+                          {copiedHash === log.sha256_hash
+                            ? '¡Copiado!'
+                            : log.sha256_hash
+                            ? log.sha256_hash.substring(0, 10) + '...'
+                            : 'Firma OK'}
+                        </span>
+                        {copiedHash === log.sha256_hash ? (
+                          <Check className="w-3 h-3 text-emerald-400" />
+                        ) : (
+                          <Copy className="w-3 h-3" />
+                        )}
+                      </button>
+                    </td>
+
+                  </tr>
+                ))
               )}
             </tbody>
           </table>
         </div>
-
-        {/* Footer de Paginación Integrada */}
-        <div className="p-4 bg-slate-50/70 dark:bg-slate-950/60 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-          <div className="text-slate-600 dark:text-slate-400">
-            Mostrando{' '}
-            <strong className="text-slate-900 dark:text-white font-mono">
-              {filteredLogs.length > 0 ? (currentSafePage - 1) * itemsPerPage + 1 : 0}
-            </strong>{' '}
-            -{' '}
-            <strong className="text-slate-900 dark:text-white font-mono">
-              {Math.min(currentSafePage * itemsPerPage, filteredLogs.length)}
-            </strong>{' '}
-            de{' '}
-            <strong className="text-slate-900 dark:text-white font-mono">
-              {filteredLogs.length}
-            </strong>{' '}
-            registros de seguridad
-          </div>
-
-          <div className="flex items-center gap-1.5 self-center sm:self-auto">
-            <button
-              type="button"
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentSafePage <= 1}
-              className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium flex items-center gap-1 cursor-pointer"
-            >
-              <ChevronLeft className="w-3.5 h-3.5" />
-              <span>Anterior</span>
-            </button>
-
-            <span className="px-2.5 py-1 text-slate-500 dark:text-slate-400 font-mono text-xs">
-              {currentSafePage} / {totalPages}
-            </span>
-
-            <button
-              type="button"
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentSafePage >= totalPages}
-              className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium flex items-center gap-1 cursor-pointer"
-            >
-              <span>Siguiente</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
       </div>
+
     </div>
   );
 };

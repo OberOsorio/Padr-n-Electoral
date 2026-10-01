@@ -126,6 +126,7 @@ input:-webkit-autofill:focus {
 /* Scrollbar ultra delgado y elegante para dropdowns y contenedores compactos */
 .custom-scrollbar::-webkit-scrollbar {
   width: 5px;
+  height: 5px;
 }
 .custom-scrollbar::-webkit-scrollbar-track {
   background: #080e1c;
@@ -138,5 +139,16 @@ input:-webkit-autofill:focus {
   background: #2b457a;
 }
 
-
-
+/* Soporte de zonas seguras (Notch / Dynamic Island / Home Indicator en iOS & Android) */
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.pl-safe {
+  padding-left: env(safe-area-inset-left, 0px);
+}
+.pr-safe {
+  padding-right: env(safe-area-inset-right, 0px);
+}

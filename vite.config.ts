@@ -135,5 +135,24 @@ export default defineConfig({
     port: 5173,
     allowedHosts: true, // Permite el acceso desde cualquier túnel como trycloudflare.com
   },
+  build: {
+    target: 'esnext',
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('xlsx')) return 'excel';
+            if (id.includes('recharts')) return 'charts';
+            if (id.includes('@supabase')) return 'supabase';
+            if (id.includes('lucide-react')) return 'icons';
+            if (id.includes('framer-motion')) return 'motion';
+            if (id.includes('react-dom') || id.includes('react/')) return 'vendor';
+          }
+        },
+      },
+    },
+  },
 })
+
 

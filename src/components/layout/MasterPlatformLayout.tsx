@@ -1,13 +1,34 @@
-import React, { useState } from 'react';
-import { Menu } from 'lucide-react';
+import React, { useState, Suspense } from 'react';
+import { Menu, Loader2 } from 'lucide-react';
 import { MasterSidebar, type MasterTab } from './MasterSidebar';
-import { MasterDashboardView } from '../../modules/superadmin/MasterDashboardView';
-import { TenantsManagementView } from '../../modules/superadmin/TenantsManagementView';
-import { SystemHealthView } from '../../modules/superadmin/SystemHealthView';
-import { SecurityAuditView } from '../../modules/superadmin/SecurityAuditView';
-import { MasterUsersView } from '../../modules/superadmin/MasterUsersView';
 import { ThemeToggle } from '../ui/ThemeToggle';
 import { AnimatePresence, motion } from 'framer-motion';
+
+const MasterDashboardView = React.lazy(() =>
+  import('../../modules/superadmin/MasterDashboardView').then((m) => ({
+    default: m.MasterDashboardView,
+  }))
+);
+const TenantsManagementView = React.lazy(() =>
+  import('../../modules/superadmin/TenantsManagementView').then((m) => ({
+    default: m.TenantsManagementView,
+  }))
+);
+const MasterUsersView = React.lazy(() =>
+  import('../../modules/superadmin/MasterUsersView').then((m) => ({
+    default: m.MasterUsersView,
+  }))
+);
+const SystemHealthView = React.lazy(() =>
+  import('../../modules/superadmin/SystemHealthView').then((m) => ({
+    default: m.SystemHealthView,
+  }))
+);
+const SecurityAuditView = React.lazy(() =>
+  import('../../modules/superadmin/SecurityAuditView').then((m) => ({
+    default: m.SecurityAuditView,
+  }))
+);
 
 interface MasterPlatformLayoutProps {
   onSignOut?: () => void;
@@ -15,6 +36,15 @@ interface MasterPlatformLayoutProps {
   userName?: string;
   userEmail?: string;
 }
+
+const ViewLoadingFallback: React.FC = () => (
+  <div className="w-full py-20 flex flex-col items-center justify-center text-slate-400">
+    <Loader2 className="w-7 h-7 animate-spin text-purple-500 mb-2.5" />
+    <span className="text-xs font-mono uppercase tracking-wider text-slate-500">
+      Cargando módulo...
+    </span>
+  </div>
+);
 
 export const MasterPlatformLayout: React.FC<MasterPlatformLayoutProps> = ({
   onSignOut,
@@ -26,7 +56,7 @@ export const MasterPlatformLayout: React.FC<MasterPlatformLayoutProps> = ({
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   return (
-    <div className="h-[100dvh] w-full bg-slate-50 dark:bg-[#070a12] text-slate-900 dark:text-slate-100 flex overflow-hidden transition-colors duration-200">
+    <div className="h-[100dvh] w-full max-w-full bg-slate-50 dark:bg-[#070a12] text-slate-900 dark:text-slate-100 flex overflow-hidden transition-colors duration-200">
       {/* SuperAdmin Master Sidebar */}
       <MasterSidebar
         activeTab={activeTab}
@@ -40,9 +70,9 @@ export const MasterPlatformLayout: React.FC<MasterPlatformLayoutProps> = ({
       />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 h-full overflow-y-auto">
-        {/* Mobile Header Bar Fijo Superior */}
-        <header className="lg:hidden sticky top-0 z-30 w-full shrink-0 h-16 bg-white/95 dark:bg-[#070a12]/95 backdrop-blur-md border-b border-slate-200/90 dark:border-purple-900/30 px-4 sm:px-6 flex items-center justify-between transition-colors shadow-xs">
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-y-auto overflow-x-hidden">
+        {/* Mobile Header Bar Fijo Superior (< 1024px lg) */}
+        <header className="lg:hidden sticky top-0 z-40 w-full shrink-0 min-h-16 pt-safe bg-white/95 dark:bg-[#070a12]/95 backdrop-blur-md border-b border-slate-200/90 dark:border-purple-900/30 px-4 sm:px-6 flex items-center justify-between transition-colors shadow-xs">
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -73,30 +103,32 @@ export const MasterPlatformLayout: React.FC<MasterPlatformLayoutProps> = ({
           </div>
         </header>
 
-        {/* View Switcher with Smooth Animated Transitions */}
-        <main className="flex-1 p-3.5 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+        {/* View Switcher with Smooth Animated Transitions & Code Splitting */}
+        <main className="flex-1 p-3.5 sm:p-6 lg:p-8 pb-safe max-w-7xl w-full mx-auto">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.22, ease: 'easeOut' }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
             >
-              {activeTab === 'overview' && (
-                <MasterDashboardView
-                  onNavigateToTenants={() => setActiveTab('tenants')}
-                  onNavigateToHealth={() => setActiveTab('health')}
-                />
-              )}
+              <Suspense fallback={<ViewLoadingFallback />}>
+                {activeTab === 'overview' && (
+                  <MasterDashboardView
+                    onNavigateToTenants={() => setActiveTab('tenants')}
+                    onNavigateToHealth={() => setActiveTab('health')}
+                  />
+                )}
 
-              {activeTab === 'tenants' && <TenantsManagementView />}
+                {activeTab === 'tenants' && <TenantsManagementView />}
 
-              {activeTab === 'users' && <MasterUsersView />}
+                {activeTab === 'users' && <MasterUsersView />}
 
-              {activeTab === 'health' && <SystemHealthView />}
+                {activeTab === 'health' && <SystemHealthView />}
 
-              {activeTab === 'audit' && <SecurityAuditView />}
+                {activeTab === 'audit' && <SecurityAuditView />}
+              </Suspense>
             </motion.div>
           </AnimatePresence>
         </main>

@@ -302,8 +302,8 @@ export const InfrastructureHealthView: React.FC = () => {
         </div>
 
         {/* Contenedor de la Tabla con scroll responsive */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+        <div className="w-full overflow-x-auto custom-scrollbar">
+          <table className="w-full min-w-[700px] text-left border-collapse">
             <thead>
               <tr className="border-b border-[#141e36] bg-[#070b16]/70 text-[10px] uppercase font-bold tracking-wider text-slate-400">
                 <th className="py-3.5 px-6">Servicio / Módulo</th>

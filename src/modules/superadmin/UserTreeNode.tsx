@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ChevronRight, ChevronDown, KeyRound, Loader2, CheckCircle2, Power } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import type { UserNode } from './useUsersTree';
-import { enviarSolicitudRecuperacion } from './authRecoveryService';
+import { enviarSolicitudRecuperacion, registrarEventoAuditoria } from './authRecoveryService';
 import { ConfirmActionModal } from './ConfirmActionModal';
 
 const ROLE_BADGES: Record<string, { label: string; bg: string }> = {
@@ -66,6 +66,17 @@ export const UserStatusToggle: React.FC<UserStatusToggleProps> = ({
         .eq('id', user.id);
 
       if (error) throw error;
+
+      await registrarEventoAuditoria({
+        userEmail: user.email,
+        userName: user.full_name,
+        userRole: user.role,
+        eventType: nuevoEstado ? 'USER_ACTIVATED' : 'USER_SUSPENDED',
+        severity: nuevoEstado ? 'INFO' : 'WARNING',
+        actionDetail: nuevoEstado
+          ? `Reactivación de credenciales de acceso para ${user.full_name}`
+          : `Suspensión inmediata de acceso para ${user.full_name}`,
+      });
 
       setIsActive(nuevoEstado);
       setIsConfirmOpen(false);

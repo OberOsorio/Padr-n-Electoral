@@ -135,31 +135,31 @@ export const EditCampaignModal: React.FC<EditCampaignModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-sm animate-in fade-in duration-150">
-      <div className="bg-[#090f1d] border border-[#162342] rounded-[28px] w-full max-w-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-sm animate-in fade-in duration-150">
+      <div className="bg-[#090f1d] border border-[#162342] rounded-[28px] w-full max-w-lg sm:max-w-xl max-h-[90dvh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150">
         
         {/* Cabecera */}
-        <div className="px-6 py-5 border-b border-[#141e36] flex items-center justify-between bg-[#070b16]">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-blue-600/15 text-blue-400 border border-blue-500/25">
+        <div className="px-5 sm:px-6 py-4 sm:py-5 border-b border-[#141e36] flex items-center justify-between bg-[#070b16] shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="p-2.5 rounded-2xl bg-blue-600/15 text-blue-400 border border-blue-500/25 shrink-0">
               <Edit3 className="w-5 h-5"/>
             </div>
-            <div>
-              <h3 className="text-base font-bold text-white leading-tight">Editar Campaña</h3>
-              <p className="text-[11px] text-slate-400 font-mono mt-0.5">ID: {campaign.id}</p>
+            <div className="min-w-0">
+              <h3 className="text-base font-bold text-white leading-tight truncate">Editar Campaña</h3>
+              <p className="text-[11px] text-slate-400 font-mono mt-0.5 truncate">ID: {campaign.id}</p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
           >
             <X className="w-5 h-5"/>
           </button>
         </div>
 
-        {/* Formulario */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        {/* Formulario con Scroll Interno */}
+        <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-4 overflow-y-auto custom-scrollbar flex-1">
           {errorMsg && (
             <div className="p-3 rounded-xl bg-rose-950/50 border border-rose-800/80 text-rose-300 text-xs font-semibold">
               {errorMsg}
