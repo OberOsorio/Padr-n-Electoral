@@ -163,6 +163,14 @@ export const ElectorLocationSelector: React.FC<ElectorLocationSelectorProps> = (
     }
   }, [isOpenCombobox]);
 
+  // Sincronizar cierre y limpieza de búsqueda cuando el formulario padre limpia puestoVotacion
+  useEffect(() => {
+    if (!puestoVotacion) {
+      setIsOpenCombobox(false);
+      setSearchTerm('');
+    }
+  }, [puestoVotacion]);
+
   // Puesto actual seleccionado
   const currentPollingPlace = useMemo(() => {
     if (!puestoVotacion) return null;

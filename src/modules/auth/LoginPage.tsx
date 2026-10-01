@@ -323,8 +323,23 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           <div className="relative z-10 w-full max-w-xs mx-auto flex flex-col items-center py-6">
             
             {/* Logotipo e Isotipo Institucional Integrado */}
-            <div className="flex items-center justify-center gap-3 mb-4">
-              <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/30 ring-1 ring-cyan-400/40 shrink-0">
+            <div
+              onClick={(e) => {
+                e.preventDefault();
+                window.location.reload();
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  window.location.reload();
+                }
+              }}
+              role="button"
+              tabIndex={0}
+              title="Recargar plataforma"
+              aria-label="Recargar plataforma"
+              className="flex items-center justify-center gap-3 mb-4 cursor-pointer select-none group active:scale-95 transition-transform"
+            >
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/30 ring-1 ring-cyan-400/40 group-hover:ring-cyan-300 transition-all shrink-0">
                 <Shield className="w-6 h-6 text-white" strokeWidth={2.3} />
               </div>
               <div className="flex flex-col text-left">

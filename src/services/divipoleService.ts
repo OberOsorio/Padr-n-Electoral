@@ -88,13 +88,50 @@ export function obtenerPuestosPorMunicipio(municipioCampana: string, divipoleDat
 }
 
 /**
+ * Detecta a qué municipio pertenece un puesto de votación dentro del dataset DIVIPOLA de Córdoba.
+ */
+export function detectarMunicipioDePuesto(nombrePuesto?: string | null): string | null {
+  if (!nombrePuesto) return null;
+  const target = normalizarTexto(nombrePuesto);
+  if (!target) return null;
+
+  const found = (cordobaData as any[]).find(
+    (item) => normalizarTexto(item.name) === target || target.includes(normalizarTexto(item.name))
+  );
+
+  if (found && found.municipio) {
+    return CORDOBA_MUNICIPIOS_ALIAS[found.municipio] || found.municipio;
+  }
+
+  return null;
+}
+
+/**
+ * Extrae el municipio objetivo de una campaña (usando tenant.municipio o infiriéndolo del nombre de la campaña si aplica).
+ */
+export function resolverMunicipioCampana(tenant?: Tenant | null): string {
+  if (tenant?.municipio && tenant.municipio.trim()) {
+    return tenant.municipio.trim();
+  }
+  if (tenant?.name) {
+    const upperName = normalizarTexto(tenant.name);
+    for (const [rawKey, fullMuni] of Object.entries(CORDOBA_MUNICIPIOS_ALIAS)) {
+      if (upperName.includes(normalizarTexto(fullMuni)) || (rawKey.length >= 4 && upperName.includes(rawKey))) {
+        return fullMuni;
+      }
+    }
+  }
+  return 'Montería';
+}
+
+/**
  * Retorna los puestos oficiales de votación correspondientes a la circunscripción/municipio de la campaña.
  * Si la campaña es de Montería / Córdoba, retorna los 95 puestos oficiales del Divipole 2026.
  * Para otros municipios, filtra con normalización fonética y alias tolerantes.
  */
 export function getPollingPlacesForTenant(tenant?: Tenant | null): PollingPlace[] {
   const dept = tenant?.departamento ? normalizarTexto(tenant.departamento) : 'CORDOBA';
-  const muni = tenant?.municipio ? tenant.municipio.trim() : 'Montería';
+  const muni = resolverMunicipioCampana(tenant);
   const cacheKey = `${dept}_${normalizarTexto(muni)}`;
 
   if (memoryCache.has(cacheKey)) {

@@ -139,6 +139,8 @@ export interface CensoLookupResult {
   edad?: number | null;
   puesto_sugerido?: string | null;
   mesa_sugerida?: number | null;
+  municipio?: string | null;
+  departamento?: string | null;
 }
 
 export interface ConsultarDocumentoExternoResult {

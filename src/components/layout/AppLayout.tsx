@@ -156,7 +156,7 @@ export const AppLayout = ({
 
       {/* 2. Drawer Lateral Móvil / Tablet (< 1024px lg) con Backdrop-Blur */}
       <div
-        className={`fixed inset-0 z-50 lg:hidden transition-opacity duration-200 ${
+        className={`fixed inset-0 z-[60] lg:hidden transition-opacity duration-200 ${
           isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         }`}
         role="dialog"
@@ -165,12 +165,12 @@ export const AppLayout = ({
       >
         <div
           onClick={() => setIsMobileMenuOpen(false)}
-          className="fixed inset-0 bg-slate-950/75 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-200 cursor-pointer"
+          className="fixed inset-0 bg-slate-950/75 backdrop-blur-sm z-[60] lg:hidden transition-opacity duration-200 cursor-pointer"
           aria-hidden="true"
         />
 
         <aside
-          className={`fixed inset-y-0 left-0 z-50 w-[82vw] max-w-xs h-[100dvh] max-h-[100dvh] bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col justify-between overflow-hidden transform transition-transform duration-200 ease-out will-change-transform ${
+          className={`fixed inset-y-0 left-0 z-[70] w-[82vw] max-w-xs h-[100dvh] max-h-[100dvh] bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col justify-between overflow-hidden transform transition-transform duration-200 ease-out will-change-transform ${
             isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
           style={{
@@ -202,45 +202,65 @@ export const AppLayout = ({
           isMobileMenuOpen ? 'overflow-hidden' : 'overflow-y-auto'
         } overflow-x-hidden w-full max-w-full bg-slate-50 dark:bg-[#0F172A] transition-colors duration-200 flex flex-col`}
       >
-        {/* Header Móvil / Tablet Superior Fijo (< 1024px lg) */}
-        <header className="lg:hidden sticky top-0 z-40 w-full shrink-0 pt-safe bg-white/95 dark:bg-[#161F30]/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-700/60 px-4 py-3 flex items-center justify-between transition-colors shadow-xs">
-          {/* Logo e Isotipo */}
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="h-7 w-7 rounded-lg bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-500/40 flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-xs relative shrink-0">
-              <Shield className="w-4 h-4" strokeWidth={2} />
+        {/* Header Móvil / Tablet Superior Fijo (< 1024px lg) con Desvanecimiento Suave (Fade-Out Blur) sin borde rígido */}
+        <header className="lg:hidden sticky top-0 z-50 w-full shrink-0 pt-[env(safe-area-inset-top,0px)] pointer-events-none transition-all">
+          {/* Capa de fondo con degradado de desvanecimiento hacia transparente (SIN borde inferior) */}
+          <div className="absolute inset-0 bg-gradient-to-b from-slate-50 via-slate-50/95 via-80% to-transparent dark:from-[#070b14] dark:via-[#070b14]/95 dark:via-80% dark:to-transparent backdrop-blur-md pointer-events-none" />
+
+          {/* Contenedor interactivo de controles */}
+          <div className="relative max-w-7xl mx-auto px-3.5 sm:px-6 h-18 sm:h-20 flex items-center justify-between gap-3 pointer-events-auto pb-2">
+            {/* Izquierda: Escudo de Seguridad (Recargar Plataforma) + Selector de Campaña Ampliado */}
+            <div className="flex items-center gap-2.5 min-w-0">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  window.location.reload();
+                }}
+                title="Recargar plataforma"
+                aria-label="Recargar plataforma"
+                className="w-11 h-11 flex items-center justify-center rounded-2xl bg-white/95 dark:bg-[#0b1427]/90 border border-slate-200 dark:border-[#1b2b50]/80 text-blue-600 dark:text-sky-400 hover:text-blue-700 dark:hover:text-white hover:border-blue-400 dark:hover:border-sky-500/50 transition-all shadow-lg shadow-slate-900/5 dark:shadow-black/20 active:scale-95 touch-manipulation cursor-pointer shrink-0 select-none"
+              >
+                <Shield className="w-5 h-5" strokeWidth={2.2} />
+              </button>
+
+              <TenantSwitcher userRole={userRole} />
             </div>
-            <TenantSwitcher userRole={userRole} />
+
+            {/* Derecha: Selector de Tema y Menú Hamburguesa (44x44px Touch Targets) */}
+            <div className="flex items-center gap-2 shrink-0">
+              <ThemeToggle size="md" />
+
+              <button
+                type="button"
+                onClick={() => setIsMobileMenuOpen((prev) => !prev)}
+                className="w-11 h-11 flex items-center justify-center rounded-2xl bg-white/95 dark:bg-[#0b1427]/90 border border-slate-200 dark:border-[#1b2b50]/80 text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:border-slate-300 dark:hover:border-slate-600 transition-colors shadow-lg shadow-slate-900/5 dark:shadow-black/20 active:scale-95 touch-manipulation cursor-pointer"
+                title={isMobileMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
+                aria-label={isMobileMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
+              >
+                <div className="w-5 h-4 flex flex-col justify-between items-center relative" aria-hidden="true">
+                  <span
+                    className={`w-5 h-0.5 bg-current rounded-full transition-transform duration-200 ease-out origin-center ${
+                      isMobileMenuOpen ? 'rotate-45 translate-y-[7px]' : ''
+                    }`}
+                  />
+                  <span
+                    className={`w-5 h-0.5 bg-current rounded-full transition-opacity duration-150 ${
+                      isMobileMenuOpen ? 'opacity-0' : 'opacity-100'
+                    }`}
+                  />
+                  <span
+                    className={`w-5 h-0.5 bg-current rounded-full transition-transform duration-200 ease-out origin-center ${
+                      isMobileMenuOpen ? '-rotate-45 -translate-y-[7px]' : ''
+                    }`}
+                  />
+                </div>
+              </button>
+            </div>
           </div>
 
-          {/* Selector de Tema y Botón Hamburguesa */}
-          <div className="flex items-center gap-1.5 shrink-0">
-            <ThemeToggle size="sm" />
-
-            <button
-              type="button"
-              onClick={() => setIsMobileMenuOpen((prev) => !prev)}
-              className="p-2 rounded-xl text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95 touch-manipulation transition-transform duration-100 cursor-pointer border border-slate-200 dark:border-slate-700/60"
-              aria-label={isMobileMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
-            >
-              <div className="w-5 h-4 flex flex-col justify-between items-center relative" aria-hidden="true">
-                <span
-                  className={`w-4 h-0.5 bg-current rounded-full transition-transform duration-200 ease-out origin-center ${
-                    isMobileMenuOpen ? 'rotate-45 translate-y-[7px]' : ''
-                  }`}
-                />
-                <span
-                  className={`w-4 h-0.5 bg-current rounded-full transition-opacity duration-150 ${
-                    isMobileMenuOpen ? 'opacity-0' : 'opacity-100'
-                  }`}
-                />
-                <span
-                  className={`w-4 h-0.5 bg-current rounded-full transition-transform duration-200 ease-out origin-center ${
-                    isMobileMenuOpen ? '-rotate-45 -translate-y-[7px]' : ''
-                  }`}
-                />
-              </div>
-            </button>
-          </div>
+          {/* Franja difusora extra para transición suave del scroll */}
+          <div className="h-4 w-full bg-gradient-to-b from-slate-50/40 dark:from-[#070b14]/40 to-transparent pointer-events-none -mt-1" />
         </header>
 
         {/* Contenido Dinámico con Ancho Centrado para Pantallas Ultra-Wide */}

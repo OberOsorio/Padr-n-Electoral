@@ -606,6 +606,30 @@ export function useDashboardData(tenantIdProp?: string, selectedRange: DateRange
           schema: 'public',
           table: 'electores',
         },
+        (payload) => {
+          console.log('[Realtime Dashboard] Cambio en electores detectado:', payload.eventType);
+          fetchDashboardData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'profiles',
+        },
+        (payload) => {
+          console.log('[Realtime Dashboard] Cambio en equipo/perfiles detectado:', payload.eventType);
+          fetchDashboardData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'tenants',
+        },
         () => {
           fetchDashboardData();
         }

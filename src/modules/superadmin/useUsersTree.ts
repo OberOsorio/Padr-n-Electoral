@@ -208,6 +208,39 @@ export function useUsersTree() {
 
   useEffect(() => {
     fetchTree();
+
+    if (!isSupabaseConfigured) return;
+
+    const canalProfiles = supabase
+      .channel('realtime-profiles-tree')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'profiles' },
+        (payload) => {
+          console.log('[Realtime DB] Cambio en perfiles/estado de usuario detectado:', payload);
+          fetchTree();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'tenants' },
+        (payload) => {
+          console.log('[Realtime DB] Cambio en campañas detectado:', payload);
+          fetchTree();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'electores' },
+        () => {
+          fetchTree();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(canalProfiles);
+    };
   }, [fetchTree]);
 
   // Cambiar estado activo / suspendido

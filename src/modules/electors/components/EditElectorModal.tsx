@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import type { ElectorWithRegistrant, Elector } from '../../../types';
-import { PREDEFINED_POLLING_PLACES, formatearPuestoSimple } from '../constants';
+import { formatearPuestoSimple } from '../constants';
 import { useTenant } from '../../../context/TenantContext';
 import { getPollingPlacesForTenant } from '../../../services/divipoleService';
 import {
@@ -37,7 +37,7 @@ export const EditElectorModal = ({
   const [edad, setEdad] = useState<number | ''>('');
   const [telefono, setTelefono] = useState('');
   const [puestoVotacion, setPuestoVotacion] = useState(
-    pollingPlaces[0]?.name || PREDEFINED_POLLING_PLACES[0].name
+    pollingPlaces[0]?.name || ''
   );
   const [mesa, setMesa] = useState<number>(1);
   const [notas, setNotas] = useState('');
@@ -60,9 +60,7 @@ export const EditElectorModal = ({
   const currentPlace = useMemo(() => {
     return (
       pollingPlaces.find((p) => p.name === puestoVotacion) ||
-      PREDEFINED_POLLING_PLACES.find((p) => p.name === puestoVotacion) ||
-      pollingPlaces[0] ||
-      PREDEFINED_POLLING_PLACES[0]
+      pollingPlaces[0] || { id: 'default', name: puestoVotacion || '', totalMesas: 15, zone: 'Cabecera' }
     );
   }, [pollingPlaces, puestoVotacion]);
 
@@ -250,9 +248,7 @@ export const EditElectorModal = ({
                   onChange={(e) => {
                     const newPuesto = e.target.value;
                     setPuestoVotacion(newPuesto);
-                    const p =
-                      pollingPlaces.find((x) => x.name === newPuesto) ||
-                      PREDEFINED_POLLING_PLACES.find((x) => x.name === newPuesto);
+                    const p = pollingPlaces.find((x) => x.name === newPuesto);
                     if (p && mesa > p.totalMesas) setMesa(1);
                   }}
                   className="w-full h-9.5 pl-3 pr-8 bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/60 rounded-xl text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-500 appearance-none cursor-pointer"

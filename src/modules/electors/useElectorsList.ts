@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import type { ElectorWithRegistrant, Elector } from '../../types';
-import { PREDEFINED_POLLING_PLACES } from './constants';
 import { useTenant } from '../../context/TenantContext';
 import { useElectorsRealtime } from './useElectorsRealtime';
+import { useJurisdictionPuestos } from './useJurisdictionPuestos';
 import {
   eliminarElectorEnBaseDatos,
   eliminarElectoresPorLoteEnBaseDatos,
@@ -123,7 +123,8 @@ export const useElectorsList = (
   const [error, setError] = useState<string | null>(null);
 
   const isMountedRef = useRef(true);
-  const { currentTenantId, loading: tenantLoading } = useTenant();
+  const { currentTenant, currentTenantId, loading: tenantLoading } = useTenant();
+  const { puestosCampana, getPuestosCampana } = useJurisdictionPuestos(currentTenant);
 
   // 1. Obtener lista de coordinadores para los filtros
   useEffect(() => {
@@ -464,8 +465,11 @@ export const useElectorsList = (
     deleteElector,
     deleteElectorsBulk,
     updateElector,
-    refetch: () => fetchElectors(false),
+    refetch: () => {
+      fetchElectors(false);
+      getPuestosCampana();
+    },
     isRealtimeConnected,
-    pollingPlacesList: PREDEFINED_POLLING_PLACES.map((p) => p.name),
+    pollingPlacesList: puestosCampana,
   };
 };

@@ -93,8 +93,23 @@ export const MasterSidebar: React.FC<MasterSidebarProps> = ({
         onCloseMobile ? 'pt-[max(1.25rem,env(safe-area-inset-top))]' : ''
       }`}>
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-purple-700 via-purple-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-purple-600/25 ring-1 ring-purple-400/40">
+          <div
+            onClick={(e) => {
+              e.preventDefault();
+              window.location.reload();
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                window.location.reload();
+              }
+            }}
+            role="button"
+            tabIndex={0}
+            title="Recargar plataforma"
+            aria-label="Recargar plataforma"
+            className="flex items-center gap-3 cursor-pointer select-none group active:scale-95 transition-transform"
+          >
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-purple-700 via-purple-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-purple-600/25 ring-1 ring-purple-400/40 group-hover:ring-purple-300 transition-all">
               <Layers className="h-5 w-5" />
             </div>
             <div>
@@ -256,13 +271,13 @@ export const MasterSidebar: React.FC<MasterSidebarProps> = ({
 
       {/* Mobile Drawer */}
       {isMobileOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden flex">
+        <div className="fixed inset-0 z-[60] lg:hidden flex">
           <div
-            className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-40 lg:hidden cursor-pointer"
+            className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[60] lg:hidden cursor-pointer"
             onClick={onCloseMobile}
             aria-hidden="true"
           />
-          <div className="fixed inset-y-0 left-0 z-50 w-[85vw] max-w-xs h-[100dvh] max-h-[100dvh] bg-white dark:bg-[#0b0f19] border-r border-slate-200 dark:border-purple-900/30 shadow-2xl flex flex-col justify-between overflow-hidden animate-in slide-in-from-left duration-200">
+          <div className="fixed inset-y-0 left-0 z-[70] w-[85vw] max-w-xs h-[100dvh] max-h-[100dvh] bg-white dark:bg-[#0b0f19] border-r border-slate-200 dark:border-purple-900/30 shadow-2xl flex flex-col justify-between overflow-hidden animate-in slide-in-from-left duration-200">
             {sidebarContent}
           </div>
         </div>

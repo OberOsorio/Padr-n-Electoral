@@ -28,31 +28,37 @@ export const TenantSwitcher: React.FC<TenantSwitcherProps> = ({ userRole, classN
   if (!currentTenant) return null;
 
   return (
-    <div ref={dropdownRef} className={`relative flex items-center gap-2 select-none ${className}`}>
+    <div ref={dropdownRef} className={`relative flex items-center gap-2 min-w-0 select-none ${className}`}>
       {/* Botón o Badge del Tenant */}
       {isSuperAdmin ? (
         /* Selector interactivo para SuperAdmin */
         <button
           type="button"
           onClick={() => setIsOpen((prev) => !prev)}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800/90 hover:bg-slate-50 dark:hover:bg-slate-700/80 border border-slate-200 dark:border-slate-700/60 shadow-xs text-xs transition-all cursor-pointer"
+          className="flex items-center gap-2.5 px-3.5 py-2 sm:px-4 sm:py-2.5 min-h-[44px] rounded-2xl bg-slate-50/95 hover:bg-slate-100 dark:bg-[#0c162b]/90 dark:hover:bg-[#111e3b] border border-slate-200/90 dark:border-[#1d2d52] shadow-sm transition-all active:scale-[0.98] cursor-pointer min-w-0 max-w-full"
           title="Cambiar espacio de campaña activo (SuperAdmin)"
         >
-          <div className="h-6 w-6 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white font-semibold text-[10px] shadow-xs">
-            <Building2 className="w-3.5 h-3.5" />
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-blue-600/15 dark:bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-600 dark:text-sky-400 shrink-0 shadow-xs">
+            <Building2 className="w-4 h-4 sm:w-4.5 sm:h-4.5" strokeWidth={2.2} />
           </div>
-          <div className="text-left">
-            <span className="font-semibold text-slate-900 dark:text-white block leading-tight max-w-[130px] sm:max-w-[180px] truncate">
+          <div className="text-left min-w-0">
+            <span className="text-xs sm:text-sm font-black text-slate-900 dark:text-white tracking-wide block leading-tight max-w-[145px] xs:max-w-[175px] sm:max-w-[240px] truncate">
               {currentTenant.name}
             </span>
           </div>
-          <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+          <ChevronDown
+            className={`w-4 h-4 text-slate-400 dark:text-slate-400 shrink-0 ml-0.5 transition-transform duration-200 ${
+              isOpen ? 'rotate-180 text-blue-500 dark:text-sky-400' : ''
+            }`}
+          />
         </button>
       ) : (
         /* Badge informativo para Admin / Coordinador */
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 text-xs">
-          <Building2 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
-          <span className="font-semibold text-slate-800 dark:text-slate-200 max-w-[160px] truncate">
+        <div className="flex items-center gap-2.5 px-3.5 py-2 sm:px-4 sm:py-2.5 min-h-[44px] rounded-2xl bg-slate-50/95 dark:bg-[#0c162b]/90 border border-slate-200/90 dark:border-[#1d2d52] shadow-sm min-w-0 max-w-full">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-blue-600/15 dark:bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-600 dark:text-sky-400 shrink-0 shadow-xs">
+            <Building2 className="w-4 h-4 sm:w-4.5 sm:h-4.5" strokeWidth={2.2} />
+          </div>
+          <span className="text-xs sm:text-sm font-black text-slate-900 dark:text-white tracking-wide max-w-[155px] xs:max-w-[185px] sm:max-w-[240px] truncate">
             {currentTenant.name}
           </span>
         </div>
@@ -60,7 +66,7 @@ export const TenantSwitcher: React.FC<TenantSwitcherProps> = ({ userRole, classN
 
       {/* Menú Dropdown para SuperAdmin */}
       {isOpen && isSuperAdmin && (
-        <div className="absolute left-0 top-full mt-2 w-72 rounded-2xl bg-white/95 dark:bg-[#111827]/95 backdrop-blur-xl border border-slate-200 dark:border-slate-700 shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+        <div className="absolute left-0 top-full mt-2 w-72 sm:w-80 rounded-2xl bg-white/95 dark:bg-[#0b1328]/95 backdrop-blur-xl border border-slate-200 dark:border-[#1d2d52] shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95 duration-150">
           <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] font-mono text-slate-500 dark:text-slate-400">
             <span>Cambiar Campaña en Foco</span>
             <span>{tenants.length} registradas</span>

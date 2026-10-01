@@ -274,6 +274,8 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
           edad,
           puesto_sugerido: record.puesto || record.puesto_sugerido || null,
           mesa_sugerida: record.mesa || record.mesa_sugerida || null,
+          municipio: record.municipio || record.municipio_votacion || null,
+          departamento: record.departamento || null,
         };
       }
     }
@@ -318,13 +320,15 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
           edad,
           puesto_sugerido: record.puesto_sugerido || record.puesto || null,
           mesa_sugerida: record.mesa_sugerida || record.mesa || null,
+          municipio: record.municipio || record.municipio_votacion || null,
+          departamento: record.departamento || null,
         };
       }
     }
 
     // Fallback directo a la tabla censo_maestro
     const { data: tableData, error: tableError } = await (supabase.from('censo_maestro') as any)
-      .select('nombres, apellidos, edad, puesto_sugerido, mesa_sugerida')
+      .select('*')
       .eq('cedula', cleanCedula)
       .maybeSingle();
 
@@ -361,6 +365,8 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
         edad,
         puesto_sugerido: tableData.puesto_sugerido ?? null,
         mesa_sugerida: tableData.mesa_sugerida ?? null,
+        municipio: (tableData as any).municipio || (tableData as any).municipio_votacion || null,
+        departamento: (tableData as any).departamento || null,
       };
     }
 
@@ -374,6 +380,8 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
         edad: extResult.edad ?? null,
         puesto_sugerido: null,
         mesa_sugerida: null,
+        municipio: extResult.municipio ?? null,
+        departamento: extResult.departamento ?? null,
       };
     }
   } catch (err) {

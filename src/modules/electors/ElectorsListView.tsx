@@ -227,7 +227,7 @@ export const ElectorsListView = ({
           )}
         </div>
 
-        {/* Filtro por Puesto de Votación */}
+        {/* Filtro por Puesto de Votación (Dinámico por Jurisdicción / Electores de la Campaña) */}
         <div className="md:col-span-3 relative">
           <select
             value={puestoFilter}
@@ -238,7 +238,7 @@ export const ElectorsListView = ({
             className="w-full h-10 pl-3.5 pr-8 bg-slate-50 dark:bg-[#070D1F] border border-slate-200 dark:border-slate-700/60 rounded-xl text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:border-blue-500 appearance-none cursor-pointer"
           >
             <option value="all" className="bg-white dark:bg-[#070D1F] text-slate-800 dark:text-slate-200">
-              Todos los Puestos
+              ✓ Todos los Puestos ({pollingPlacesList.length})
             </option>
             {puestoFilter !== 'all' && !pollingPlacesList.includes(puestoFilter) && (
               <option value={puestoFilter} className="bg-white dark:bg-[#070D1F] text-slate-800 dark:text-slate-200 font-semibold">

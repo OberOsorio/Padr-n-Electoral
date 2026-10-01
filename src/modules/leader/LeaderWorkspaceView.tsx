@@ -357,8 +357,23 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
       {/* 1. Mobile-First Executive Header */}
       <header className="sticky top-0 z-30 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800/80 px-4 py-3 transition-colors">
         <div className={`${containerMaxWidth} mx-auto flex items-center justify-between gap-3 transition-all duration-300`}>
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-xs shadow-md shadow-blue-600/25 ring-1 ring-blue-400/30 shrink-0">
+          <div
+            onClick={(e) => {
+              e.preventDefault();
+              window.location.reload();
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                window.location.reload();
+              }
+            }}
+            role="button"
+            tabIndex={0}
+            title="Recargar plataforma"
+            aria-label="Recargar plataforma"
+            className="flex items-center gap-2.5 min-w-0 cursor-pointer select-none group active:scale-95 transition-transform"
+          >
+            <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-xs shadow-md shadow-blue-600/25 ring-1 ring-blue-400/30 group-hover:ring-blue-300 transition-all shrink-0">
               LÍD
             </div>
             <div className="min-w-0">

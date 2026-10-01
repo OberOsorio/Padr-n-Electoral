@@ -71,36 +71,54 @@ export const MasterPlatformLayout: React.FC<MasterPlatformLayoutProps> = ({
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-y-auto overflow-x-hidden">
-        {/* Mobile Header Bar Fijo Superior (< 1024px lg) */}
-        <header className="lg:hidden sticky top-0 z-40 w-full shrink-0 min-h-16 pt-safe bg-white/95 dark:bg-[#070a12]/95 backdrop-blur-md border-b border-slate-200/90 dark:border-purple-900/30 px-4 sm:px-6 flex items-center justify-between transition-colors shadow-xs">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setIsMobileOpen(true)}
-              className="p-2.5 -ml-1.5 rounded-xl text-slate-700 hover:text-slate-900 dark:text-slate-200 dark:hover:text-white bg-slate-100/80 hover:bg-slate-200/80 dark:bg-slate-800/60 dark:hover:bg-slate-800 transition-all cursor-pointer shrink-0"
-              aria-label="Abrir menú"
-            >
-              <Menu className="h-5 w-5" strokeWidth={2.3} />
-            </button>
-            <div className="flex items-center gap-2">
-              <span className="text-base sm:text-lg font-black uppercase tracking-wider text-slate-900 dark:text-white font-mono">
-                SUPERADMIN
-              </span>
+        {/* Mobile Header Bar Fijo Superior (< 1024px lg) con Desvanecimiento Suave (Fade-Out Blur) sin borde rígido */}
+        <header className="lg:hidden sticky top-0 z-50 w-full shrink-0 pt-[env(safe-area-inset-top,0px)] pointer-events-none transition-all">
+          {/* Capa de fondo con degradado de desvanecimiento hacia transparente (SIN borde inferior) */}
+          <div className="absolute inset-0 bg-gradient-to-b from-slate-50 via-slate-50/95 via-80% to-transparent dark:from-[#070b14] dark:via-[#070b14]/95 dark:via-80% dark:to-transparent backdrop-blur-md pointer-events-none" />
+
+          {/* Contenedor interactivo de controles */}
+          <div className="relative max-w-7xl mx-auto px-3.5 sm:px-6 h-18 sm:h-20 flex items-center justify-between gap-3 pointer-events-auto pb-2">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <button
+                type="button"
+                onClick={() => setIsMobileOpen(true)}
+                className="w-11 h-11 rounded-2xl text-slate-700 hover:text-slate-900 dark:text-slate-200 dark:hover:text-white bg-white/95 dark:bg-[#0b1427]/90 border border-slate-200 dark:border-[#1b2b50]/80 flex items-center justify-center active:scale-95 touch-manipulation transition-all cursor-pointer shrink-0 shadow-lg shadow-slate-900/5 dark:shadow-black/20"
+                aria-label="Abrir menú"
+              >
+                <Menu className="h-5 w-5" strokeWidth={2.3} />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  window.location.reload();
+                }}
+                title="Recargar plataforma"
+                aria-label="Recargar plataforma"
+                className="flex items-center gap-2 px-3.5 py-2 min-h-[44px] rounded-2xl bg-white/95 hover:bg-slate-100 dark:bg-[#0c162d]/90 dark:hover:bg-[#101e3d] border border-slate-200/90 dark:border-[#1d2f59]/80 shadow-lg shadow-slate-900/5 dark:shadow-black/20 min-w-0 cursor-pointer select-none active:scale-95 transition-all"
+              >
+                <span className="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white font-mono truncate">
+                  SUPERADMIN
+                </span>
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              {onOpenGateway && (
+                <button
+                  type="button"
+                  onClick={onOpenGateway}
+                  className="px-3.5 h-11 text-xs font-bold rounded-2xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-500/30 active:scale-95 transition-all cursor-pointer flex items-center justify-center shadow-lg shadow-black/10"
+                >
+                  Selector
+                </button>
+              )}
+              <ThemeToggle size="md" />
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            {onOpenGateway && (
-              <button
-                type="button"
-                onClick={onOpenGateway}
-                className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-500/30 transition-colors cursor-pointer"
-              >
-                Selector
-              </button>
-            )}
-            <ThemeToggle size="sm" />
-          </div>
+          {/* Franja difusora extra para transición suave del scroll */}
+          <div className="h-4 w-full bg-gradient-to-b from-slate-50/40 dark:from-[#070b14]/40 to-transparent pointer-events-none -mt-1" />
         </header>
 
         {/* View Switcher with Smooth Animated Transitions & Code Splitting */}

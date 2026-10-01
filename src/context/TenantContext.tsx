@@ -141,6 +141,30 @@ export const TenantProvider: React.FC<{ children: React.ReactNode; userRole?: st
 
   useEffect(() => {
     fetchTenants();
+
+    if (!isSupabaseConfigured) return;
+
+    const canalTenants = supabase
+      .channel('realtime-global-tenants')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'tenants' },
+        () => {
+          fetchTenants();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'profiles' },
+        () => {
+          fetchTenants();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(canalTenants);
+    };
   }, [fetchTenants]);
 
   // Cambiar tenant activo
@@ -158,7 +182,7 @@ export const TenantProvider: React.FC<{ children: React.ReactNode; userRole?: st
     return tenants.find((t) => t.id === currentTenantId) || tenants[0] || null;
   }, [tenants, currentTenantId]);
 
-  // 2. Consultar uso de censo electoral para el Tenant activo
+  // 2. Consultar uso de censo electoral para el Tenant activo + Suscripción Realtime
   useEffect(() => {
     if (!currentTenant?.id) return;
 
@@ -185,6 +209,23 @@ export const TenantProvider: React.FC<{ children: React.ReactNode; userRole?: st
     };
 
     countElectors();
+
+    if (!isSupabaseConfigured) return;
+
+    const canalQuota = supabase
+      .channel(`realtime-tenant-quota-${currentTenant.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'electores' },
+        () => {
+          countElectors();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(canalQuota);
+    };
   }, [currentTenant?.id]);
 
   // 3. Crear nuevo Tenant (Campaña con capacidad ilimitada)

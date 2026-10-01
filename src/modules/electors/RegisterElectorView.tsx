@@ -20,6 +20,10 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { AnimatedCheck } from '../../components/ui/AnimatedCheck';
 import { getPollingPlacesForTenant } from './constants';
+import {
+  resolverMunicipioCampana,
+  normalizarTexto,
+} from '../../services/divipoleService';
 import { ElectorLocationSelector } from './components/ElectorLocationSelector';
 import { useTenant } from '../../context/TenantContext';
 import {
@@ -61,10 +65,15 @@ export const RegisterElectorView = ({
     return localStorage.getItem('electoral_remember_location') === 'true';
   });
 
-  // Estados de validación anti-colisión
+  // Estados de validación anti-colisión y jurisdicción
   const [isCheckingCedula, setIsCheckingCedula] = useState(false);
   const [collisionResult, setCollisionResult] = useState<CollisionCheckResult | null>(null);
   const [isAutofilledFromCenso, setIsAutofilledFromCenso] = useState(false);
+  const [alertaJurisdiccion, setAlertaJurisdiccion] = useState<{
+    mostrar: boolean;
+    municipioElector?: string;
+    puestoElector?: string;
+  }>({ mostrar: false });
   const currentCedulaRef = useRef<string>('');
 
   // Estados de envío y feedback
@@ -101,12 +110,54 @@ export const RegisterElectorView = ({
     return getPollingPlacesForTenant(currentTenant);
   }, [currentTenant]);
 
+  // Función estricta de validación territorial:
+  // SOLO alerta cuando explícitamente se conoce el municipio del censo y es distinto al municipio de la campaña activa.
+  // NUNCA compara el nombre del puesto de votación (ej. corregimientos como "LOS GOMEZ") contra el nombre del municipio.
+  const validarJurisdiccionElector = useCallback(
+    (datosCenso?: { municipio?: string | null; departamento?: string | null; puesto?: string | null }) => {
+      // 1. Si aún no hay datos de censo o no se ha verificado el municipio externo, NO mostrar alerta
+      if (!datosCenso || !datosCenso.municipio || !datosCenso.municipio.trim()) {
+        setAlertaJurisdiccion({ mostrar: false });
+        return false;
+      }
+
+      const normalizar = (txt: string) =>
+        txt
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .trim();
+
+      const municipioCampanaRaw = currentTenant?.municipio || resolverMunicipioCampana(currentTenant) || 'cotorra';
+      const municipioCampana = normalizar(municipioCampanaRaw);
+      const municipioElector = normalizar(datosCenso.municipio);
+
+      // 2. Solo activar si el MUNICIPIO del censo es conocido y NO coincide con el de la campaña
+      const esForaneo = Boolean(municipioElector) && municipioElector !== municipioCampana;
+
+      if (esForaneo) {
+        setAlertaJurisdiccion({
+          mostrar: true,
+          municipioElector: datosCenso.municipio.trim(),
+          puestoElector: datosCenso.puesto?.trim() || undefined,
+        });
+        return true;
+      } else {
+        // Si es del mismo municipio (incluyendo corregimientos como Los Gómez), no alertar
+        setAlertaJurisdiccion({ mostrar: false });
+        return false;
+      }
+    },
+    [currentTenant]
+  );
+
   // Si cambia la circunscripción y el puesto actual seleccionado no pertenece a la nueva lista, limpiarlo
   useEffect(() => {
     if (puestoVotacion && pollingPlaces.length > 0 && !pollingPlaces.some((p) => p.name === puestoVotacion)) {
       setPuestoVotacion('');
       setMesa('');
     }
+    setAlertaJurisdiccion({ mostrar: false });
   }, [pollingPlaces, puestoVotacion]);
 
   // Formato legible de fecha y hora exacta de registro
@@ -194,19 +245,34 @@ export const RegisterElectorView = ({
             setEdad(Number(edadFinal));
           }
 
-          if (censo.puesto_sugerido && pollingPlaces.some((p) => p.name === censo.puesto_sugerido)) {
-            setPuestoVotacion(censo.puesto_sugerido);
+          // Validar jurisdicción estrictamente por municipio explícito (nunca comparando puesto contra municipio)
+          const esForaneo = validarJurisdiccionElector({
+            municipio: censo.municipio || (censo as any).municipio_votacion || null,
+            departamento: censo.departamento || null,
+            puesto: censo.puesto_sugerido || null,
+          });
+
+          if (!esForaneo && censo.puesto_sugerido) {
+            const matchedPlace = pollingPlaces.find(
+              (p) => normalizarTexto(p.name) === normalizarTexto(censo.puesto_sugerido!)
+            );
+            if (matchedPlace) {
+              setPuestoVotacion(matchedPlace.name);
+              if (censo.mesa_sugerida) {
+                setMesa(censo.mesa_sugerida);
+              }
+            }
           }
-          if (censo.mesa_sugerida) {
-            setMesa(censo.mesa_sugerida);
-          }
+
           setIsAutofilledFromCenso(true);
         } else {
           setIsAutofilledFromCenso(false);
+          setAlertaJurisdiccion({ mostrar: false });
         }
       } catch (e) {
         console.error('Error al autocompletar desde censo maestro:', e);
         setIsAutofilledFromCenso(false);
+        setAlertaJurisdiccion({ mostrar: false });
       }
     };
 
@@ -343,7 +409,7 @@ export const RegisterElectorView = ({
     } finally {
       setIsCheckingCedula(false);
     }
-  }, [currentTenantId]);
+  }, [currentTenantId, pollingPlaces, validarJurisdiccionElector]);
 
   // Manejador del cambio en cédula con debounce estricto de 400ms
   const handleCedulaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -360,9 +426,14 @@ export const RegisterElectorView = ({
       setNombres('');
       setApellidos('');
       setEdad('');
+      if (!rememberLocation) {
+        setPuestoVotacion('');
+        setMesa('');
+      }
       setCollisionResult(null);
       setIsCheckingCedula(false);
       setIsAutofilledFromCenso(false);
+      setAlertaJurisdiccion({ mostrar: false });
       return;
     }
 
@@ -371,10 +442,15 @@ export const RegisterElectorView = ({
         setNombres('');
         setApellidos('');
         setEdad('');
+        if (!rememberLocation) {
+          setPuestoVotacion('');
+          setMesa('');
+        }
         setIsAutofilledFromCenso(false);
       }
       setCollisionResult(null);
       setIsCheckingCedula(false);
+      setAlertaJurisdiccion({ mostrar: false });
       return;
     }
 
@@ -384,13 +460,44 @@ export const RegisterElectorView = ({
     }, 250);
   };
 
-  // Manejar cambio de puesto en cascada
+  // Manejar cambio de puesto en cascada (resetea mesa al cambiar de puesto)
   const handlePuestoChange = (newPuesto: string) => {
     setPuestoVotacion(newPuesto);
-    const place = pollingPlaces.find((p) => p.name === newPuesto);
-    if (!mesa || (place && Number(mesa) > place.totalMesas)) {
-      setMesa('');
+    setMesa('');
+  };
+
+  // Función integral de limpieza total del formulario (incluyendo Puesto, Mesa y Modo Lote)
+  const handleLimpiarFormulario = () => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
     }
+    currentCedulaRef.current = '';
+
+    // A. Resetear todos los campos principales del formulario y ubicación electoral
+    setCedula('');
+    setNombres('');
+    setApellidos('');
+    setEdad('');
+    setTelefono('');
+    setPuestoVotacion('');
+    setMesa('');
+    setNotas('');
+
+    // B. Resetear la bandera de 'Recordar puesto y mesa (Modo Lote)' y su caché local al presionar Limpiar explícitamente
+    setRememberLocation(false);
+    localStorage.setItem('electoral_remember_location', 'false');
+    localStorage.removeItem('electoral_saved_puesto');
+    localStorage.removeItem('electoral_saved_mesa');
+
+    // C. Limpiar estados de validación anti-colisión, jurisdicción y autocompletado del censo
+    setIsCheckingCedula(false);
+    setCollisionResult(null);
+    setIsAutofilledFromCenso(false);
+    setAlertaJurisdiccion({ mostrar: false });
+    setServerError(null);
+
+    console.log('[Formulario Elector] Todos los campos, incluyendo puesto y mesa, han sido restablecidos.');
+    cedulaInputRef.current?.focus();
   };
 
   // Envío del formulario
@@ -406,6 +513,13 @@ export const RegisterElectorView = ({
     if (!cleanCedula || cleanCedula.length < 5) {
       setServerError('Ingrese un número de cédula válido (mínimo 5 dígitos).');
       cedulaInputRef.current?.focus();
+      return;
+    }
+
+    if (alertaJurisdiccion.mostrar) {
+      setServerError(
+        `El ciudadano pertenece a otra jurisdicción (${alertaJurisdiccion.municipioElector}). Confirme en el aviso superior si desea autorizar el registro o bloquearlo.`
+      );
       return;
     }
 
@@ -880,6 +994,45 @@ export const RegisterElectorView = ({
                 </motion.div>
               )}
             </AnimatePresence>
+
+            {/* Banner de Advertencia de Jurisdicción Electoral */}
+            {alertaJurisdiccion.mostrar && !collisionResult?.exists && (
+              <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-800/40 text-amber-900 dark:text-amber-300 text-xs space-y-3 animate-in fade-in duration-150">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-bold text-amber-900 dark:text-amber-200">
+                      Advertencia de Jurisdicción: Este ciudadano vota en {alertaJurisdiccion.municipioElector}
+                      {alertaJurisdiccion.puestoElector ? ` (${alertaJurisdiccion.puestoElector})` : ''}, fuera de la circunscripción oficial ({currentTenant?.municipio || resolverMunicipioCampana(currentTenant) || 'Cotorra'}).
+                    </p>
+                    <p className="text-[11px] text-amber-700 dark:text-amber-400/80 mt-1">
+                      Puedes bloquear el registro o guardarlo como elector foráneo.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={handleLimpiarFormulario}
+                    className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition-colors cursor-pointer"
+                  >
+                    Bloquear y Limpiar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const tag = `[Elector fuera de circunscripción: ${alertaJurisdiccion.municipioElector || 'Externo'}]`;
+                      setNotas((prev) => (prev.includes(tag) ? prev : prev ? `${tag} ${prev}` : tag));
+                      setAlertaJurisdiccion({ mostrar: false });
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-amber-500/15 dark:bg-amber-900/40 border border-amber-400/50 dark:border-amber-700/50 text-amber-900 dark:text-amber-200 text-xs font-semibold hover:bg-amber-500/25 dark:hover:bg-amber-800/40 transition-colors cursor-pointer"
+                  >
+                    Autorizar Registro
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* SECCIÓN 2: DATOS PERSONALES */}
@@ -1039,20 +1192,9 @@ export const RegisterElectorView = ({
             <div className="flex items-center gap-3 w-full sm:w-auto">
               <button
                 type="button"
-                onClick={() => {
-                  setCedula('');
-                  setNombres('');
-                  setApellidos('');
-                  setEdad('');
-                  setTelefono('');
-                  setNotas('');
-                  setCollisionResult(null);
-                  setIsAutofilledFromCenso(false);
-                  setServerError(null);
-                  cedulaInputRef.current?.focus();
-                }}
+                onClick={handleLimpiarFormulario}
                 disabled={saving}
-                className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700/60 text-xs font-mono text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer flex items-center justify-center gap-1.5 font-medium"
+                className="flex-1 sm:flex-none px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700/60 text-xs font-mono text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2 font-bold"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
                 <span>Limpiar</span>

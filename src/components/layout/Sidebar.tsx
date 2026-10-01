@@ -135,8 +135,23 @@ export const Sidebar = ({
         {isEffectivelyCollapsed ? (
           /* Header en Modo Colapsado / Mini Rail */
           <>
-            <div className="h-10 w-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-500/40 flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-sm relative shrink-0">
-              <Shield className="w-5 h-5 text-blue-600 dark:text-blue-400" strokeWidth={2} />
+            <div
+              onClick={(e) => {
+                e.preventDefault();
+                window.location.reload();
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  window.location.reload();
+                }
+              }}
+              role="button"
+              tabIndex={0}
+              title="Recargar plataforma"
+              aria-label="Recargar plataforma"
+              className="h-10 w-10 rounded-xl bg-blue-50 dark:bg-blue-600/15 border border-blue-200 dark:border-blue-500/25 hover:border-blue-400 dark:hover:border-sky-400 flex items-center justify-center text-blue-600 dark:text-sky-400 dark:hover:text-white shadow-md shadow-blue-500/10 relative shrink-0 cursor-pointer select-none active:scale-95 transition-all"
+            >
+              <Shield className="w-5 h-5" strokeWidth={2} />
             </div>
 
             {/* Botón para expandir el panel */}
@@ -154,15 +169,33 @@ export const Sidebar = ({
           /* Header en Modo Expandido */
           <>
             <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="h-9 w-9 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-500/40 flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-sm relative shrink-0">
-                  <Shield className="w-5 h-5 text-blue-600 dark:text-blue-400" strokeWidth={2} />
+              <div
+                onClick={(e) => {
+                  e.preventDefault();
+                  window.location.reload();
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    window.location.reload();
+                  }
+                }}
+                role="button"
+                tabIndex={0}
+                title="Recargar plataforma"
+                aria-label="Recargar plataforma"
+                className="flex items-center gap-2.5 min-w-0 cursor-pointer select-none group active:scale-95 transition-transform"
+              >
+                <div className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-blue-600/15 border border-blue-200 dark:border-blue-500/25 flex items-center justify-center text-blue-600 dark:text-sky-400 group-hover:border-blue-400 dark:group-hover:border-sky-400 dark:group-hover:text-white transition-all shadow-md shadow-blue-500/10 shrink-0">
+                  <Shield className="w-5 h-5" strokeWidth={2} />
                 </div>
 
                 <div className="min-w-0">
-                  <h2 className="text-sm font-semibold text-slate-900 dark:text-white tracking-tight leading-tight truncate">
-                    Padrón Electoral
-                  </h2>
+                  <span className="text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400 font-bold block leading-none">
+                    Plataforma Oficial
+                  </span>
+                  <span className="text-sm sm:text-base font-black text-slate-900 dark:text-white tracking-tight leading-tight block truncate">
+                    Control<span className="text-blue-600 dark:text-sky-400">Electoral</span>
+                  </span>
                 </div>
               </div>
 

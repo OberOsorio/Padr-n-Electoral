@@ -119,6 +119,23 @@ export const SecurityAuditView: React.FC = () => {
 
   useEffect(() => {
     fetchLogs();
+
+    const canalAudit = supabase
+      .channel('realtime-security-audit-logs')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'security_audit_logs' },
+        (payload) => {
+          if (payload.new) {
+            setLogs((prev) => [payload.new as AuditLog, ...prev]);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(canalAudit);
+    };
   }, []);
 
   // Métricas reactivas calculadas
