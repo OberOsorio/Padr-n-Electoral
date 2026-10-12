@@ -139,7 +139,7 @@ export const useLeaderWorkspace = (userId: string, tenantId: string | null) => {
 
     try {
       const { data, error } = await (supabase.from('electores') as any)
-        .select('*')
+        .select('id, cedula, nombres, apellidos, telefono, direccion, puesto_votacion, mesa, edad, notas, registrado_por, tenant_id, created_at')
         .eq('registrado_por', userId)
         .order('created_at', { ascending: false });
 
