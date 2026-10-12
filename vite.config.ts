@@ -47,7 +47,7 @@ function dnpLookupDevPlugin(): Plugin {
     name: 'dnp-lookup-dev-plugin',
     configureServer(server) {
       server.middlewares.use(async (req, res, next) => {
-        if (req.url === '/api/dnp-lookup' && req.method === 'POST') {
+        if ((req.url === '/api/dnp-lookup' || req.url?.startsWith('/api/dnp-lookup?')) && req.method === 'POST') {
           let bodyStr = '';
           req.on('data', (chunk) => { bodyStr += chunk; });
           req.on('end', async () => {
@@ -149,6 +149,61 @@ function dnpLookupDevPlugin(): Plugin {
                       raw: sisbenData,
                     }));
                     return;
+                  }
+                }
+              }
+
+              // 3. Fallback a Tarjeta de Identidad (tipoDoc=2) si se consultó como Cédula (tipoDoc=3)
+              if (tipDoc === '3') {
+                const payloadTI = `pNumDoc=${encodeURIComponent(cedula)}&pTipDoc=2`;
+                const ruiTIRes = await fetch('https://ventanillasocial.dnp.gov.co/Home/ObtenerDatosRUI', {
+                  method: 'POST',
+                  headers,
+                  body: payloadTI,
+                });
+                const ruiTIData = ((await ruiTIRes.json().catch(() => null)) || {}) as any;
+                if (ruiTIData && ruiTIData.ok && ruiTIData.nombre) {
+                  const { nombres, apellidos } = parseNombreCompleto(ruiTIData.nombre);
+                  const edadVal = ruiTIData.edad || ruiTIData.anios || ruiTIData.fechaNacimiento || ruiTIData.fecNac || null;
+                  res.setHeader('Content-Type', 'application/json');
+                  res.end(JSON.stringify({
+                    encontrado: true,
+                    nombres,
+                    apellidos,
+                    edad: edadVal,
+                    municipio: ruiTIData.municipio || null,
+                    departamento: ruiTIData.departamento || null,
+                    raw: ruiTIData,
+                  }));
+                  return;
+                }
+
+                const sisbenTIRes = await fetch('https://ventanillasocial.dnp.gov.co/Home/ConsultarGrupoSisben', {
+                  method: 'POST',
+                  headers,
+                  body: payloadTI,
+                });
+                if (sisbenTIRes.ok) {
+                  const sisbenTIData = ((await sisbenTIRes.json().catch(() => null)) || {}) as any;
+                  if (sisbenTIData && sisbenTIData.ok) {
+                    const rawNombre =
+                      sisbenTIData.nombre ||
+                      `${sisbenTIData.primerNombre || ''} ${sisbenTIData.segundoNombre || ''} ${sisbenTIData.primerApellido || ''} ${sisbenTIData.segundoApellido || ''}`.trim();
+                    if (rawNombre) {
+                      const { nombres, apellidos } = parseNombreCompleto(rawNombre);
+                      const edadVal = sisbenTIData.edad || sisbenTIData.fechaNacimiento || sisbenTIData.fecNac || null;
+                      res.setHeader('Content-Type', 'application/json');
+                      res.end(JSON.stringify({
+                        encontrado: true,
+                        nombres,
+                        apellidos,
+                        edad: edadVal,
+                        municipio: sisbenTIData.municipio || null,
+                        departamento: sisbenTIData.departamento || null,
+                        raw: sisbenTIData,
+                      }));
+                      return;
+                    }
                   }
                 }
               }

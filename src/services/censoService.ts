@@ -4,7 +4,7 @@ import { parseNombreCompleto, formatearMayusculas } from '../utils/nameParser';
 
 // Banco de datos local precargado para pruebas de nombres y edades reales
 const LOCAL_DEMO_CENSO: Record<string, { nombres: string; apellidos: string; edad?: number; puesto_sugerido?: string; mesa_sugerida?: number }> = {
-  '1007299001': { nombres: 'Ober Luis', apellidos: 'Osorio Orozco', edad: 27 },
+  '1007299001': { nombres: 'Ober Luis', apellidos: 'Osorio Orozco', edad: 28 },
   '1047892341': { nombres: 'Carlos Eduardo', apellidos: 'Mendoza Ospina', edad: 38 },
   '1098341902': { nombres: 'Laura Sofía', apellidos: 'Herrera Morales', edad: 29 },
   '73542189': { nombres: 'Miguel Ángel', apellidos: 'Morales Torres', edad: 52 },
@@ -210,10 +210,12 @@ export async function consultarDocumentoExterno(
 }
 
 /**
- * Consulta un ciudadano en el sistema de censo con arquitectura en cascada:
- * 1. Censo Maestro Local en base de datos (<5ms, indexado con B-Tree)
- * 2. Si no existe localmente, ejecuta la función RPC `consultar_documento_externo` (HTTP nativo desde Postgres)
- * 3. En modo offline/desarrollo sin credenciales, utiliza el almacén local demo
+ * Consulta un ciudadano en el sistema de censo:
+ * 1. PRIORIDAD EN TIEMPO REAL: Consulta en vivo a Ventanilla Social DNP (RUI / Sisbén IV)
+ *    según se actualiza en https://ventanillasocial.dnp.gov.co/
+ * 2. Si DNP responde con éxito, extrae nombres, apellidos, edad exacta y ubicación geográfica en tiempo real,
+ *    y combina puesto y mesa de votación si existen en el censo electoral.
+ * 3. Fallback a base de datos Supabase / censo maestro local si no hay conexión o el registro no está en DNP.
  */
 export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLookupResult> {
   const cleanCedula = cedula.trim().replace(/\D/g, '');
@@ -222,240 +224,190 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
     return { found: false };
   }
 
-  // 1. Si no está conectado con Supabase, buscar en el censo demo local
-  if (!isSupabaseConfigured) {
-    let localCenso = LOCAL_DEMO_CENSO;
-    const stored = localStorage.getItem('electoral_local_censo');
-    if (stored) {
-      try {
-        localCenso = { ...LOCAL_DEMO_CENSO, ...JSON.parse(stored) };
-      } catch (e) {
-        console.error('Error al leer censo local:', e);
-      }
-    }
-
-    const hit = localCenso[cleanCedula];
-    if (hit) {
-      return {
-        found: true,
-        nombres: hit.nombres,
-        apellidos: hit.apellidos,
-        edad: hit.edad ?? null,
-        puesto_sugerido: hit.puesto_sugerido ?? null,
-        mesa_sugerida: hit.mesa_sugerida ?? null,
-      };
-    }
-
-    // Si no está en demo local, consultar vía API / proxy externo
+  // 1. CONSULTA EN TIEMPO REAL A VENTANILLA SOCIAL DNP (RUI / SISBÉN IV)
+  try {
     const ext = await consultarDocumentoExterno(cleanCedula);
-    if (ext.encontrado && ext.nombres) {
+    if (ext && ext.encontrado && ext.nombres) {
       let edadFinal = ext.edad;
       if (!edadFinal) {
         const est = estimarEdadPorCedula(cleanCedula);
         if (est !== '') edadFinal = Number(est);
       }
+
+      // Si existe puesto y mesa asignados previamente en la base de datos electoral, asociarlos
+      let puestoSugerido: string | null = null;
+      let mesaSugerida: number | null = null;
+
+      try {
+        if (isSupabaseConfigured) {
+          const { data: electoralData } = await (supabase.from('censo_maestro') as any)
+            .select('puesto_sugerido, mesa_sugerida')
+            .eq('cedula', cleanCedula)
+            .maybeSingle();
+
+          if (electoralData) {
+            puestoSugerido = electoralData.puesto_sugerido || null;
+            mesaSugerida = electoralData.mesa_sugerida || null;
+          }
+        } else {
+          const demo = LOCAL_DEMO_CENSO[cleanCedula];
+          if (demo) {
+            puestoSugerido = demo.puesto_sugerido || null;
+            mesaSugerida = demo.mesa_sugerida || null;
+          }
+        }
+      } catch {
+        // Ignorar error al buscar puesto complementario
+      }
+
       return {
         found: true,
         nombres: ext.nombres,
         apellidos: ext.apellidos ?? null,
         edad: edadFinal ?? null,
-        puesto_sugerido: null,
-        mesa_sugerida: null,
+        puesto_sugerido: puestoSugerido,
+        mesa_sugerida: mesaSugerida,
         municipio: ext.municipio ?? null,
         departamento: ext.departamento ?? null,
-      };
-    }
-
-    return { found: false };
-  }
-
-  // 2. Consulta en Supabase: RPC buscar_elector_por_cedula (<5ms, indexado con B-Tree)
-  try {
-    const { data: rpcData, error: rpcError } = await (supabase.rpc as any)('buscar_elector_por_cedula', {
-      p_cedula: cleanCedula,
-    });
-
-    if (!rpcError && rpcData) {
-      const record = Array.isArray(rpcData) ? rpcData[0] : rpcData;
-      if (record && (record.encontrado === true || record.found === true)) {
-        const edadRaw =
-          record.edad ??
-          record.anios ??
-          record.fecha_nacimiento ??
-          record.nacimiento ??
-          record.fec_nac ??
-          record.fechaNacimiento;
-
-        let edadCalculada = calcularEdadDesdeCenso(edadRaw);
-        if (edadCalculada === '') {
-          try {
-            const ext = await consultarDocumentoExterno(cleanCedula);
-            if (ext.encontrado && ext.edad) {
-              edadCalculada = ext.edad;
-            }
-          } catch {
-            // fallback
-          }
-        }
-        if (edadCalculada === '') {
-          edadCalculada = estimarEdadPorCedula(cleanCedula);
-        }
-        const edad = edadCalculada !== '' ? Number(edadCalculada) : null;
-
-        const parsed = parseNombreCompleto(`${record.nombres} ${record.apellidos || ''}`);
-        return {
-          found: true,
-          nombres: parsed.nombres,
-          apellidos: parsed.apellidos,
-          edad,
-          puesto_sugerido: record.puesto || record.puesto_sugerido || null,
-          mesa_sugerida: record.mesa || record.mesa_sugerida || null,
-          municipio: record.municipio || record.municipio_votacion || null,
-          departamento: record.departamento || null,
-        };
-      }
-    }
-
-    // Fallback secundario a RPC buscar_ciudadano_censo
-    const { data: legacyData, error: legacyError } = await (supabase.rpc as any)('buscar_ciudadano_censo', {
-      p_cedula: cleanCedula,
-    });
-
-    if (!legacyError && legacyData) {
-      const record = Array.isArray(legacyData) ? legacyData[0] : legacyData;
-      if (record && (record.found === true || record.encontrado === true)) {
-        const edadRaw =
-          record.edad ??
-          record.anios ??
-          record.fecha_nacimiento ??
-          record.nacimiento ??
-          record.fec_nac ??
-          record.fechaNacimiento;
-
-        let edadCalculada = calcularEdadDesdeCenso(edadRaw);
-        if (edadCalculada === '') {
-          try {
-            const ext = await consultarDocumentoExterno(cleanCedula);
-            if (ext.encontrado && ext.edad) {
-              edadCalculada = ext.edad;
-            }
-          } catch {
-            // fallback
-          }
-        }
-        if (edadCalculada === '') {
-          edadCalculada = estimarEdadPorCedula(cleanCedula);
-        }
-        const edad = edadCalculada !== '' ? Number(edadCalculada) : null;
-
-        const parsed = parseNombreCompleto(`${record.nombres} ${record.apellidos || ''}`);
-        return {
-          found: true,
-          nombres: parsed.nombres,
-          apellidos: parsed.apellidos,
-          edad,
-          puesto_sugerido: record.puesto_sugerido || record.puesto || null,
-          mesa_sugerida: record.mesa_sugerida || record.mesa || null,
-          municipio: record.municipio || record.municipio_votacion || null,
-          departamento: record.departamento || null,
-        };
-      }
-    }
-
-    // Fallback directo a la tabla censo_maestro
-    const { data: tableData, error: tableError } = await (supabase.from('censo_maestro') as any)
-      .select('*')
-      .eq('cedula', cleanCedula)
-      .maybeSingle();
-
-    if (!tableError && tableData) {
-      const edadRaw =
-        tableData.edad ??
-        (tableData as any).anios ??
-        (tableData as any).fecha_nacimiento ??
-        (tableData as any).nacimiento ??
-        (tableData as any).fec_nac ??
-        (tableData as any).fechaNacimiento;
-
-      let edadCalculada = calcularEdadDesdeCenso(edadRaw);
-      if (edadCalculada === '') {
-        try {
-          const ext = await consultarDocumentoExterno(cleanCedula);
-          if (ext.encontrado && ext.edad) {
-            edadCalculada = ext.edad;
-          }
-        } catch {
-          // fallback
-        }
-      }
-      if (edadCalculada === '') {
-        edadCalculada = estimarEdadPorCedula(cleanCedula);
-      }
-      const edad = edadCalculada !== '' ? Number(edadCalculada) : null;
-
-      const parsed = parseNombreCompleto(`${tableData.nombres} ${tableData.apellidos || ''}`);
-      return {
-        found: true,
-        nombres: parsed.nombres,
-        apellidos: parsed.apellidos,
-        edad,
-        puesto_sugerido: tableData.puesto_sugerido ?? null,
-        mesa_sugerida: tableData.mesa_sugerida ?? null,
-        municipio: (tableData as any).municipio || (tableData as any).municipio_votacion || null,
-        departamento: (tableData as any).departamento || null,
-      };
-    }
-
-    // 3. Cascada a Consulta Externa vía HTTP
-    const extResult = await consultarDocumentoExterno(cleanCedula);
-    if (extResult.encontrado && extResult.nombres) {
-      let edadFinal = extResult.edad;
-      if (!edadFinal) {
-        const est = estimarEdadPorCedula(cleanCedula);
-        if (est !== '') edadFinal = Number(est);
-      }
-      return {
-        found: true,
-        nombres: extResult.nombres,
-        apellidos: extResult.apellidos ?? null,
-        edad: edadFinal ?? null,
-        puesto_sugerido: null,
-        mesa_sugerida: null,
-        municipio: extResult.municipio ?? null,
-        departamento: extResult.departamento ?? null,
       };
     }
   } catch (err) {
-    console.warn('Aviso en consulta de censo Supabase, recurriendo a consulta directa:', err);
-    const hit = LOCAL_DEMO_CENSO[cleanCedula];
-    if (hit) {
-      return {
-        found: true,
-        nombres: hit.nombres,
-        apellidos: hit.apellidos,
-        edad: hit.edad ?? null,
-        puesto_sugerido: hit.puesto_sugerido ?? null,
-        mesa_sugerida: hit.mesa_sugerida ?? null,
-      };
-    }
-    const ext = await consultarDocumentoExterno(cleanCedula);
-    if (ext.encontrado && ext.nombres) {
-      let edadFinal = ext.edad;
-      if (!edadFinal) {
-        const est = estimarEdadPorCedula(cleanCedula);
-        if (est !== '') edadFinal = Number(est);
+    console.warn('Aviso en consulta en tiempo real a Ventanilla Social DNP:', err);
+  }
+
+  // 2. FALLBACK A BASE DE DATOS SUPABASE (por si DNP no tiene el registro o no hay conexión externa)
+  if (isSupabaseConfigured) {
+    try {
+      const { data: rpcData, error: rpcError } = await (supabase.rpc as any)('buscar_elector_por_cedula', {
+        p_cedula: cleanCedula,
+      });
+
+      if (!rpcError && rpcData) {
+        const record = Array.isArray(rpcData) ? rpcData[0] : rpcData;
+        if (record && (record.encontrado === true || record.found === true)) {
+          const edadRaw =
+            record.edad ??
+            record.anios ??
+            record.fecha_nacimiento ??
+            record.nacimiento ??
+            record.fec_nac ??
+            record.fechaNacimiento;
+
+          let edadCalculada = calcularEdadDesdeCenso(edadRaw);
+          if (edadCalculada === '') {
+            edadCalculada = estimarEdadPorCedula(cleanCedula);
+          }
+          const edad = edadCalculada !== '' ? Number(edadCalculada) : null;
+
+          const parsed = parseNombreCompleto(`${record.nombres} ${record.apellidos || ''}`);
+          return {
+            found: true,
+            nombres: parsed.nombres,
+            apellidos: parsed.apellidos,
+            edad,
+            puesto_sugerido: record.puesto || record.puesto_sugerido || null,
+            mesa_sugerida: record.mesa || record.mesa_sugerida || null,
+            municipio: record.municipio || record.municipio_votacion || null,
+            departamento: record.departamento || null,
+          };
+        }
       }
-      return {
-        found: true,
-        nombres: ext.nombres,
-        apellidos: ext.apellidos ?? null,
-        edad: edadFinal ?? null,
-        puesto_sugerido: null,
-        mesa_sugerida: null,
-        municipio: ext.municipio ?? null,
-        departamento: ext.departamento ?? null,
-      };
+
+      // Fallback secundario a RPC buscar_ciudadano_censo
+      const { data: legacyData, error: legacyError } = await (supabase.rpc as any)('buscar_ciudadano_censo', {
+        p_cedula: cleanCedula,
+      });
+
+      if (!legacyError && legacyData) {
+        const record = Array.isArray(legacyData) ? legacyData[0] : legacyData;
+        if (record && (record.found === true || record.encontrado === true)) {
+          const edadRaw =
+            record.edad ??
+            record.anios ??
+            record.fecha_nacimiento ??
+            record.nacimiento ??
+            record.fec_nac ??
+            record.fechaNacimiento;
+
+          let edadCalculada = calcularEdadDesdeCenso(edadRaw);
+          if (edadCalculada === '') {
+            edadCalculada = estimarEdadPorCedula(cleanCedula);
+          }
+          const edad = edadCalculada !== '' ? Number(edadCalculada) : null;
+
+          const parsed = parseNombreCompleto(`${record.nombres} ${record.apellidos || ''}`);
+          return {
+            found: true,
+            nombres: parsed.nombres,
+            apellidos: parsed.apellidos,
+            edad,
+            puesto_sugerido: record.puesto_sugerido || record.puesto || null,
+            mesa_sugerida: record.mesa_sugerida || record.mesa || null,
+            municipio: record.municipio || record.municipio_votacion || null,
+            departamento: record.departamento || null,
+          };
+        }
+      }
+
+      // Fallback directo a la tabla censo_maestro
+      const { data: tableData, error: tableError } = await (supabase.from('censo_maestro') as any)
+        .select('*')
+        .eq('cedula', cleanCedula)
+        .maybeSingle();
+
+      if (!tableError && tableData) {
+        const edadRaw =
+          tableData.edad ??
+          (tableData as any).anios ??
+          (tableData as any).fecha_nacimiento ??
+          (tableData as any).nacimiento ??
+          (tableData as any).fec_nac ??
+          (tableData as any).fechaNacimiento;
+
+        let edadCalculada = calcularEdadDesdeCenso(edadRaw);
+        if (edadCalculada === '') {
+          edadCalculada = estimarEdadPorCedula(cleanCedula);
+        }
+        const edad = edadCalculada !== '' ? Number(edadCalculada) : null;
+
+        const parsed = parseNombreCompleto(`${tableData.nombres} ${tableData.apellidos || ''}`);
+        return {
+          found: true,
+          nombres: parsed.nombres,
+          apellidos: parsed.apellidos,
+          edad,
+          puesto_sugerido: tableData.puesto_sugerido ?? null,
+          mesa_sugerida: tableData.mesa_sugerida ?? null,
+          municipio: (tableData as any).municipio || (tableData as any).municipio_votacion || null,
+          departamento: (tableData as any).departamento || null,
+        };
+      }
+    } catch (err) {
+      console.warn('Aviso en consulta de censo Supabase:', err);
     }
+  }
+
+  // 3. FALLBACK LOCAL DEMO
+  let localCenso = LOCAL_DEMO_CENSO;
+  const stored = localStorage.getItem('electoral_local_censo');
+  if (stored) {
+    try {
+      localCenso = { ...LOCAL_DEMO_CENSO, ...JSON.parse(stored) };
+    } catch (e) {
+      console.error('Error al leer censo local:', e);
+    }
+  }
+
+  const hit = localCenso[cleanCedula];
+  if (hit) {
+    return {
+      found: true,
+      nombres: hit.nombres,
+      apellidos: hit.apellidos,
+      edad: hit.edad ?? null,
+      puesto_sugerido: hit.puesto_sugerido ?? null,
+      mesa_sugerida: hit.mesa_sugerida ?? null,
+    };
   }
 
   return { found: false };

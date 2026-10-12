@@ -252,6 +252,67 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
       }
     }
 
+    // 3. Fallback a Tarjeta de Identidad (tipoDoc=2) si se consultó como Cédula (tipoDoc=3)
+    if (tipDoc === '3') {
+      const payloadTI = `pNumDoc=${encodeURIComponent(cedula)}&pTipDoc=2`;
+      const ruiTIRes = await fetch('https://ventanillasocial.dnp.gov.co/Home/ObtenerDatosRUI', {
+        method: 'POST',
+        headers,
+        body: payloadTI,
+      });
+      const ruiTIData = ((await ruiTIRes.json().catch(() => null)) || {}) as any;
+      if (ruiTIData && ruiTIData.ok && ruiTIData.nombre) {
+        const { nombres, apellidos } = parseFullName(ruiTIData.nombre);
+        const edadVal = ruiTIData.edad || ruiTIData.anios || ruiTIData.fechaNacimiento || ruiTIData.fecNac || null;
+        return new Response(
+          JSON.stringify({
+            encontrado: true,
+            nombres,
+            apellidos,
+            edad: edadVal,
+            municipio: ruiTIData.municipio || null,
+            departamento: ruiTIData.departamento || null,
+            raw: ruiTIData,
+          }),
+          { status: 200, headers: corsHeaders }
+        );
+      }
+
+      const sisbenTIRes = await fetch('https://ventanillasocial.dnp.gov.co/Home/ConsultarGrupoSisben', {
+        method: 'POST',
+        headers,
+        body: payloadTI,
+      });
+      if (sisbenTIRes.ok) {
+        try {
+          const sisbenTIData = (await sisbenTIRes.json()) as any;
+          if (sisbenTIData && sisbenTIData.ok) {
+            const rawNombre =
+              sisbenTIData.nombre ||
+              trimNames(sisbenTIData.primerNombre, sisbenTIData.segundoNombre, sisbenTIData.primerApellido, sisbenTIData.segundoApellido);
+            if (rawNombre) {
+              const { nombres, apellidos } = parseFullName(rawNombre);
+              const edadVal = sisbenTIData.edad || sisbenTIData.fechaNacimiento || sisbenTIData.fecNac || null;
+              return new Response(
+                JSON.stringify({
+                  encontrado: true,
+                  nombres,
+                  apellidos,
+                  edad: edadVal,
+                  municipio: sisbenTIData.municipio || null,
+                  departamento: sisbenTIData.departamento || null,
+                  raw: sisbenTIData,
+                }),
+                { status: 200, headers: corsHeaders }
+              );
+            }
+          }
+        } catch {
+          // Fall through
+        }
+      }
+    }
+
     return new Response(JSON.stringify({ encontrado: false }), {
       status: 200,
       headers: corsHeaders,
