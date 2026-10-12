@@ -3,7 +3,7 @@ import type { CensoLookupResult, ConsultarDocumentoExternoResult } from '../type
 import { parseNombreCompleto, formatearMayusculas } from '../utils/nameParser';
 
 // Banco de datos local precargado para pruebas de nombres y edades reales
-const LOCAL_DEMO_CENSO: Record<string, { nombres: string; apellidos: string; edad?: number; puesto_sugerido?: string; mesa_sugerida?: number }> = {
+export const LOCAL_DEMO_CENSO: Record<string, { nombres: string; apellidos: string; edad?: number; puesto_sugerido?: string; mesa_sugerida?: number }> = {
   '1007299001': { nombres: 'Ober Luis', apellidos: 'Osorio Orozco', edad: 28 },
   '1047892341': { nombres: 'Carlos Eduardo', apellidos: 'Mendoza Ospina', edad: 38 },
   '1098341902': { nombres: 'Laura Sofía', apellidos: 'Herrera Morales', edad: 29 },
@@ -165,10 +165,13 @@ export async function consultarDocumentoExterno(
       if (!error && data) {
         const row = Array.isArray(data) ? data[0] : data;
         if (row && row.encontrado) {
+          const rawEdad = row.edad ?? row.anios ?? row.fecha_nacimiento ?? row.nacimiento ?? row.fec_nac;
+          const edadCalculada = calcularEdadDesdeCenso(rawEdad);
           return {
             encontrado: true,
             nombres: row.nombres,
             apellidos: row.apellidos,
+            edad: edadCalculada !== '' ? Number(edadCalculada) : (row.edad ? Number(row.edad) : null),
             raw_response: row.raw_response,
           };
         }
@@ -185,6 +188,7 @@ export async function consultarDocumentoExterno(
       encontrado: true,
       nombres: demo.nombres,
       apellidos: demo.apellidos,
+      edad: demo.edad !== undefined && demo.edad !== null ? Number(demo.edad) : null,
       raw_response: { demo: true },
     };
   }
@@ -211,7 +215,15 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
   try {
     const ext = await consultarDocumentoExterno(cleanCedula);
     if (ext && ext.encontrado && ext.nombres) {
-      const edadFinal = ext.edad !== null && ext.edad !== undefined && !isNaN(Number(ext.edad)) ? Number(ext.edad) : null;
+      let edadFinal = ext.edad !== null && ext.edad !== undefined && !isNaN(Number(ext.edad)) ? Number(ext.edad) : null;
+
+      // Si la consulta externa no trajo edad, buscar si el censo local o censo maestro la tiene
+      if (!edadFinal) {
+        const demo = LOCAL_DEMO_CENSO[cleanCedula];
+        if (demo && demo.edad) {
+          edadFinal = Number(demo.edad);
+        }
+      }
 
       // Si existe puesto y mesa asignados previamente en la base de datos electoral, asociarlos
       let puestoSugerido: string | null = null;
@@ -220,13 +232,17 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
       try {
         if (isSupabaseConfigured) {
           const { data: electoralData } = await (supabase.from('censo_maestro') as any)
-            .select('puesto_sugerido, mesa_sugerida')
+            .select('puesto_sugerido, mesa_sugerida, edad, fecha_nacimiento')
             .eq('cedula', cleanCedula)
             .maybeSingle();
 
           if (electoralData) {
             puestoSugerido = electoralData.puesto_sugerido || null;
             mesaSugerida = electoralData.mesa_sugerida || null;
+            if (!edadFinal) {
+              const edadMaestro = calcularEdadDesdeCenso(electoralData.edad ?? electoralData.fecha_nacimiento);
+              if (edadMaestro !== '') edadFinal = Number(edadMaestro);
+            }
           }
         } else {
           const demo = LOCAL_DEMO_CENSO[cleanCedula];

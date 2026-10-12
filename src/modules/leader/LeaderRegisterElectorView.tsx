@@ -14,7 +14,12 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../services/supabase';
 import { getPollingPlacesForTenant, formatearPuestoSimple } from '../electors/constants';
-import { buscarCiudadanoEnCenso, calcularEdadDesdeCenso, estimarEdadPorCedula } from '../../services/censoService';
+import {
+  buscarCiudadanoEnCenso,
+  calcularEdadDesdeCenso,
+  estimarEdadPorCedula,
+  LOCAL_DEMO_CENSO,
+} from '../../services/censoService';
 import type { PollingPlace } from '../../types';
 
 export interface LeaderRegisterProps {
@@ -136,7 +141,12 @@ export const LeaderRegisterElectorView: React.FC<LeaderRegisterProps> = ({
 
         let edadCalculada = calcularEdadDesdeCenso(edadObtenida);
         if (!edadCalculada) {
-          edadCalculada = estimarEdadPorCedula(cedulaLimpia) || '';
+          const demo = LOCAL_DEMO_CENSO[cedulaLimpia];
+          if (demo?.edad) {
+            edadCalculada = demo.edad;
+          } else {
+            edadCalculada = estimarEdadPorCedula(cedulaLimpia) || '';
+          }
         }
 
         autofilledCedulaRef.current = cedulaLimpia;
