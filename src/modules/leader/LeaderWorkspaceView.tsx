@@ -448,10 +448,17 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
           {/* TAB 1: MI META PERSONAL */}
           {activeTab === 'goal' && (
             <LeaderDashboardView
+              userId={userId}
+              currentUser={{
+                id: userId,
+                full_name: userName,
+                campaign_name: tenantName,
+              }}
               stats={stats}
               personalGoal={personalGoal}
               onNavigateToRegister={() => setActiveTab('register')}
               onNavigateToList={() => setActiveTab('list')}
+              onNavigateToVotes={() => setActiveTab('list')}
             />
           )}
 
