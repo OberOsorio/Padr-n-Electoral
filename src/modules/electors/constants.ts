@@ -3,6 +3,8 @@ export {
   getPollingPlacesForTenant,
   fetchPollingPlacesForTenantAsync,
   obtenerPuestosPorMunicipio,
+  getMunicipiosPorDepartamento,
+  getPollingPlacesPorMunicipio,
   normalizarTexto,
 } from '../../services/divipoleService';
 export { formatearPuestoSimple, ElectorLocationSelector } from './components/ElectorLocationSelector';

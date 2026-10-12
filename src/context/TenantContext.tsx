@@ -7,13 +7,13 @@ export const DEFAULT_TENANTS: Tenant[] = [];
 
 export const SANDBOX_TENANT: Tenant = {
   id: 'sandbox',
-  name: 'Sandbox Demostrativo',
-  slug: 'demo-sandbox',
+  name: 'TODO POR COTORRA',
+  slug: 'todo-por-cotorra',
   plan: 'enterprise',
   is_active: true,
   max_electors: 50000,
   departamento: 'Córdoba',
-  municipio: 'Montería',
+  municipio: 'Cotorra',
   created_at: new Date().toISOString(),
 };
 

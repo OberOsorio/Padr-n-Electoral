@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { MapPin, Layers, Check, Search, ChevronDown, BookmarkCheck } from 'lucide-react';
+import { MapPin, Layers, Check, Search, ChevronDown, BookmarkCheck, Building2 } from 'lucide-react';
 import type { PollingPlace } from '../../../types';
+import { normalizarTexto } from '../../../services/divipoleService';
 
 export interface PuestoFormateado {
   titulo: string;
@@ -115,6 +116,10 @@ export interface ElectorLocationSelectorProps {
   mesa: number | '';
   onMesaChange: (newMesa: number | '') => void;
   pollingPlaces: PollingPlace[];
+  municipio?: string;
+  onMunicipioChange?: (newMunicipio: string) => void;
+  departamento?: string;
+  availableMunicipios?: string[];
   disabled?: boolean;
   mesaInputRef?: React.RefObject<HTMLSelectElement | null>;
   rememberLocation?: boolean;
@@ -130,6 +135,10 @@ export const ElectorLocationSelector: React.FC<ElectorLocationSelectorProps> = (
   mesa,
   onMesaChange,
   pollingPlaces,
+  municipio,
+  onMunicipioChange,
+  departamento = 'Córdoba',
+  availableMunicipios,
   disabled = false,
   mesaInputRef,
   rememberLocation = false,
@@ -171,10 +180,16 @@ export const ElectorLocationSelector: React.FC<ElectorLocationSelectorProps> = (
     }
   }, [puestoVotacion]);
 
-  // Puesto actual seleccionado
+  // Puesto actual seleccionado con matching tolerante normalizado
   const currentPollingPlace = useMemo(() => {
     if (!puestoVotacion) return null;
-    return pollingPlaces.find((p) => p.name === puestoVotacion) || null;
+    const target = normalizarTexto(puestoVotacion);
+    return (
+      pollingPlaces.find((p) => {
+        const pName = normalizarTexto(p.name);
+        return pName === target || pName.includes(target) || target.includes(pName);
+      }) || null
+    );
   }, [pollingPlaces, puestoVotacion]);
 
   const currentFormatted = useMemo(() => {
@@ -182,7 +197,7 @@ export const ElectorLocationSelector: React.FC<ElectorLocationSelectorProps> = (
     return formatearPuestoSimple(currentPollingPlace.name, currentPollingPlace.zone);
   }, [currentPollingPlace]);
 
-  const totalMesas = currentPollingPlace?.totalMesas || 0;
+  const totalMesas = currentPollingPlace?.totalMesas || (currentPollingPlace as any)?.total_mesas || 0;
 
   // Lista formateada y filtrada por búsqueda rápida
   const formattedPlaces = useMemo(() => {
@@ -213,14 +228,23 @@ export const ElectorLocationSelector: React.FC<ElectorLocationSelectorProps> = (
     });
   }, [formattedPlaces, searchTerm]);
 
+  const hasMultipleMunicipios = Boolean(onMunicipioChange && availableMunicipios && availableMunicipios.length > 1);
+
   const content = (
     <div className="space-y-4">
       {/* Encabezado con estado y detalle de mesas */}
-      <div className="flex items-center justify-between">
-        <span className="text-[11px] font-mono uppercase tracking-wider text-slate-700 dark:text-slate-300 font-semibold flex items-center gap-1.5">
-          <MapPin className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-          Ubicación Electoral
-        </span>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-mono uppercase tracking-wider text-slate-700 dark:text-slate-300 font-semibold flex items-center gap-1.5">
+            <MapPin className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+            Ubicación Electoral
+          </span>
+          {municipio && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+              Circunscripción: {municipio} · {departamento} ({pollingPlaces.length} {pollingPlaces.length === 1 ? 'puesto' : 'puestos'})
+            </span>
+          )}
+        </div>
         <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 font-medium">
           {currentFormatted
             ? `${currentFormatted.detalle} · ${totalMesas} ${totalMesas === 1 ? 'Mesa Habilitada' : 'Mesas Habilitadas'}`
@@ -228,9 +252,41 @@ export const ElectorLocationSelector: React.FC<ElectorLocationSelectorProps> = (
         </span>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className={`grid grid-cols-1 ${hasMultipleMunicipios ? 'md:grid-cols-12' : 'md:grid-cols-3'} gap-4`}>
+        {/* Selector de Municipio (cuando la circunscripción departamental o multi-municipio lo permita) */}
+        {hasMultipleMunicipios && (
+          <div className="md:col-span-4 space-y-1.5">
+            <label
+              htmlFor="municipio-selector"
+              className="block text-[11px] font-medium uppercase tracking-wider text-slate-700 dark:text-slate-300 font-mono"
+            >
+              Municipio / Jurisdicción
+            </label>
+            <div className="relative">
+              <select
+                id="municipio-selector"
+                value={municipio || ''}
+                onChange={(e) => {
+                  if (onMunicipioChange) {
+                    onMunicipioChange(e.target.value);
+                  }
+                }}
+                disabled={disabled}
+                className="w-full h-10.5 pl-3.5 pr-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 rounded-xl text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/40 transition-all disabled:opacity-50 appearance-none cursor-pointer"
+              >
+                {availableMunicipios!.map((m) => (
+                  <option key={m} value={m} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+                    {m} ({departamento})
+                  </option>
+                ))}
+              </select>
+              <Building2 className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500 pointer-events-none" />
+            </div>
+          </div>
+        )}
+
         {/* Selector Desplegable Simplificado de Puesto de Votación */}
-        <div className="md:col-span-2 space-y-1.5" ref={dropdownRef}>
+        <div className={`${hasMultipleMunicipios ? 'md:col-span-5' : 'md:col-span-2'} space-y-1.5`} ref={dropdownRef}>
           <label
             htmlFor="puesto"
             className="block text-[11px] font-medium uppercase tracking-wider text-slate-700 dark:text-slate-300 font-mono"
@@ -350,7 +406,7 @@ export const ElectorLocationSelector: React.FC<ElectorLocationSelectorProps> = (
               <option value="" disabled className="bg-white dark:bg-slate-900 text-slate-400 dark:text-slate-500 font-sans">
                 {puestoVotacion ? 'Seleccione número de mesa...' : 'Seleccione puesto primero...'}
               </option>
-              {Array.from({ length: totalMesas }, (_, i) => i + 1).map((m) => (
+              {Array.from({ length: Math.max(1, totalMesas) }, (_, i) => i + 1).map((m) => (
                 <option key={m} value={m} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-mono">
                   Mesa {m}
                 </option>

@@ -19,7 +19,12 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AnimatedCheck } from '../../components/ui/AnimatedCheck';
-import { getPollingPlacesForTenant } from './constants';
+import {
+  getMunicipiosPorDepartamento,
+  getPollingPlacesPorMunicipio,
+  fetchPollingPlacesForTenantAsync,
+  type PollingPlace,
+} from './constants';
 import {
   resolverMunicipioCampana,
   normalizarTexto,
@@ -105,10 +110,53 @@ export const RegisterElectorView = ({
 
   const { currentTenant, currentTenantId, planUsage, refetchTenants } = useTenant();
 
-  // Puestos oficiales de votación correspondientes a la circunscripción/municipio de la campaña (Divipole 2026)
-  const pollingPlaces = useMemo(() => {
-    return getPollingPlacesForTenant(currentTenant);
+  // Circunscripción activa de la campaña
+  const departamentoCampana = currentTenant?.departamento || 'Córdoba';
+  const municipioCampanaDefault = currentTenant?.municipio || resolverMunicipioCampana(currentTenant) || 'Cotorra';
+
+  const [selectedMunicipio, setSelectedMunicipio] = useState<string>(municipioCampanaDefault);
+
+  // Sincronizar circunscripción territorial si cambia la campaña activa
+  useEffect(() => {
+    const defaultMuni = currentTenant?.municipio || resolverMunicipioCampana(currentTenant) || 'Cotorra';
+    setSelectedMunicipio(defaultMuni);
   }, [currentTenant]);
+
+  // Lista de municipios oficiales disponibles para la circunscripción departamental
+  const availableMunicipios = useMemo(() => {
+    return getMunicipiosPorDepartamento(departamentoCampana);
+  }, [departamentoCampana]);
+
+  // Puestos oficiales de votación correspondientes a la circunscripción/municipio seleccionado (Divipole 2026)
+  const [pollingPlaces, setPollingPlaces] = useState<PollingPlace[]>(() => {
+    return getPollingPlacesPorMunicipio(municipioCampanaDefault, departamentoCampana);
+  });
+
+  // Carga reactiva de puestos en tiempo real: sincronía local inmediata + consulta asíncrona de respaldo
+  useEffect(() => {
+    let isMounted = true;
+    const local = getPollingPlacesPorMunicipio(selectedMunicipio, departamentoCampana);
+    if (local.length > 0) {
+      setPollingPlaces(local);
+    }
+
+    fetchPollingPlacesForTenantAsync(currentTenant, selectedMunicipio).then((asyncPlaces) => {
+      if (isMounted && asyncPlaces && asyncPlaces.length > 0) {
+        setPollingPlaces(asyncPlaces);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [currentTenant, selectedMunicipio, departamentoCampana]);
+
+  const handleMunicipioChange = useCallback((newMuni: string) => {
+    setSelectedMunicipio(newMuni);
+    setPuestoVotacion('');
+    setMesa('');
+    setAlertaJurisdiccion({ mostrar: false });
+  }, []);
 
   // Función estricta de validación territorial:
   // SOLO alerta cuando explícitamente se conoce el municipio del censo y es distinto al municipio de la campaña activa.
@@ -1156,6 +1204,10 @@ export const RegisterElectorView = ({
             mesa={mesa}
             onMesaChange={(newMesa) => setMesa(newMesa)}
             pollingPlaces={pollingPlaces}
+            municipio={selectedMunicipio}
+            onMunicipioChange={handleMunicipioChange}
+            departamento={departamentoCampana}
+            availableMunicipios={availableMunicipios}
             disabled={saving || (collisionResult?.exists ?? false)}
             mesaInputRef={mesaInputRef}
             rememberLocation={rememberLocation}

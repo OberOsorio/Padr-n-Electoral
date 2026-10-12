@@ -107,45 +107,66 @@ export function detectarMunicipioDePuesto(nombrePuesto?: string | null): string 
 }
 
 /**
- * Extrae el municipio objetivo de una campaña (usando tenant.municipio o infiriéndolo del nombre de la campaña si aplica).
+ * Retorna la lista de municipios oficiales disponibles para un departamento dado (Divipole 2026).
  */
-export function resolverMunicipioCampana(tenant?: Tenant | null): string {
-  if (tenant?.municipio && tenant.municipio.trim()) {
-    return tenant.municipio.trim();
+export function getMunicipiosPorDepartamento(departamento: string = 'Córdoba'): string[] {
+  const normDept = normalizarTexto(departamento);
+  if (normDept.includes('CORDOBA')) {
+    return [
+      'Cotorra',
+      'Montería',
+      'Cereté',
+      'Sahagún',
+      'Lorica',
+      'Tierralta',
+      'Montelíbano',
+      'Planeta Rica',
+      'San Pelayo',
+      'Ciénaga de Oro',
+      'Chinú',
+      'Pueblo Nuevo',
+      'Puerto Libertador',
+      'San Carlos',
+      'San Antero',
+      'Tuchín',
+      'Valencia',
+      'Ayapel',
+      'Buenavista',
+      'Canalete',
+      'Chimá',
+      'La Apartada',
+      'Los Córdobas',
+      'Momil',
+      'Moñitos',
+      'Purísima',
+      'San Bernardo del Viento',
+    ].sort((a, b) => a.localeCompare(b));
   }
-  if (tenant?.name) {
-    const upperName = normalizarTexto(tenant.name);
-    for (const [rawKey, fullMuni] of Object.entries(CORDOBA_MUNICIPIOS_ALIAS)) {
-      if (upperName.includes(normalizarTexto(fullMuni)) || (rawKey.length >= 4 && upperName.includes(rawKey))) {
-        return fullMuni;
-      }
-    }
-  }
-  return 'Montería';
+  return ['Cotorra', 'Montería'];
 }
 
 /**
- * Retorna los puestos oficiales de votación correspondientes a la circunscripción/municipio de la campaña.
- * Si la campaña es de Montería / Córdoba, retorna los 95 puestos oficiales del Divipole 2026.
- * Para otros municipios, filtra con normalización fonética y alias tolerantes.
+ * Retorna los puestos oficiales de votación correspondientes a un municipio y departamento específicos.
  */
-export function getPollingPlacesForTenant(tenant?: Tenant | null): PollingPlace[] {
-  const dept = tenant?.departamento ? normalizarTexto(tenant.departamento) : 'CORDOBA';
-  const muni = resolverMunicipioCampana(tenant);
-  const cacheKey = `${dept}_${normalizarTexto(muni)}`;
+export function getPollingPlacesPorMunicipio(
+  municipio: string,
+  departamento: string = 'Córdoba'
+): PollingPlace[] {
+  const normDept = normalizarTexto(departamento);
+  const normMuni = normalizarTexto(municipio);
+  const cacheKey = `${normDept}_${normMuni}`;
 
   if (memoryCache.has(cacheKey)) {
     return memoryCache.get(cacheKey)!;
   }
 
-  // Si es de Córdoba, filtrar desde el dataset precargado de Córdoba con emparejamiento tolerante
-  if (dept.includes('CORDOBA')) {
-    const filtered = obtenerPuestosPorMunicipio(muni, cordobaData as any[]);
+  if (normDept.includes('CORDOBA')) {
+    const filtered = obtenerPuestosPorMunicipio(municipio, cordobaData as any[]);
     if (filtered.length > 0) {
       const mapped: PollingPlace[] = filtered.map((p) => ({
         id: p.id,
         name: p.name,
-        totalMesas: p.totalMesas || 1,
+        totalMesas: p.totalMesas || p.total_mesas || 1,
         zone: p.zone || 'Cabecera',
         departamento: p.departamento,
         municipio: p.municipio,
@@ -160,23 +181,68 @@ export function getPollingPlacesForTenant(tenant?: Tenant | null): PollingPlace[
     }
   }
 
-  // Por defecto, retornar los 95 puestos oficiales de Montería (Divipole 2026)
-  return MONTERIA_DIVIPOLE_2026;
+  // Fallback si es Montería específicamente
+  if (normMuni === 'MONTERIA' || normMuni === 'MONTERÍA') {
+    return MONTERIA_DIVIPOLE_2026;
+  }
+
+  return [];
 }
 
 /**
- * Consulta asíncrona de puestos en Supabase para cualquier circunscripción o municipio de Colombia.
+ * Extrae el municipio objetivo de una campaña (usando tenant.municipio o infiriéndolo del nombre de la campaña si aplica).
+ */
+export function resolverMunicipioCampana(tenant?: Tenant | null): string {
+  if (tenant?.municipio && tenant.municipio.trim()) {
+    return tenant.municipio.trim();
+  }
+  if (tenant?.name) {
+    const upperName = normalizarTexto(tenant.name);
+    for (const [rawKey, fullMuni] of Object.entries(CORDOBA_MUNICIPIOS_ALIAS)) {
+      if (upperName.includes(normalizarTexto(fullMuni)) || (rawKey.length >= 4 && upperName.includes(rawKey))) {
+        return fullMuni;
+      }
+    }
+  }
+  return 'Cotorra';
+}
+
+/**
+ * Retorna los puestos oficiales de votación correspondientes a la circunscripción/municipio de la campaña.
+ */
+export function getPollingPlacesForTenant(tenant?: Tenant | null): PollingPlace[] {
+  const dept = tenant?.departamento ? normalizarTexto(tenant.departamento) : 'CORDOBA';
+  const muni = resolverMunicipioCampana(tenant);
+  const places = getPollingPlacesPorMunicipio(muni, dept);
+  if (places.length > 0) {
+    return places;
+  }
+
+  // Por defecto, retornar Cotorra (o Montería como último recurso)
+  const cotorraPlaces = getPollingPlacesPorMunicipio('Cotorra', 'Córdoba');
+  return cotorraPlaces.length > 0 ? cotorraPlaces : MONTERIA_DIVIPOLE_2026;
+}
+
+/**
+ * Consulta asíncrona de puestos en Supabase para cualquier circunscripción o municipio de Colombia (Divipole 2026).
  */
 export async function fetchPollingPlacesForTenantAsync(
-  tenant?: Tenant | null
+  tenant?: Tenant | null,
+  municipioOverride?: string
 ): Promise<PollingPlace[]> {
-  const localList = getPollingPlacesForTenant(tenant);
-  if (!isSupabaseConfigured || !tenant?.municipio) {
+  const dept = tenant?.departamento || 'Córdoba';
+  const muni = municipioOverride || tenant?.municipio || resolverMunicipioCampana(tenant) || 'Cotorra';
+
+  // 1. Intentar resolver sincrónicamente desde dataset precargado
+  const localList = getPollingPlacesPorMunicipio(muni, dept);
+  if (localList.length > 0) {
     return localList;
   }
 
-  const dept = tenant.departamento || 'Córdoba';
-  const muni = tenant.municipio || 'Montería';
+  if (!isSupabaseConfigured) {
+    return localList;
+  }
+
   const cacheKey = `${normalizarTexto(dept)}_${normalizarTexto(muni)}`;
 
   try {
@@ -192,7 +258,7 @@ export async function fetchPollingPlacesForTenantAsync(
       const mapped: PollingPlace[] = data.map((d: any) => ({
         id: d.id,
         name: d.name,
-        totalMesas: d.total_mesas || 1,
+        totalMesas: d.total_mesas || d.totalMesas || 1,
         zone: d.zone,
         departamento: d.departamento,
         municipio: d.municipio,
