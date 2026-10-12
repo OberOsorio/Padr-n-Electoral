@@ -80,6 +80,7 @@ export const RegisterElectorView = ({
     puestoElector?: string;
   }>({ mostrar: false });
   const currentCedulaRef = useRef<string>('');
+  const autofilledCedulaRef = useRef<string>('');
 
   // Estados de envío y feedback
   const [saving, setSaving] = useState(false);
@@ -312,13 +313,35 @@ export const RegisterElectorView = ({
             }
           }
 
+          autofilledCedulaRef.current = cleanNum;
           setIsAutofilledFromCenso(true);
         } else {
+          // Si este número no está en el censo maestro, limpiar campos si estaban autocompletados
+          if (autofilledCedulaRef.current || isAutofilledFromCenso) {
+            setNombres('');
+            setApellidos('');
+            setEdad('');
+            if (!rememberLocation) {
+              setPuestoVotacion('');
+              setMesa('');
+            }
+          }
+          autofilledCedulaRef.current = '';
           setIsAutofilledFromCenso(false);
           setAlertaJurisdiccion({ mostrar: false });
         }
       } catch (e) {
         console.error('Error al autocompletar desde censo maestro:', e);
+        if (autofilledCedulaRef.current || isAutofilledFromCenso) {
+          setNombres('');
+          setApellidos('');
+          setEdad('');
+          if (!rememberLocation) {
+            setPuestoVotacion('');
+            setMesa('');
+          }
+        }
+        autofilledCedulaRef.current = '';
         setIsAutofilledFromCenso(false);
         setAlertaJurisdiccion({ mostrar: false });
       }
@@ -459,7 +482,7 @@ export const RegisterElectorView = ({
     }
   }, [currentTenantId, pollingPlaces, validarJurisdiccionElector]);
 
-  // Manejador del cambio en cédula con debounce estricto de 400ms
+  // Manejador del cambio en cédula con debounce estricto de 250ms
   const handleCedulaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value.replace(/\D/g, ''); // Numpad: solo dígitos
     setCedula(val);
@@ -468,6 +491,22 @@ export const RegisterElectorView = ({
 
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
+    }
+
+    // Si la cédula fue alterada o se eliminó un dígito y teníamos datos autocompletados
+    // de una consulta previa, limpiamos inmediatamente los datos para no dejar información obsoleta
+    if ((autofilledCedulaRef.current && autofilledCedulaRef.current !== val) || isAutofilledFromCenso) {
+      setNombres('');
+      setApellidos('');
+      setEdad('');
+      if (!rememberLocation) {
+        setPuestoVotacion('');
+        setMesa('');
+      }
+      setIsAutofilledFromCenso(false);
+      autofilledCedulaRef.current = '';
+      setAlertaJurisdiccion({ mostrar: false });
+      setCollisionResult(null);
     }
 
     if (!val) {
@@ -481,21 +520,12 @@ export const RegisterElectorView = ({
       setCollisionResult(null);
       setIsCheckingCedula(false);
       setIsAutofilledFromCenso(false);
+      autofilledCedulaRef.current = '';
       setAlertaJurisdiccion({ mostrar: false });
       return;
     }
 
     if (val.length < 5) {
-      if (isAutofilledFromCenso) {
-        setNombres('');
-        setApellidos('');
-        setEdad('');
-        if (!rememberLocation) {
-          setPuestoVotacion('');
-          setMesa('');
-        }
-        setIsAutofilledFromCenso(false);
-      }
       setCollisionResult(null);
       setIsCheckingCedula(false);
       setAlertaJurisdiccion({ mostrar: false });
@@ -541,6 +571,7 @@ export const RegisterElectorView = ({
     setIsCheckingCedula(false);
     setCollisionResult(null);
     setIsAutofilledFromCenso(false);
+    autofilledCedulaRef.current = '';
     setAlertaJurisdiccion({ mostrar: false });
     setServerError(null);
 
@@ -712,6 +743,7 @@ export const RegisterElectorView = ({
       setNotas('');
       setCollisionResult(null);
       setIsAutofilledFromCenso(false);
+      autofilledCedulaRef.current = '';
 
       if (!rememberLocation) {
         setPuestoVotacion('');
