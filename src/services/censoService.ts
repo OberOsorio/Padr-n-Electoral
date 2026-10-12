@@ -97,26 +97,53 @@ export async function consultarDocumentoExterno(
     return { encontrado: false };
   }
 
-  // 1. Verificación en banco de memoria / censo local (< 1ms)
-  const demo = LOCAL_DEMO_CENSO[cleanCedula];
-  if (demo) {
-    let demoEdad = demo.edad !== undefined && demo.edad !== null ? Number(demo.edad) : null;
-    if (!demoEdad) {
-      const est = estimarEdadPorCedula(cleanCedula);
-      if (est !== '') demoEdad = Number(est);
+  // 1. CONSULTA PRIORITARIA DIRECTA AL SERVICIO DNP (https://ventanillasocial.dnp.gov.co/)
+  try {
+    const res = await fetch('/api/dnp-lookup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cedula: cleanCedula, tipoDoc: _tipoDoc }),
+    });
+
+    if (res.ok) {
+      const dnpData = await res.json();
+      if (dnpData && dnpData.encontrado) {
+        const elector = parseConsultaDinamica({
+          ok: true,
+          nombres: dnpData.nombres,
+          apellidos: dnpData.apellidos,
+          edad: dnpData.edad,
+          municipio: dnpData.municipio,
+          departamento: dnpData.departamento,
+          ...(dnpData.raw || {}),
+        });
+
+        if (elector) {
+          let edadFinal = elector.edad ? Number(elector.edad) : null;
+          if (!edadFinal) {
+            const est = estimarEdadPorCedula(cleanCedula);
+            if (est !== '') edadFinal = Number(est);
+          }
+
+          return {
+            encontrado: true,
+            nombres: elector.nombres,
+            apellidos: elector.apellidos,
+            edad: edadFinal,
+            municipio: elector.municipio || dnpData.municipio || null,
+            departamento: elector.departamento || dnpData.departamento || null,
+            puesto_sugerido: null,
+            mesa_sugerida: null,
+            raw_response: dnpData,
+          };
+        }
+      }
     }
-    return {
-      encontrado: true,
-      nombres: demo.nombres,
-      apellidos: demo.apellidos,
-      edad: demoEdad,
-      puesto_sugerido: demo.puesto_sugerido ?? null,
-      mesa_sugerida: demo.mesa_sugerida ?? null,
-      raw_response: { demo: true },
-    };
+  } catch (dnpErr) {
+    console.warn('Aviso en consulta Ventanilla Social DNP:', dnpErr);
   }
 
-  // 2. Consulta directa indexada en Supabase a censo_maestro (< 40ms)
+  // 2. Consulta de respaldo en Supabase a censo_maestro (solo lectura, sin guardar nada)
   if (isSupabaseConfigured) {
     try {
       const { data: row, error } = await (supabase.from('censo_maestro') as any)

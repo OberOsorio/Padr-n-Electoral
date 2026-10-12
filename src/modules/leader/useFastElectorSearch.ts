@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
-import { LOCAL_DEMO_CENSO, estimarEdadPorCedula } from '../../services/censoService';
+import { estimarEdadPorCedula } from '../../services/censoService';
 import { parseConsultaDinamica } from '../../utils/electorResponseParser';
 
 export interface FastElectorSearchResult {
@@ -41,12 +41,12 @@ export function useFastElectorSearch() {
 
       setLoading(true);
 
-      // 2. Timeout forzado estricto de 2.0 segundos máximo (evita cualquier bloqueo de interfaz)
+      // 2. Timeout forzado de 6.0 segundos máximo (garantiza handshake DNP sin colgar interfaz)
       const timeoutId = setTimeout(() => {
         if (abortControllerRef.current) {
           abortControllerRef.current.abort();
         }
-      }, 2000);
+      }, 6000);
 
       try {
         // A. Verificar duplicado en la campaña activa con consulta indexada a Supabase (< 30ms)
@@ -80,29 +80,58 @@ export function useFastElectorSearch() {
           }
         }
 
-        // B. Comprobar banco en memoria / caché local instantáneo (< 1ms)
-        const demo = LOCAL_DEMO_CENSO[docLimpio];
-        if (demo) {
-          clearTimeout(timeoutId);
-          let demoEdad = demo.edad !== undefined && demo.edad !== null ? Number(demo.edad) : null;
-          if (!demoEdad) {
-            const est = estimarEdadPorCedula(docLimpio);
-            if (est !== '') demoEdad = Number(est);
+        // B. Consulta directa y prioritaria a Ventanilla Social DNP (https://ventanillasocial.dnp.gov.co/)
+        try {
+          const res = await fetch('/api/dnp-lookup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cedula: docLimpio, tipoDoc: '3' }),
+            signal,
+          });
+
+          if (res.ok) {
+            const dnpData = await res.json();
+            if (dnpData && dnpData.encontrado) {
+              clearTimeout(timeoutId);
+              const elector = parseConsultaDinamica({
+                ok: true,
+                nombres: dnpData.nombres,
+                apellidos: dnpData.apellidos,
+                edad: dnpData.edad,
+                municipio: dnpData.municipio,
+                departamento: dnpData.departamento,
+                ...(dnpData.raw || {}),
+              });
+
+              if (elector) {
+                let edadCalculada = elector.edad ? Number(elector.edad) : null;
+                if (!edadCalculada) {
+                  const est = estimarEdadPorCedula(docLimpio);
+                  if (est !== '') edadCalculada = Number(est);
+                }
+
+                return {
+                  found: true,
+                  isDuplicate: false,
+                  data: {
+                    nombres: elector.nombres,
+                    apellidos: elector.apellidos,
+                    edad: edadCalculada,
+                    puesto_votacion: null,
+                    mesa: null,
+                    municipio: elector.municipio || dnpData.municipio || null,
+                    departamento: elector.departamento || dnpData.departamento || null,
+                  },
+                };
+              }
+            }
           }
-          return {
-            found: true,
-            isDuplicate: false,
-            data: {
-              nombres: demo.nombres,
-              apellidos: demo.apellidos,
-              edad: demoEdad,
-              puesto_votacion: demo.puesto_sugerido ?? null,
-              mesa: demo.mesa_sugerida ? String(demo.mesa_sugerida) : null,
-            },
-          };
+        } catch (fetchErr: any) {
+          if (fetchErr.name === 'AbortError') throw fetchErr;
+          console.warn('Aviso en consulta Ventanilla Social DNP:', fetchErr);
         }
 
-        // C. Consulta directa indexada en Supabase a censo_maestro (< 50ms)
+        // C. Fallback secundario a Supabase censo_maestro (solo lectura, sin guardar nada)
         if (isSupabaseConfigured) {
           const { data: censo, error: censoErr } = await (supabase.from('censo_maestro') as any)
             .select('*')

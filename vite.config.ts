@@ -47,7 +47,12 @@ function dnpLookupDevPlugin(): Plugin {
     name: 'dnp-lookup-dev-plugin',
     configureServer(server) {
       server.middlewares.use(async (req, res, next) => {
-        if ((req.url === '/api/dnp-lookup' || req.url?.startsWith('/api/dnp-lookup?')) && req.method === 'POST') {
+        const isLookup = 
+          req.url === '/api/dnp-lookup' || 
+          req.url?.startsWith('/api/dnp-lookup?') || 
+          req.url === '/api/consulta-identidad' || 
+          req.url?.startsWith('/api/consulta-identidad?');
+        if (isLookup && req.method === 'POST') {
           let bodyStr = '';
           req.on('data', (chunk) => { bodyStr += chunk; });
           req.on('end', async () => {
