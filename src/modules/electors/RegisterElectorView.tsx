@@ -31,10 +31,7 @@ import {
 } from '../../services/divipoleService';
 import { ElectorLocationSelector } from './components/ElectorLocationSelector';
 import { useTenant } from '../../context/TenantContext';
-import {
-  buscarCiudadanoEnCenso,
-} from '../../services/censoService';
-import { parseConsultaDinamica } from '../../utils/electorResponseParser';
+import { useElectorSearch } from './useElectorSearch';
 
 interface RegisterElectorViewProps {
   onSuccess?: () => void;
@@ -73,6 +70,7 @@ export const RegisterElectorView = ({
   const [isCheckingCedula, setIsCheckingCedula] = useState(false);
   const [collisionResult, setCollisionResult] = useState<CollisionCheckResult | null>(null);
   const [isAutofilledFromCenso, setIsAutofilledFromCenso] = useState(false);
+  const { buscarDocumento } = useElectorSearch();
   const [alertaJurisdiccion, setAlertaJurisdiccion] = useState<{
     mostrar: boolean;
     municipioElector?: string;
@@ -250,7 +248,7 @@ export const RegisterElectorView = ({
     );
   };
 
-  // Validación anti-colisión en tiempo real con Debounce aislada por Tenant
+  // Validación anti-colisión y autocompletado en tiempo real sin caché fantasma
   const checkCedulaCollision = useCallback(async (cedulaValue: string) => {
     const cleanCedula = cedulaValue.trim().replace(/\D/g, '');
     if (cleanCedula.length < 5) {
@@ -261,227 +259,94 @@ export const RegisterElectorView = ({
 
     setIsCheckingCedula(true);
 
-    const autofillFromCenso = async (cleanNum: string) => {
-      try {
-        const censo = await buscarCiudadanoEnCenso(cleanNum);
-        console.log('[DEBUG CENSO DATA]:', censo);
-
-        // Si el usuario ya cambió la cédula mientras respondía la red, descartar
-        if (currentCedulaRef.current !== cleanNum) {
-          return;
-        }
-
-        if (censo.found) {
-          const elector = parseConsultaDinamica({
-            ok: censo.found,
-            nombres: censo.nombres,
-            apellidos: censo.apellidos,
-            edad: censo.edad,
-            municipio: censo.municipio,
-            departamento: censo.departamento,
-            ...(censo as any),
-          });
-
-          if (elector) {
-            setNombres(elector.nombres);
-            setApellidos(elector.apellidos);
-
-            const edadFinal: number | '' =
-              elector.edad && !isNaN(Number(elector.edad)) && Number(elector.edad) > 0
-                ? Number(elector.edad)
-                : '';
-
-            setEdad(edadFinal);
-
-            // Validar jurisdicción estrictamente por municipio explícito (nunca comparando puesto contra municipio)
-            const esForaneo = validarJurisdiccionElector({
-              municipio: elector.municipio || censo.municipio || (censo as any).municipio_votacion || null,
-              departamento: elector.departamento || censo.departamento || null,
-              puesto: censo.puesto_sugerido || null,
-            });
-
-            if (!esForaneo && censo.puesto_sugerido) {
-              const matchedPlace = pollingPlaces.find(
-                (p) => normalizarTexto(p.name) === normalizarTexto(censo.puesto_sugerido!)
-              );
-              if (matchedPlace) {
-                setPuestoVotacion(matchedPlace.name);
-                if (censo.mesa_sugerida) {
-                  setMesa(censo.mesa_sugerida);
-                }
-              }
-            }
-
-            autofilledCedulaRef.current = cleanNum;
-            setIsAutofilledFromCenso(true);
-            return;
-          }
-        } else {
-          // Si este número no está en el censo maestro, limpiar campos si estaban autocompletados
-          if (autofilledCedulaRef.current || isAutofilledFromCenso) {
-            setNombres('');
-            setApellidos('');
-            setEdad('');
-            if (!rememberLocation) {
-              setPuestoVotacion('');
-              setMesa('');
-            }
-          }
-          autofilledCedulaRef.current = '';
-          setIsAutofilledFromCenso(false);
-          setAlertaJurisdiccion({ mostrar: false });
-        }
-      } catch (e) {
-        console.error('Error al autocompletar desde censo maestro:', e);
-        if (autofilledCedulaRef.current || isAutofilledFromCenso) {
-          setNombres('');
-          setApellidos('');
-          setEdad('');
-          if (!rememberLocation) {
-            setPuestoVotacion('');
-            setMesa('');
-          }
-        }
-        autofilledCedulaRef.current = '';
-        setIsAutofilledFromCenso(false);
-        setAlertaJurisdiccion({ mostrar: false });
-      }
-    };
-
-    // Iniciar consulta de censo maestro en paralelo
-    const autofillPromise = autofillFromCenso(cleanCedula);
-
     try {
-      if (!isSupabaseConfigured) {
-        // Validación en almacenamiento local de demostración aislada por tenant
-        const stored = localStorage.getItem('electoral_local_electors');
-        const localList: ElectorWithRegistrant[] = stored ? JSON.parse(stored) : [];
-        const found = localList.find(
-          (e) =>
-            e.cedula === cleanCedula &&
-            (!currentTenantId || e.tenant_id === currentTenantId || !e.tenant_id)
-        );
+      const res = await buscarDocumento(cleanCedula, currentTenantId);
 
-        if (found) {
-          // Consultar nombre y rol del operador en la lista de equipo local
-          const teamStored = localStorage.getItem('electoral_local_team');
-          const teamList: any[] = teamStored ? JSON.parse(teamStored) : [];
-          const operator = teamList.find((m) => m.id === found.registrado_por);
-
-          setCollisionResult({
-            exists: true,
-            elector: {
-              id: found.id,
-              cedula: found.cedula,
-              nombres: found.nombres,
-              apellidos: found.apellidos,
-              edad: found.edad ?? null,
-              telefono: found.telefono,
-              puesto_votacion: found.puesto_votacion,
-              mesa: found.mesa,
-              created_at: found.created_at,
-              registrado_por_nombre: found.registrador?.full_name || operator?.full_name || 'Dr. Alejandro Morales',
-              registrado_por_rol: found.registrador?.role || operator?.role || 'admin',
-            },
-          });
-          setIsAutofilledFromCenso(false);
-        } else {
-          setCollisionResult({ exists: false });
-          await autofillPromise;
-        }
+      // Si el usuario ya cambió la cédula mientras respondía la red, descartar
+      if (currentCedulaRef.current !== cleanCedula) {
         return;
       }
 
-      // 1. Intentar verificación mediante función RPC check_existing_elector
-      try {
-        const { data: rpcData, error: rpcError } = await (supabase.rpc as any)('check_existing_elector', {
-          p_cedula: cleanCedula,
-          p_tenant_id: currentTenantId,
-        });
-
-        if (!rpcError && rpcData) {
-          const item = Array.isArray(rpcData) ? rpcData[0] : rpcData;
-          if (item && item.cedula) {
-            setCollisionResult({
-              exists: true,
-              elector: {
-                id: item.id,
-                cedula: item.cedula,
-                nombres: item.nombres,
-                apellidos: item.apellidos,
-                edad: item.edad ?? null,
-                telefono: item.telefono,
-                puesto_votacion: item.puesto_votacion,
-                mesa: item.mesa,
-                created_at: item.created_at,
-                registrado_por_nombre: item.registrado_por_nombre || 'Personal de Campaña',
-                registrado_por_rol: item.registrado_por_rol || 'admin',
-              },
-            });
-            setIsAutofilledFromCenso(false);
-            return;
-          }
-        }
-      } catch (rpcErr) {
-        console.warn('RPC check_existing_elector no disponible, usando fallback relacional:', rpcErr);
-      }
-
-      // 2. Fallback a consulta relacional directa
-      let query = (supabase.from('electores') as any)
-        .select(`
-          id,
-          cedula,
-          nombres,
-          apellidos,
-          edad,
-          telefono,
-          puesto_votacion,
-          mesa,
-          created_at,
-          registrador:profiles(full_name, role)
-        `)
-        .eq('cedula', cleanCedula);
-
-      if (currentTenantId) {
-        query = query.eq('tenant_id', currentTenantId);
-      }
-
-      const { data, error } = await query.maybeSingle();
-
-      if (error) {
-        console.error('Error al verificar cédula en Supabase:', error);
-        return;
-      }
-
-      if (data) {
-        const item = data as any;
+      // Caso A: Duplicado en la campaña activa
+      if (res && res.duplicado) {
         setCollisionResult({
           exists: true,
           elector: {
-            id: item.id,
-            cedula: item.cedula,
-            nombres: item.nombres,
-            apellidos: item.apellidos,
-            edad: item.edad ?? null,
-            telefono: item.telefono,
-            puesto_votacion: item.puesto_votacion,
-            mesa: item.mesa,
-            created_at: item.created_at,
-            registrado_por_nombre: item.registrador?.full_name || 'Personal Autorizado',
-            registrado_por_rol: item.registrador?.role || 'admin',
+            id: 'dup',
+            cedula: cleanCedula,
+            nombres: res.nombres,
+            apellidos: res.apellidos,
+            edad: null,
+            telefono: '',
+            puesto_votacion: res.puesto_votacion || 'Principal',
+            mesa: 1,
+            created_at: new Date().toISOString(),
+            registrado_por_nombre: 'Personal Autorizado',
+            registrado_por_rol: 'Líder / Admin',
           },
         });
         setIsAutofilledFromCenso(false);
-      } else {
-        setCollisionResult({ exists: false });
-        await autofillPromise;
+        autofilledCedulaRef.current = '';
+        return;
       }
+
+      // Caso B: Ciudadano encontrado en censo oficial o DNP
+      if (res && (res.nombres || res.apellidos)) {
+        setCollisionResult({ exists: false });
+        setNombres(res.nombres);
+        setApellidos(res.apellidos);
+
+        const edadFinal: number | '' =
+          res.edad && !isNaN(Number(res.edad)) && Number(res.edad) > 0
+            ? Number(res.edad)
+            : '';
+        setEdad(edadFinal);
+
+        // Validar puesto y jurisdicción si viene sugerido
+        const esForaneo = validarJurisdiccionElector({
+          municipio: res.municipio || null,
+          departamento: res.departamento || null,
+          puesto: res.puesto_votacion || null,
+        });
+
+        if (!esForaneo && res.puesto_votacion) {
+          const matchedPlace = pollingPlaces.find(
+            (p) => normalizarTexto(p.name) === normalizarTexto(res.puesto_votacion!)
+          );
+          if (matchedPlace) {
+            setPuestoVotacion(matchedPlace.name);
+            if (res.mesa) {
+              setMesa(Number(res.mesa) || '');
+            }
+          }
+        }
+
+        autofilledCedulaRef.current = cleanCedula;
+        setIsAutofilledFromCenso(true);
+        return;
+      }
+
+      // Caso C: No registrado o eliminado de la BD (Limpiar campos inmediatamente sin datos fantasma)
+      setCollisionResult({ exists: false });
+      if (autofilledCedulaRef.current || isAutofilledFromCenso) {
+        setNombres('');
+        setApellidos('');
+        setEdad('');
+        if (!rememberLocation) {
+          setPuestoVotacion('');
+          setMesa('');
+        }
+      }
+      autofilledCedulaRef.current = '';
+      setIsAutofilledFromCenso(false);
+      setAlertaJurisdiccion({ mostrar: false });
     } catch (err) {
-      console.error('Error en debounce de verificación:', err);
+      console.error('Error al verificar documento:', err);
+      setCollisionResult({ exists: false });
     } finally {
       setIsCheckingCedula(false);
     }
-  }, [currentTenantId, pollingPlaces, validarJurisdiccionElector]);
+  }, [currentTenantId, pollingPlaces, rememberLocation, buscarDocumento, validarJurisdiccionElector]);
 
   // Manejador del cambio en cédula con debounce estricto de 250ms
   const handleCedulaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -934,12 +799,24 @@ export const RegisterElectorView = ({
                 onChange={handleCedulaChange}
                 onBlur={() => {
                   const clean = cedula.replace(/\D/g, '');
-                  if (clean.length >= 5 && !collisionResult) {
+                  if (clean.length >= 5) {
                     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
                     checkCedulaCollision(clean);
                   }
                 }}
-                onKeyDown={(e) => handleKeyDown(e, nombresInputRef)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const clean = cedula.replace(/\D/g, '');
+                    if (clean.length >= 5) {
+                      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+                      checkCedulaCollision(clean);
+                    }
+                    nombresInputRef.current?.focus();
+                  } else {
+                    handleKeyDown(e, nombresInputRef);
+                  }
+                }}
                 placeholder="Ej. 1047892341 (solo números)"
                 disabled={saving}
                 className={`w-full h-11 pl-4 pr-11 bg-slate-50 dark:bg-slate-900/90 border rounded-xl text-base sm:text-sm font-mono text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:outline-none transition-all ${

@@ -92,6 +92,8 @@ function dnpLookupDevPlugin(): Plugin {
     configureServer(server) {
       server.middlewares.use(async (req, res, next) => {
         const isLookup = 
+          req.url === '/api/search-elector' || 
+          req.url?.startsWith('/api/search-elector?') ||
           req.url === '/api/dnp-lookup' || 
           req.url?.startsWith('/api/dnp-lookup?') || 
           req.url === '/api/consulta-identidad' || 

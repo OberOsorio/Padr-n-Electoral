@@ -47,40 +47,33 @@ export async function consultarDocumentoExterno(
 
   // 1. CONSULTA PRIORITARIA DIRECTA AL SERVICIO DNP (https://ventanillasocial.dnp.gov.co/)
   try {
-    const res = await fetch('/api/dnp-lookup', {
+    const res = await fetch('/api/search-elector', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+      },
       body: JSON.stringify({ cedula: cleanCedula, tipoDoc: _tipoDoc }),
     });
 
     if (res.ok) {
-      const dnpData = await res.json();
-      if (dnpData && dnpData.encontrado) {
-        const elector = parseConsultaDinamica({
-          ok: true,
-          nombres: dnpData.nombres,
-          apellidos: dnpData.apellidos,
-          edad: dnpData.edad,
-          municipio: dnpData.municipio,
-          departamento: dnpData.departamento,
-          ...(dnpData.raw || {}),
-        });
+      const respData = await res.json();
+      if (respData && respData.encontrado && respData.data) {
+        const item = respData.data;
+        const edadFinal = item.edad ? Number(item.edad) : null;
 
-        if (elector) {
-          const edadFinal = elector.edad ? Number(elector.edad) : null;
-
-          return {
-            encontrado: true,
-            nombres: elector.nombres,
-            apellidos: elector.apellidos,
-            edad: edadFinal,
-            municipio: elector.municipio || dnpData.municipio || null,
-            departamento: elector.departamento || dnpData.departamento || null,
-            puesto_sugerido: null,
-            mesa_sugerida: null,
-            raw_response: dnpData,
-          };
-        }
+        return {
+          encontrado: true,
+          nombres: item.nombres || '',
+          apellidos: item.apellidos || '',
+          edad: edadFinal,
+          municipio: item.municipio || null,
+          departamento: item.departamento || null,
+          puesto_sugerido: item.puesto_votacion || null,
+          mesa_sugerida: item.mesa ? Number(item.mesa) : null,
+          raw_response: respData,
+        };
       }
     }
   } catch (dnpErr) {

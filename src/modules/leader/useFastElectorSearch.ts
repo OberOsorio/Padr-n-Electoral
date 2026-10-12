@@ -1,6 +1,5 @@
-import { useState, useRef, useCallback } from 'react';
-import { supabase, isSupabaseConfigured } from '../../lib/supabase';
-import { parseConsultaDinamica } from '../../utils/electorResponseParser';
+import { useCallback } from 'react';
+import { useElectorSearch } from '../electors/useElectorSearch';
 
 export interface FastElectorSearchResult {
   found: boolean;
@@ -23,165 +22,49 @@ export interface FastElectorSearchResult {
 }
 
 export function useFastElectorSearch() {
-  const [loading, setLoading] = useState(false);
-  const abortControllerRef = useRef<AbortController | null>(null);
+  const { buscarDocumento, loading } = useElectorSearch();
 
   const consultarElectorRapido = useCallback(
     async (cedula: string, tenantId?: string | null): Promise<FastElectorSearchResult | null> => {
-      const docLimpio = cedula.replace(/\D/g, '').trim();
+      const docLimpio = String(cedula || '').replace(/\D/g, '').trim();
       if (docLimpio.length < 5) return null;
 
-      // 1. Cancelar consulta previa de inmediato si el usuario sigue digitando
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-      abortControllerRef.current = new AbortController();
-      const signal = abortControllerRef.current.signal;
+      const res = await buscarDocumento(docLimpio, tenantId);
 
-      setLoading(true);
-
-      // 2. Timeout forzado de 3.5 segundos máximo (tiempo límite estricto para evitar colgar la interfaz)
-      const timeoutId = setTimeout(() => {
-        if (abortControllerRef.current) {
-          abortControllerRef.current.abort();
-        }
-      }, 3500);
-
-      try {
-        // A. Lanzar en paralelo: verificación de duplicados en la campaña y consulta a DNP
-        const duplicatePromise = (async () => {
-          if (!tenantId || !isSupabaseConfigured) return null;
-          try {
-            const { data } = await (supabase.from('electores') as any)
-              .select(`
-                id,
-                nombres,
-                apellidos,
-                puesto_votacion,
-                registrador:profiles(full_name, role)
-              `)
-              .eq('tenant_id', tenantId)
-              .eq('cedula', docLimpio)
-              .abortSignal(signal)
-              .maybeSingle();
-            return data;
-          } catch {
-            return null;
-          }
-        })();
-
-        const dnpPromise = (async () => {
-          try {
-            const res = await fetch('/api/dnp-lookup', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ cedula: docLimpio, tipoDoc: '3' }),
-              signal,
-            });
-            if (res.ok) {
-              return await res.json();
-            }
-          } catch (e: any) {
-            if (e.name === 'AbortError') throw e;
-          }
-          return null;
-        })();
-
-        const [dupData, dnpData] = await Promise.all([duplicatePromise, dnpPromise]);
-
-        // Prioridad 1: Duplicado en la campaña activa
-        if (dupData) {
-          clearTimeout(timeoutId);
-          const registradorNombre = dupData.registrador?.full_name || 'otro líder de la campaña';
-          return {
-            found: true,
-            isDuplicate: true,
-            duplicateInfo: {
-              registradorNombre,
-              nombres: dupData.nombres,
-              apellidos: dupData.apellidos,
-              puesto_votacion: dupData.puesto_votacion || 'Principal',
-            },
-          };
-        }
-
-        // Prioridad 2: Encontrado en Ventanilla Social DNP oficial
-        if (dnpData && dnpData.encontrado) {
-          clearTimeout(timeoutId);
-          const elector = parseConsultaDinamica({
-            ok: true,
-            nombres: dnpData.nombres,
-            apellidos: dnpData.apellidos,
-            edad: dnpData.edad,
-            municipio: dnpData.municipio,
-            departamento: dnpData.departamento,
-            ...(dnpData.raw || {}),
-          });
-
-          if (elector) {
-            const edadCalculada = elector.edad ? Number(elector.edad) : null;
-            return {
-              found: true,
-              isDuplicate: false,
-              data: {
-                nombres: elector.nombres,
-                apellidos: elector.apellidos,
-                edad: edadCalculada,
-                puesto_votacion: null,
-                mesa: null,
-                municipio: elector.municipio || dnpData.municipio || null,
-                departamento: elector.departamento || dnpData.departamento || null,
-              },
-            };
-          }
-        }
-
-        // Prioridad 3: Fallback a Supabase censo_maestro (solo lectura)
-        if (isSupabaseConfigured) {
-          const { data: censo, error: censoErr } = await (supabase.from('censo_maestro') as any)
-            .select('*')
-            .eq('cedula', docLimpio)
-            .abortSignal(signal)
-            .maybeSingle();
-
-          clearTimeout(timeoutId);
-
-          if (!censoErr && censo) {
-            const elector = parseConsultaDinamica(censo);
-            if (elector) {
-              const edadCalculada = elector.edad ? Number(elector.edad) : null;
-              return {
-                found: true,
-                isDuplicate: false,
-                data: {
-                  nombres: elector.nombres,
-                  apellidos: elector.apellidos,
-                  edad: edadCalculada,
-                  puesto_votacion: censo.puesto_sugerido || censo.puesto_votacion || censo.puesto || null,
-                  mesa: censo.mesa_sugerida ? String(censo.mesa_sugerida) : (censo.mesa ? String(censo.mesa) : null),
-                  municipio: elector.municipio || censo.municipio || null,
-                  departamento: elector.departamento || censo.departamento || null,
-                },
-              };
-            }
-          }
-        }
-
-        clearTimeout(timeoutId);
+      if (!res) {
         return { found: false, isDuplicate: false };
-      } catch (err: any) {
-        clearTimeout(timeoutId);
-        if (err.name === 'AbortError') {
-          console.warn('Consulta de elector cancelada por timeout o nueva pulsación.');
-        } else {
-          console.error('Error en búsqueda rápida de elector:', err);
-        }
-        return null;
-      } finally {
-        setLoading(false);
       }
+
+      if (res.duplicado) {
+        return {
+          found: true,
+          isDuplicate: true,
+          duplicateInfo: {
+            registradorNombre: 'otro líder de la campaña',
+            nombres: res.nombres,
+            apellidos: res.apellidos,
+            puesto_votacion: res.puesto_votacion || 'Principal',
+          },
+        };
+      }
+
+      const edadNum = res.edad ? Number(res.edad) : null;
+
+      return {
+        found: true,
+        isDuplicate: false,
+        data: {
+          nombres: res.nombres,
+          apellidos: res.apellidos,
+          edad: edadNum,
+          puesto_votacion: res.puesto_votacion || null,
+          mesa: res.mesa || null,
+          municipio: res.municipio || null,
+          departamento: res.departamento || null,
+        },
+      };
     },
-    []
+    [buscarDocumento]
   );
 
   return { consultarElectorRapido, loading };

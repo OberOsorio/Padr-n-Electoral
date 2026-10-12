@@ -408,10 +408,17 @@ export const LeaderRegisterElectorView: React.FC<LeaderRegisterProps> = ({
               <input
                 type="text"
                 inputMode="numeric"
+                pattern="[0-9]*"
                 required
                 value={formData.cedula}
                 onChange={(e) => handleCedulaChange(e.target.value)}
                 onBlur={() => consultarCedula(formData.cedula)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    consultarCedula(formData.cedula);
+                  }
+                }}
                 placeholder="Ej. 1088492019"
                 className={`w-full bg-slate-50 dark:bg-[#060a14] border rounded-2xl px-4 py-3 text-sm font-mono text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none transition-all ${
                   estadoCedula.tipo === 'error'
