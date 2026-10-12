@@ -252,13 +252,13 @@ export const ElectorLocationSelector: React.FC<ElectorLocationSelectorProps> = (
         </span>
       </div>
 
-      <div className={`grid grid-cols-1 ${hasMultipleMunicipios ? 'md:grid-cols-12' : 'md:grid-cols-3'} gap-4`}>
+      <div className="grid grid-cols-1 sm:grid-cols-12 gap-3.5 sm:gap-4 items-start">
         {/* Selector de Municipio (cuando la circunscripción departamental o multi-municipio lo permita) */}
         {hasMultipleMunicipios && (
-          <div className="md:col-span-4 space-y-1.5">
+          <div className="col-span-1 sm:col-span-4 space-y-1.5">
             <label
               htmlFor="municipio-selector"
-              className="block text-[11px] font-medium uppercase tracking-wider text-slate-700 dark:text-slate-300 font-mono"
+              className="block text-[11px] font-medium uppercase tracking-wider text-slate-700 dark:text-slate-300 font-mono whitespace-nowrap truncate"
             >
               Municipio / Jurisdicción
             </label>
@@ -286,10 +286,10 @@ export const ElectorLocationSelector: React.FC<ElectorLocationSelectorProps> = (
         )}
 
         {/* Selector Desplegable Simplificado de Puesto de Votación */}
-        <div className={`${hasMultipleMunicipios ? 'md:col-span-5' : 'md:col-span-2'} space-y-1.5`} ref={dropdownRef}>
+        <div className={`col-span-1 ${hasMultipleMunicipios ? 'sm:col-span-5' : 'sm:col-span-8'} space-y-1.5`} ref={dropdownRef}>
           <label
             htmlFor="puesto"
-            className="block text-[11px] font-medium uppercase tracking-wider text-slate-700 dark:text-slate-300 font-mono"
+            className="block text-[11px] font-medium uppercase tracking-wider text-slate-700 dark:text-slate-300 font-mono whitespace-nowrap truncate"
           >
             Puesto de Votación
           </label>
@@ -387,10 +387,10 @@ export const ElectorLocationSelector: React.FC<ElectorLocationSelectorProps> = (
         </div>
 
         {/* Selector de Mesa Dinámico */}
-        <div className="space-y-1.5">
+        <div className={`col-span-1 ${hasMultipleMunicipios ? 'sm:col-span-3' : 'sm:col-span-4'} space-y-1.5`}>
           <label
             htmlFor="mesa"
-            className="block text-[11px] font-medium uppercase tracking-wider text-slate-700 dark:text-slate-300 font-mono"
+            className="block text-[11px] font-medium uppercase tracking-wider text-slate-700 dark:text-slate-300 font-mono whitespace-nowrap"
           >
             Número de Mesa
           </label>
@@ -401,10 +401,10 @@ export const ElectorLocationSelector: React.FC<ElectorLocationSelectorProps> = (
               value={mesa || ''}
               onChange={(e) => onMesaChange(e.target.value ? Number(e.target.value) : '')}
               disabled={disabled || !puestoVotacion}
-              className="w-full h-10.5 pl-3.5 pr-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 rounded-xl text-sm font-mono text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/40 transition-all disabled:opacity-50 appearance-none cursor-pointer"
+              className="w-full h-10.5 pl-3.5 pr-9 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 rounded-xl text-xs sm:text-sm font-mono text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/40 transition-all disabled:opacity-50 appearance-none cursor-pointer truncate"
             >
               <option value="" disabled className="bg-white dark:bg-slate-900 text-slate-400 dark:text-slate-500 font-sans">
-                {puestoVotacion ? 'Seleccione número de mesa...' : 'Seleccione puesto primero...'}
+                {puestoVotacion ? 'Seleccionar mesa...' : 'Elige puesto...'}
               </option>
               {Array.from({ length: Math.max(1, totalMesas) }, (_, i) => i + 1).map((m) => (
                 <option key={m} value={m} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-mono">
@@ -412,7 +412,7 @@ export const ElectorLocationSelector: React.FC<ElectorLocationSelectorProps> = (
                 </option>
               ))}
             </select>
-            <Layers className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500 pointer-events-none" />
+            <Layers className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500 pointer-events-none" />
           </div>
         </div>
       </div>
