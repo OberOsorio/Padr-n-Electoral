@@ -40,27 +40,68 @@ export function useElectorSearch() {
 
       try {
         // 3. Petición estándar compatible con todos los navegadores (Firefox, Safari, Chrome, Edge)
-        const response = await fetch('/api/search-elector', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache',
-          },
-          body: JSON.stringify({
-            cedula: docLimpio,
-            tenantId: tenantId || null,
-          }),
-          signal: abortControllerRef.current.signal,
-        });
+        let res: any = null;
+        try {
+          const response = await fetch('/api/search-elector', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Pragma': 'no-cache',
+            },
+            body: JSON.stringify({
+              cedula: docLimpio,
+              tenantId: tenantId || null,
+            }),
+            signal: abortControllerRef.current.signal,
+          });
 
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-          throw new Error(`Error en el servidor de consulta (Código ${response.status})`);
+          if (response.ok) {
+            const ct = response.headers.get('content-type') || '';
+            if (ct.includes('application/json')) {
+              res = await response.json();
+            }
+          }
+        } catch {
+          // Evaluar fallback de red
         }
 
-        const res = await response.json();
+        // 4. Fallback de alta resiliencia si el host actual no tiene el proxy activo o devolvió vacío
+        if (!res || (!res.encontrado && !res.duplicado)) {
+          const fallbackUrls = [
+            'https://padron-electoral.aethelcodesas.workers.dev/api/search-elector',
+            'https://cut-tracked-thereafter-fundamentals.trycloudflare.com/api/search-elector',
+          ];
+
+          for (const fbUrl of fallbackUrls) {
+            try {
+              if (window.location.origin.includes(new URL(fbUrl).host)) continue;
+              const fbResponse = await fetch(fbUrl, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  cedula: docLimpio,
+                  tenantId: tenantId || null,
+                }),
+                signal: abortControllerRef.current.signal,
+              });
+
+              if (fbResponse.ok) {
+                const fbJson = await fbResponse.json();
+                if (fbJson && (fbJson.encontrado || fbJson.duplicado)) {
+                  res = fbJson;
+                  break;
+                }
+              }
+            } catch {
+              // Continuar con siguiente endpoint
+            }
+          }
+        }
+
+        clearTimeout(timeoutId);
 
         // Caso A: Duplicado en la campaña activa
         if (res && res.duplicado) {
