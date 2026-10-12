@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Target,
   UserPlus,
@@ -8,19 +8,13 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLeaderWorkspace } from './useLeaderWorkspace';
 import { useTenant } from '../../context/TenantContext';
-import { getPollingPlacesForTenant } from '../../services/divipoleService';
 import { ThemeToggle } from '../../components/ui/ThemeToggle';
-import type { CollisionCheckResult, ElectorWithRegistrant } from '../../types';
+import type { ElectorWithRegistrant } from '../../types';
 import { LeaderDashboardView } from './LeaderDashboardView';
-import { LeaderRegisterView } from './LeaderRegisterView';
+import { LeaderRegisterElectorView } from './LeaderRegisterElectorView';
 import { LeaderMyElectorsView } from './LeaderMyElectorsView';
 import { EditElectorModal } from '../electors/components/EditElectorModal';
 import { DeleteConfirmModal } from '../electors/components/DeleteConfirmModal';
-import {
-  buscarCiudadanoEnCenso,
-  calcularEdadDesdeCenso,
-  estimarEdadPorCedula,
-} from '../../services/censoService';
 
 interface LeaderWorkspaceViewProps {
   userId: string;
@@ -40,17 +34,15 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
   onSignOut,
 }) => {
   const { currentTenant } = useTenant();
-  const pollingPlaces = useMemo(() => getPollingPlacesForTenant(currentTenant), [currentTenant]);
 
   const {
     electors,
     loading,
     personalGoal,
-    registerElector,
     deleteElector,
     updateElector,
-    checkCollision,
     markWhatsAppSent,
+    refreshElectors,
     stats,
   } = useLeaderWorkspace(userId, tenantId);
 
@@ -61,256 +53,8 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
   const [editingElector, setEditingElector] = useState<ElectorWithRegistrant | null>(null);
   const [deletingElector, setDeletingElector] = useState<ElectorWithRegistrant | null>(null);
 
-  // Form states for voter registration
-  const [cedula, setCedula] = useState('');
-  const [nombres, setNombres] = useState('');
-  const [apellidos, setApellidos] = useState('');
-  const [edad, setEdad] = useState<number | ''>('');
-  const [telefono, setTelefono] = useState('');
-  const [puestoVotacion, setPuestoVotacion] = useState('');
-  const [mesa, setMesa] = useState<number | ''>('');
-  const [notas, setNotas] = useState('');
-
-  // Sincronizar puesto al cambiar circunscripción de campaña (si el puesto seleccionado ya no es válido)
-  useEffect(() => {
-    if (puestoVotacion && pollingPlaces.length > 0 && !pollingPlaces.some((p) => p.name === puestoVotacion)) {
-      setPuestoVotacion('');
-      setMesa('');
-    }
-  }, [pollingPlaces, puestoVotacion]);
-
-  // Collision and Censo check state
-  const [isCheckingCedula, setIsCheckingCedula] = useState(false);
-  const [isAutofilledFromCenso, setIsAutofilledFromCenso] = useState(false);
-  const [collisionResult, setCollisionResult] = useState<CollisionCheckResult | null>(null);
-
-  // Form submit state
-  const [submitting, setSubmitting] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
-  const [lastRegistered, setLastRegistered] = useState<{
-    nombres: string;
-    edad?: number | null;
-    telefono?: string;
-    puesto: string;
-    mesa: number;
-  } | null>(null);
-
-  // Temporizador automático de 5 segundos para descartar la notificación de éxito
-  useEffect(() => {
-    if (!lastRegistered) return;
-
-    const timer = setTimeout(() => {
-      setLastRegistered(null);
-    }, 5000); // Exactamente 5 segundos
-
-    // Limpieza al desmontar o si se registra un nuevo elector antes de culminar los 5s
-    return () => clearTimeout(timer);
-  }, [lastRegistered]);
-
   // List search query
   const [searchQuery, setSearchQuery] = useState('');
-
-  // Debounce ref for cédula verification
-  const debounceTimerRef = useRef<any>(null);
-  const currentLeaderCedulaRef = useRef<string>('');
-
-  // Formato de fecha de registro
-  const formatRegistrationDate = (isoString?: string) => {
-    if (!isoString) return 'Fecha no disponible';
-    try {
-      const d = new Date(isoString);
-      return d.toLocaleString('es-CO', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true,
-      });
-    } catch {
-      return isoString;
-    }
-  };
-
-  // Badge de rol
-  const getRoleBadge = (role?: string) => {
-    const r = (role || 'admin').toLowerCase();
-    if (r === 'lider') {
-      return (
-        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-blue-500/10 text-blue-400 border border-blue-500/30 font-mono">
-          Líder
-        </span>
-      );
-    }
-    if (r === 'coordinador') {
-      return (
-        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 font-mono">
-          Coordinador
-        </span>
-      );
-    }
-    return (
-      <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-800 text-slate-300 border border-slate-700/60 font-mono">
-        Admin
-      </span>
-    );
-  };
-
-  // Cedula change with real-time verification and 400ms debounce
-  const handleCedulaChange = (val: string) => {
-    const clean = val.replace(/\D/g, '');
-    setCedula(clean);
-    currentLeaderCedulaRef.current = clean;
-    setFormError(null);
-
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
-
-    if (!clean) {
-      setNombres('');
-      setApellidos('');
-      setEdad('');
-      setCollisionResult(null);
-      setIsCheckingCedula(false);
-      setIsAutofilledFromCenso(false);
-      return;
-    }
-
-    if (clean.length < 5) {
-      if (isAutofilledFromCenso) {
-        setNombres('');
-        setApellidos('');
-        setEdad('');
-        setIsAutofilledFromCenso(false);
-      }
-      setCollisionResult(null);
-      setIsCheckingCedula(false);
-      return;
-    }
-
-    setIsCheckingCedula(true);
-    debounceTimerRef.current = setTimeout(async () => {
-      // Iniciar búsqueda de censo y colisión en paralelo
-      const censoPromise = buscarCiudadanoEnCenso(clean).catch((e) => {
-        console.error('Error al autocompletar desde censo maestro:', e);
-        return { found: false } as const;
-      });
-
-      const res = await checkCollision(clean);
-      if (currentLeaderCedulaRef.current !== clean) return;
-      setCollisionResult(res);
-
-      if (!res.exists) {
-        const censo = await censoPromise;
-        if (currentLeaderCedulaRef.current !== clean) return;
-
-        if (censo.found && censo.nombres) {
-          setNombres(censo.nombres);
-          if (censo.apellidos) setApellidos(censo.apellidos);
-
-          const edadObtenida =
-            censo.edad ??
-            (censo as any).anios ??
-            (censo as any).fecha_nacimiento ??
-            (censo as any).nacimiento ??
-            (censo as any).fec_nac ??
-            (censo as any).fechaNacimiento;
-
-          let edadFinal = calcularEdadDesdeCenso(edadObtenida);
-          if (edadFinal === '' && clean) {
-            edadFinal = estimarEdadPorCedula(clean);
-          }
-
-          if (edadFinal !== '') {
-            setEdad(Number(edadFinal));
-          }
-
-          if (censo.puesto_sugerido && pollingPlaces.some((p) => p.name === censo.puesto_sugerido)) {
-            setPuestoVotacion(censo.puesto_sugerido);
-          }
-          if (censo.mesa_sugerida) {
-            setMesa(censo.mesa_sugerida);
-          }
-          setIsAutofilledFromCenso(true);
-        } else {
-          setIsAutofilledFromCenso(false);
-        }
-      } else {
-        setIsAutofilledFromCenso(false);
-      }
-      setIsCheckingCedula(false);
-    }, 200);
-  };
-
-  // Submit registration
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormError(null);
-
-    if (!cedula.trim() || !nombres.trim() || !apellidos.trim()) {
-      setFormError('Por favor complete Cédula, Nombres y Apellidos.');
-      return;
-    }
-
-    if (!puestoVotacion || !puestoVotacion.trim()) {
-      setFormError('Por favor seleccione un puesto de votación.');
-      return;
-    }
-
-    if (!mesa || Number(mesa) <= 0) {
-      setFormError('Por favor seleccione el número de mesa.');
-      return;
-    }
-
-    if (collisionResult?.exists) {
-      setFormError('No se puede registrar este elector porque ya existe en el censo.');
-      return;
-    }
-
-    setSubmitting(true);
-
-    try {
-      const numEdad = typeof edad === 'number' ? edad : (edad ? parseInt(String(edad), 10) : null);
-      const res = await registerElector({
-        cedula,
-        nombres,
-        apellidos,
-        edad: numEdad,
-        telefono: telefono.trim() || undefined,
-        puesto_votacion: puestoVotacion,
-        mesa: Number(mesa),
-        notas: notas.trim() || undefined,
-      });
-
-      if (!res.success) {
-        setFormError(res.error || 'Error al guardar elector.');
-      } else {
-        setLastRegistered({
-          nombres: `${nombres} ${apellidos}`,
-          edad: numEdad,
-          telefono: telefono.trim(),
-          puesto: puestoVotacion,
-          mesa: Number(mesa),
-        });
-
-        // Reset form
-        setCedula('');
-        setNombres('');
-        setApellidos('');
-        setEdad('');
-        setTelefono('');
-        setPuestoVotacion('');
-        setMesa('');
-        setNotas('');
-        setCollisionResult(null);
-      }
-    } catch (err: any) {
-      setFormError(err?.message || 'Error inesperado al registrar elector.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   // Filter electors in list tab
   const filteredElectors = electors.filter((e) => {
@@ -464,34 +208,12 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
 
           {/* TAB 2: REGISTRAR ELECTOR */}
           {activeTab === 'register' && (
-            <LeaderRegisterView
-              cedula={cedula}
-              nombres={nombres}
-              apellidos={apellidos}
-              edad={edad}
-              telefono={telefono}
-              puestoVotacion={puestoVotacion}
-              mesa={mesa}
-              notas={notas}
-              isCheckingCedula={isCheckingCedula}
-              isAutofilledFromCenso={isAutofilledFromCenso}
-              collisionResult={collisionResult}
-              submitting={submitting}
-              formError={formError}
-              lastRegistered={lastRegistered}
-              pollingPlaces={pollingPlaces}
-              onCedulaChange={handleCedulaChange}
-              setNombres={setNombres}
-              setApellidos={setApellidos}
-              setEdad={setEdad}
-              setTelefono={setTelefono}
-              setPuestoVotacion={setPuestoVotacion}
-              setMesa={setMesa}
-              setNotas={setNotas}
-              onDismissLastRegistered={() => setLastRegistered(null)}
-              onSubmit={handleSubmit}
-              formatRegistrationDate={formatRegistrationDate}
-              getRoleBadge={getRoleBadge}
+            <LeaderRegisterElectorView
+              currentUserId={userId}
+              activeTenant={currentTenant || (tenantId ? { id: tenantId, name: tenantName } : null)}
+              onSuccess={() => {
+                refreshElectors();
+              }}
             />
           )}
 
