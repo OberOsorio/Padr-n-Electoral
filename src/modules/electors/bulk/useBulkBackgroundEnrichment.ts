@@ -162,12 +162,10 @@ export function useBulkBackgroundEnrichment(notificarCambioNombre?: ToastCallbac
               if ((!edadCalculada || edadCalculada <= 0) && (resultado.fecha_nacimiento || (resultado as any).nacimiento)) {
                 edadCalculada = calcularEdad(resultado.fecha_nacimiento || (resultado as any).nacimiento);
               }
-              // Fallback a estimación si no vino edad explícita
-              if ((!edadCalculada || edadCalculada <= 0) && (!item.edad || item.edad === 'N/A')) {
-                const est = censoService.estimarEdadPorCedula(cleanCedula);
-                if (typeof est === 'number') {
-                  edadCalculada = est;
-                }
+              // Si no viene edad oficial, respetar la que viene del archivo o dejar null
+              if ((!edadCalculada || edadCalculada <= 0) && item.edad && item.edad !== 'N/A') {
+                const parsed = Number(item.edad);
+                if (!isNaN(parsed) && parsed > 0) edadCalculada = parsed;
               }
 
               // 4. Verificación y Corrección de Nombre

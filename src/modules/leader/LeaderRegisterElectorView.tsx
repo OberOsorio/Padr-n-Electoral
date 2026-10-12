@@ -14,7 +14,6 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../services/supabase';
 import { getPollingPlacesForTenant, formatearPuestoSimple } from '../electors/constants';
-import { estimarEdadPorCedula } from '../../services/censoService';
 import { useFastElectorSearch } from './useFastElectorSearch';
 import { parseConsultaDinamica } from '../../utils/electorResponseParser';
 import type { PollingPlace } from '../../types';
@@ -121,11 +120,7 @@ export const LeaderRegisterElectorView: React.FC<LeaderRegisterProps> = ({
         setIsAutofilledFromCenso(true);
 
         const elector = parseConsultaDinamica(result.data);
-        let edadAsignar = elector?.edad || (result.data.edad ? String(result.data.edad) : '');
-        if (!edadAsignar) {
-          const est = estimarEdadPorCedula(cedulaLimpia);
-          if (est !== '') edadAsignar = String(est);
-        }
+        const edadAsignar = elector?.edad || (result.data.edad ? String(result.data.edad) : '');
 
         setFormData((prev) => ({
           ...prev,
@@ -141,16 +136,15 @@ export const LeaderRegisterElectorView: React.FC<LeaderRegisterProps> = ({
           mensaje: `Datos verificados correctamente${edadAsignar ? ` (${edadAsignar} años)` : ''}`,
         });
       } else {
-        // C. Cédula no encontrada en censo: limpiar para que el usuario digite manualmente
+        // C. Cédula no encontrada: limpiar campos para que el usuario digite manualmente
         autofilledCedulaRef.current = '';
         setIsAutofilledFromCenso(false);
 
-        const edadEstimada = estimarEdadPorCedula(cedulaLimpia);
         setFormData((prev) => ({
           ...prev,
           nombres: '',
           apellidos: '',
-          edad: edadEstimada ? String(edadEstimada) : '',
+          edad: '',
           puesto_votacion: modoLote ? prev.puesto_votacion : '',
           mesa: modoLote ? prev.mesa : '',
         }));

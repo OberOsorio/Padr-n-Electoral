@@ -33,7 +33,6 @@ import { ElectorLocationSelector } from './components/ElectorLocationSelector';
 import { useTenant } from '../../context/TenantContext';
 import {
   buscarCiudadanoEnCenso,
-  estimarEdadPorCedula,
 } from '../../services/censoService';
 import { parseConsultaDinamica } from '../../utils/electorResponseParser';
 
@@ -287,19 +286,12 @@ export const RegisterElectorView = ({
             setNombres(elector.nombres);
             setApellidos(elector.apellidos);
 
-            let edadFinal: number | null = null;
-            if (elector.edad && !isNaN(Number(elector.edad))) {
-              edadFinal = Number(elector.edad);
-            } else {
-              const est = estimarEdadPorCedula(cleanNum);
-              if (est !== '') edadFinal = Number(est);
-            }
+            const edadFinal: number | '' =
+              elector.edad && !isNaN(Number(elector.edad)) && Number(elector.edad) > 0
+                ? Number(elector.edad)
+                : '';
 
-            if (edadFinal && edadFinal > 0) {
-              setEdad(edadFinal);
-            } else {
-              setEdad('');
-            }
+            setEdad(edadFinal);
 
             // Validar jurisdicción estrictamente por municipio explícito (nunca comparando puesto contra municipio)
             const esForaneo = validarJurisdiccionElector({

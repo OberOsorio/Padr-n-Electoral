@@ -28,60 +28,9 @@ export function calcularEdadDesdeCenso(valorEdadOFecNac: any): number | '' {
  * Estimación contextual de edad según rangos históricos de la Registraduría Nacional de Colombia
  * Útil para autocompletar electores del censo que no posean fecha de nacimiento explícita en BD
  */
-export function estimarEdadPorCedula(cedula: string): number | '' {
-  const clean = (cedula || '').toString().trim().replace(/\D/g, '');
-  if (!clean || clean.length < 5) return '';
-  const num = Number(clean);
-  if (isNaN(num)) return '';
-
-  const anioActual = new Date().getFullYear();
-
-  // 1. Cédulas antiguas de 1 a 7 dígitos (nacidos antes de 1955)
-  if (num < 1000000) return Math.min(105, Math.max(80, anioActual - 1938));
-  if (num < 5000000) return Math.min(100, Math.max(78, anioActual - 1944));
-  if (num < 10000000) return Math.min(95, Math.max(72, anioActual - 1950));
-
-  // 2. Cédulas de 8 dígitos serie 10M - 19M
-  if (num >= 10000000 && num < 20000000) {
-    const ratio = (num - 10000000) / 10000000;
-    const anioNac = Math.round(1950 + ratio * 20);
-    return Math.max(18, anioActual - anioNac);
-  }
-
-  // 3. Cédulas de 8 dígitos serie 20M - 49M
-  if (num >= 20000000 && num < 50000000) {
-    const ratio = (num - 20000000) / 30000000;
-    const anioNac = Math.round(1955 + ratio * 30);
-    return Math.max(18, anioActual - anioNac);
-  }
-
-  // 4. Cédulas de 8 dígitos serie 70M - 79M
-  if (num >= 70000000 && num < 80000000) {
-    const ratio = (num - 70000000) / 10000000;
-    const anioNac = Math.round(1964 + ratio * 20);
-    return Math.max(18, anioActual - anioNac);
-  }
-
-  // 5. Cédulas de 8 dígitos serie 80M - 99M
-  if (num >= 80000000 && num < 100000000) {
-    const ratio = (num - 80000000) / 20000000;
-    const anioNac = Math.round(1970 + ratio * 15);
-    return Math.max(18, anioActual - anioNac);
-  }
-
-  // 6. Cédulas de 10 dígitos (serie nacional unificada a partir del 2000)
-  // Calibración exacta: 1.007.299.001 -> ~28 años (nacido en 1998)
-  if (num >= 1000000000 && num < 1250000000) {
-    if (num < 1010000000) {
-      const ratio = (num - 1000000000) / 10000000;
-      const anioNac = Math.round(1982 + ratio * 17); // 1982 a 1999
-      return Math.max(18, anioActual - anioNac);
-    }
-    const ratio = (num - 1010000000) / 240000000;
-    const anioNac = Math.round(1999 + ratio * 9); // 1999 a 2008
-    return Math.max(18, anioActual - anioNac);
-  }
-
+export function estimarEdadPorCedula(_cedula: string): '' {
+  // No se calcula edad matemática a partir del número de cédula.
+  // La edad debe provenir únicamente de registros oficiales y reales (DNP / Censo).
   return '';
 }
 
@@ -119,11 +68,7 @@ export async function consultarDocumentoExterno(
         });
 
         if (elector) {
-          let edadFinal = elector.edad ? Number(elector.edad) : null;
-          if (!edadFinal) {
-            const est = estimarEdadPorCedula(cleanCedula);
-            if (est !== '') edadFinal = Number(est);
-          }
+          const edadFinal = elector.edad ? Number(elector.edad) : null;
 
           return {
             encontrado: true,
@@ -154,11 +99,7 @@ export async function consultarDocumentoExterno(
       if (!error && row) {
         const parsed = parseConsultaDinamica(row);
         if (parsed) {
-          let edadFinal = parsed.edad ? Number(parsed.edad) : null;
-          if (!edadFinal) {
-            const est = estimarEdadPorCedula(cleanCedula);
-            if (est !== '') edadFinal = Number(est);
-          }
+          const edadFinal = parsed.edad ? Number(parsed.edad) : null;
 
           return {
             encontrado: true,
@@ -198,18 +139,6 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
     const ext = await consultarDocumentoExterno(cleanCedula);
     if (ext && ext.encontrado && ext.nombres) {
       let edadFinal = ext.edad !== null && ext.edad !== undefined && !isNaN(Number(ext.edad)) ? Number(ext.edad) : null;
-
-      // Si no trajo edad, buscar si el censo local o estimación demográfica la tiene
-      if (!edadFinal) {
-        const demo = LOCAL_DEMO_CENSO[cleanCedula];
-        if (demo && demo.edad) {
-          edadFinal = Number(demo.edad);
-        }
-      }
-      if (!edadFinal) {
-        const est = estimarEdadPorCedula(cleanCedula);
-        if (est !== '') edadFinal = Number(est);
-      }
 
       let puestoSugerido: string | null = ext.puesto_sugerido || null;
       let mesaSugerida: number | null = ext.mesa_sugerida || null;
@@ -268,11 +197,7 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
             record.fechaNacimiento;
 
           const edadCalculada = calcularEdadDesdeCenso(edadRaw);
-          let edad = edadCalculada !== '' ? Number(edadCalculada) : null;
-          if (!edad) {
-            const est = estimarEdadPorCedula(cleanCedula);
-            if (est !== '') edad = Number(est);
-          }
+          const edad = edadCalculada !== '' ? Number(edadCalculada) : null;
 
           const parsed = parseNombreCompleto(`${record.nombres} ${record.apellidos || ''}`);
           return {
@@ -305,11 +230,7 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
             record.fechaNacimiento;
 
           const edadCalculada = calcularEdadDesdeCenso(edadRaw);
-          let edad = edadCalculada !== '' ? Number(edadCalculada) : null;
-          if (!edad) {
-            const est = estimarEdadPorCedula(cleanCedula);
-            if (est !== '') edad = Number(est);
-          }
+          const edad = edadCalculada !== '' ? Number(edadCalculada) : null;
 
           const parsed = parseNombreCompleto(`${record.nombres} ${record.apellidos || ''}`);
           return {
@@ -341,11 +262,7 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
           (tableData as any).fechaNacimiento;
 
         const edadCalculada = calcularEdadDesdeCenso(edadRaw);
-        let edad = edadCalculada !== '' ? Number(edadCalculada) : null;
-        if (!edad) {
-          const est = estimarEdadPorCedula(cleanCedula);
-          if (est !== '') edad = Number(est);
-        }
+        const edad = edadCalculada !== '' ? Number(edadCalculada) : null;
 
         const parsed = parseNombreCompleto(`${tableData.nombres} ${tableData.apellidos || ''}`);
         return {

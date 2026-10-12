@@ -1,6 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
-import { estimarEdadPorCedula } from '../../services/censoService';
 import { parseConsultaDinamica } from '../../utils/electorResponseParser';
 
 export interface FastElectorSearchResult {
@@ -104,11 +103,7 @@ export function useFastElectorSearch() {
               });
 
               if (elector) {
-                let edadCalculada = elector.edad ? Number(elector.edad) : null;
-                if (!edadCalculada) {
-                  const est = estimarEdadPorCedula(docLimpio);
-                  if (est !== '') edadCalculada = Number(est);
-                }
+                const edadCalculada = elector.edad ? Number(elector.edad) : null;
 
                 return {
                   found: true,
@@ -144,11 +139,7 @@ export function useFastElectorSearch() {
           if (!censoErr && censo) {
             const elector = parseConsultaDinamica(censo);
             if (elector) {
-              let edadCalculada = elector.edad ? Number(elector.edad) : null;
-              if (!edadCalculada) {
-                const est = estimarEdadPorCedula(docLimpio);
-                if (est !== '') edadCalculada = Number(est);
-              }
+              const edadCalculada = elector.edad ? Number(elector.edad) : null;
 
               return {
                 found: true,
