@@ -39,10 +39,8 @@ export const AppRouter: React.FC<AppRouterProps> = ({ session, onSignOut }) => {
               setSuperAdminMode('master');
               sessionStorage.setItem('electoral_superadmin_mode', 'master');
             }}
-            onSelectCampaign={(tenantId) => {
-              if (tenantId) {
-                setCurrentTenantId(tenantId);
-              }
+            onSelectCampaign={() => {
+              setCurrentTenantId('sandbox');
               setSuperAdminMode('campaign_preview');
               sessionStorage.setItem('electoral_superadmin_mode', 'campaign_preview');
             }}

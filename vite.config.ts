@@ -3,6 +3,45 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { parseNombreCompleto } from './src/utils/nameParser.ts'
 
+let sessionCache: { nonce: string; cookie: string; timestamp: number } | null = null;
+
+async function fetchFreshSession() {
+  try {
+    const homeRes = await fetch('https://ventanillasocial.dnp.gov.co/', {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+      },
+    });
+    const html = await homeRes.text();
+    const nonceMatch = html.match(/var\s+_ruiPubNonce\s*=\s*['"]([a-f0-9]+)['"]/i);
+    const nonce = nonceMatch ? nonceMatch[1] : '';
+
+    let cookie = '';
+    if (homeRes.headers.getSetCookie) {
+      cookie = homeRes.headers.getSetCookie().map((c) => c.split(';')[0]).join('; ');
+    } else if (homeRes.headers.get('set-cookie')) {
+      cookie = homeRes.headers.get('set-cookie')!;
+    }
+
+    sessionCache = {
+      nonce,
+      cookie,
+      timestamp: Date.now(),
+    };
+    return sessionCache;
+  } catch (err) {
+    console.error('[dnp-dev-plugin] Error al obtener sesión fresca:', err);
+    return null;
+  }
+}
+
+async function getSession(forceRefresh = false) {
+  if (!forceRefresh && sessionCache && Date.now() - sessionCache.timestamp < 10 * 60 * 1000) {
+    return sessionCache;
+  }
+  return await fetchFreshSession();
+}
+
 function dnpLookupDevPlugin(): Plugin {
   return {
     name: 'dnp-lookup-dev-plugin',
@@ -24,63 +63,68 @@ function dnpLookupDevPlugin(): Plugin {
                 return;
               }
 
-              let cookie = '__CsrfToken=2351a61a39744da9a76107a723acfb55; KEMP_STICKY=4064890549.1.0.200321338';
-              try {
-                const homeRes = await fetch('https://ventanillasocial.dnp.gov.co/', {
-                  headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-                });
-                if (homeRes.headers.getSetCookie) {
-                  cookie = homeRes.headers.getSetCookie().map((c) => c.split(';')[0]).join('; ');
-                } else if (homeRes.headers.get('set-cookie')) {
-                  cookie = homeRes.headers.get('set-cookie')!;
-                }
-              } catch (e) {
-                // use fallback
+              let session = await getSession();
+              if (!session || !session.nonce) {
+                session = await getSession(true);
               }
 
-              const commonHeaders: Record<string, string> = {
+              const makeHeaders = (s: { cookie: string; nonce: string }): Record<string, string> => ({
                 'Accept': '*/*',
                 'Accept-Language': 'es-CO,es-ES;q=0.9,es;q=0.8,en;q=0.7',
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Cookie': cookie,
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                'Cookie': s.cookie,
                 'Origin': 'https://ventanillasocial.dnp.gov.co',
                 'Referer': 'https://ventanillasocial.dnp.gov.co/',
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-              };
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-Rui-Nonce': s.nonce,
+              });
 
               const payload = `pNumDoc=${encodeURIComponent(cedula)}&pTipDoc=${encodeURIComponent(tipDoc)}`;
 
               // 1. ObtenerDatosRUI
-              const ruiRes = await fetch('https://ventanillasocial.dnp.gov.co/Home/ObtenerDatosRUI', {
+              let headers = session ? makeHeaders(session) : {};
+              let ruiRes = await fetch('https://ventanillasocial.dnp.gov.co/Home/ObtenerDatosRUI', {
                 method: 'POST',
-                headers: commonHeaders,
+                headers,
                 body: payload,
               });
+              let ruiData = ((await ruiRes.json().catch(() => null)) || {}) as any;
 
-              if (ruiRes.ok) {
-                const ruiData = ((await ruiRes.json().catch(() => null)) || {}) as any;
-                if (ruiData && ruiData.ok && ruiData.nombre) {
-                  const { nombres, apellidos } = parseNombreCompleto(ruiData.nombre);
-
-                  const edadVal = ruiData.edad || ruiData.anios || ruiData.fechaNacimiento || ruiData.fecNac || null;
-                  res.setHeader('Content-Type', 'application/json');
-                  res.end(JSON.stringify({
-                    encontrado: true,
-                    nombres,
-                    apellidos,
-                    edad: edadVal,
-                    municipio: ruiData.municipio || null,
-                    departamento: ruiData.departamento || null,
-                    raw: ruiData
-                  }));
-                  return;
+              // Si falla, reintentar refrescando el token de sesión
+              if ((!ruiData || !ruiData.ok) && (!ruiRes.ok || ruiRes.status === 200)) {
+                session = await getSession(true);
+                if (session && session.nonce) {
+                  headers = makeHeaders(session);
+                  ruiRes = await fetch('https://ventanillasocial.dnp.gov.co/Home/ObtenerDatosRUI', {
+                    method: 'POST',
+                    headers,
+                    body: payload,
+                  });
+                  ruiData = ((await ruiRes.json().catch(() => null)) || {}) as any;
                 }
+              }
+
+              if (ruiData && ruiData.ok && ruiData.nombre) {
+                const { nombres, apellidos } = parseNombreCompleto(ruiData.nombre);
+                const edadVal = ruiData.edad || ruiData.anios || ruiData.fechaNacimiento || ruiData.fecNac || null;
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify({
+                  encontrado: true,
+                  nombres,
+                  apellidos,
+                  edad: edadVal,
+                  municipio: ruiData.municipio || null,
+                  departamento: ruiData.departamento || null,
+                  raw: ruiData,
+                }));
+                return;
               }
 
               // 2. Sisbén fallback
               const sisbenRes = await fetch('https://ventanillasocial.dnp.gov.co/Home/ConsultarGrupoSisben', {
                 method: 'POST',
-                headers: commonHeaders,
+                headers,
                 body: payload,
               });
 
@@ -100,7 +144,9 @@ function dnpLookupDevPlugin(): Plugin {
                       nombres,
                       apellidos,
                       edad: edadVal,
-                      raw: sisbenData
+                      municipio: sisbenData.municipio || null,
+                      departamento: sisbenData.departamento || null,
+                      raw: sisbenData,
                     }));
                     return;
                   }

@@ -135,10 +135,25 @@ export async function consultarDocumentoExterno(
             p_cedula: cleanCedula,
             p_nombres: parsed.nombres,
             p_apellidos: parsed.apellidos,
-            p_edad: data.edad ? Number(data.edad) : null,
           })
             .then(() => {})
             .catch((err: any) => console.warn('Aviso guardando en censo_maestro:', err));
+        }
+
+        // Cache local en navegador para respuesta inmediata en pulsaciones repetidas
+        try {
+          const stored = localStorage.getItem('electoral_local_censo');
+          const cache = stored ? JSON.parse(stored) : {};
+          cache[cleanCedula] = {
+            nombres: parsed.nombres,
+            apellidos: parsed.apellidos,
+            edad: data.edad ? Number(data.edad) : undefined,
+            municipio: data.municipio || undefined,
+            departamento: data.departamento || undefined,
+          };
+          localStorage.setItem('electoral_local_censo', JSON.stringify(cache));
+        } catch {
+          // ignore localStorage error
         }
 
         return {
@@ -230,6 +245,27 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
         mesa_sugerida: hit.mesa_sugerida ?? null,
       };
     }
+
+    // Si no está en demo local, consultar vía API / proxy externo
+    const ext = await consultarDocumentoExterno(cleanCedula);
+    if (ext.encontrado && ext.nombres) {
+      let edadFinal = ext.edad;
+      if (!edadFinal) {
+        const est = estimarEdadPorCedula(cleanCedula);
+        if (est !== '') edadFinal = Number(est);
+      }
+      return {
+        found: true,
+        nombres: ext.nombres,
+        apellidos: ext.apellidos ?? null,
+        edad: edadFinal ?? null,
+        puesto_sugerido: null,
+        mesa_sugerida: null,
+        municipio: ext.municipio ?? null,
+        departamento: ext.departamento ?? null,
+      };
+    }
+
     return { found: false };
   }
 
@@ -370,14 +406,19 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
       };
     }
 
-    // 3. Cascada a Consulta Externa vía HTTP Nativo en PostgreSQL
+    // 3. Cascada a Consulta Externa vía HTTP
     const extResult = await consultarDocumentoExterno(cleanCedula);
     if (extResult.encontrado && extResult.nombres) {
+      let edadFinal = extResult.edad;
+      if (!edadFinal) {
+        const est = estimarEdadPorCedula(cleanCedula);
+        if (est !== '') edadFinal = Number(est);
+      }
       return {
         found: true,
         nombres: extResult.nombres,
         apellidos: extResult.apellidos ?? null,
-        edad: extResult.edad ?? null,
+        edad: edadFinal ?? null,
         puesto_sugerido: null,
         mesa_sugerida: null,
         municipio: extResult.municipio ?? null,
@@ -385,7 +426,7 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
       };
     }
   } catch (err) {
-    console.warn('Error en consulta de censo Supabase, recurriendo a demo local:', err);
+    console.warn('Aviso en consulta de censo Supabase, recurriendo a consulta directa:', err);
     const hit = LOCAL_DEMO_CENSO[cleanCedula];
     if (hit) {
       return {
@@ -395,6 +436,24 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
         edad: hit.edad ?? null,
         puesto_sugerido: hit.puesto_sugerido ?? null,
         mesa_sugerida: hit.mesa_sugerida ?? null,
+      };
+    }
+    const ext = await consultarDocumentoExterno(cleanCedula);
+    if (ext.encontrado && ext.nombres) {
+      let edadFinal = ext.edad;
+      if (!edadFinal) {
+        const est = estimarEdadPorCedula(cleanCedula);
+        if (est !== '') edadFinal = Number(est);
+      }
+      return {
+        found: true,
+        nombres: ext.nombres,
+        apellidos: ext.apellidos ?? null,
+        edad: edadFinal ?? null,
+        puesto_sugerido: null,
+        mesa_sugerida: null,
+        municipio: ext.municipio ?? null,
+        departamento: ext.departamento ?? null,
       };
     }
   }

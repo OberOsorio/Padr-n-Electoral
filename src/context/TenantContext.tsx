@@ -5,6 +5,18 @@ import type { Tenant, TenantPlan } from '../types';
 
 export const DEFAULT_TENANTS: Tenant[] = [];
 
+export const SANDBOX_TENANT: Tenant = {
+  id: 'sandbox',
+  name: 'Sandbox Demostrativo',
+  slug: 'demo-sandbox',
+  plan: 'enterprise',
+  is_active: true,
+  max_electors: 50000,
+  departamento: 'Córdoba',
+  municipio: 'Montería',
+  created_at: new Date().toISOString(),
+};
+
 const LOCAL_STORAGE_TENANTS_KEY = 'electoral_saas_tenants';
 const LOCAL_STORAGE_ACTIVE_TENANT_KEY = 'electoral_active_tenant_id';
 
@@ -179,12 +191,18 @@ export const TenantProvider: React.FC<{ children: React.ReactNode; userRole?: st
 
   // Tenant actualmente seleccionado
   const currentTenant = useMemo(() => {
-    return tenants.find((t) => t.id === currentTenantId) || tenants[0] || null;
+    if (currentTenantId === 'sandbox') {
+      return SANDBOX_TENANT;
+    }
+    return tenants.find((t) => t.id === currentTenantId) || (tenants.length > 0 ? tenants[0] : SANDBOX_TENANT);
   }, [tenants, currentTenantId]);
 
   // 2. Consultar uso de censo electoral para el Tenant activo + Suscripción Realtime
   useEffect(() => {
-    if (!currentTenant?.id) return;
+    if (!currentTenant?.id || currentTenant.id === 'sandbox') {
+      setTotalTenantElectors(0);
+      return;
+    }
 
     const countElectors = async () => {
       if (!isSupabaseConfigured) {
