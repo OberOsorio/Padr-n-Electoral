@@ -33,7 +33,7 @@ import { ElectorLocationSelector } from './components/ElectorLocationSelector';
 import { useTenant } from '../../context/TenantContext';
 import {
   buscarCiudadanoEnCenso,
-  calcularEdadDesdeCenso,
+  calcularEdadUniversal,
   LOCAL_DEMO_CENSO,
 } from '../../services/censoService';
 
@@ -272,22 +272,27 @@ export const RegisterElectorView = ({
           return;
         }
 
-        if (censo.found && censo.nombres) {
-          setNombres(censo.nombres);
-          if (censo.apellidos) setApellidos(censo.apellidos);
+        if (censo.found && (censo.nombres || (censo as any).primer_nombre)) {
+          const nom = censo.nombres || [(censo as any).primer_nombre, (censo as any).segundo_nombre].filter(Boolean).join(' ');
+          const ape = censo.apellidos || [(censo as any).primer_apellido, (censo as any).segundo_apellido].filter(Boolean).join(' ');
+          if (nom) setNombres(nom);
+          if (ape) setApellidos(ape);
 
           // Extraer la edad de cualquiera de las posibles propiedades que use la tabla/censo:
-          const edadObtenida =
+          const fuenteEdad =
             censo.edad ??
-            (censo as any).anios ??
             (censo as any).fecha_nacimiento ??
+            (censo as any).fechaNacimiento ??
+            (censo as any).anio_nacimiento ??
+            (censo as any).anioNacimiento ??
+            (censo as any).anios ??
             (censo as any).nacimiento ??
             (censo as any).fec_nac ??
-            (censo as any).fechaNacimiento;
+            (censo as any).fecha;
 
-          let edadFinal = calcularEdadDesdeCenso(edadObtenida);
-          if (edadFinal !== '') {
-            setEdad(Number(edadFinal));
+          const edadCalculada = calcularEdadUniversal(fuenteEdad);
+          if (edadCalculada !== null && edadCalculada > 0) {
+            setEdad(edadCalculada);
           } else {
             const demo = LOCAL_DEMO_CENSO[cleanNum];
             if (demo?.edad) {

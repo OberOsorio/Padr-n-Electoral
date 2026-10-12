@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
-import { LOCAL_DEMO_CENSO, calcularEdadDesdeCenso } from '../../services/censoService';
+import { LOCAL_DEMO_CENSO } from '../../services/censoService';
+import { calcularEdadUniversal } from '../../utils/calculateAge';
 
 export interface FastElectorSearchResult {
   found: boolean;
@@ -99,24 +100,37 @@ export function useFastElectorSearch() {
         // C. Consulta directa indexada en Supabase a censo_maestro (< 50ms)
         if (isSupabaseConfigured) {
           const { data: censo, error: censoErr } = await (supabase.from('censo_maestro') as any)
-            .select('nombres, apellidos, edad, puesto_sugerido, mesa_sugerida, municipio, departamento')
+            .select('*')
             .eq('cedula', docLimpio)
             .abortSignal(signal)
             .maybeSingle();
 
           clearTimeout(timeoutId);
 
-          if (!censoErr && censo && censo.nombres) {
-            const edadCalculada = calcularEdadDesdeCenso(censo.edad);
+          if (!censoErr && censo && (censo.nombres || censo.primer_nombre)) {
+            const fuenteEdad =
+              censo.edad ??
+              censo.fecha_nacimiento ??
+              censo.fechaNacimiento ??
+              censo.anio_nacimiento ??
+              censo.anioNacimiento ??
+              censo.fec_nac ??
+              censo.nacimiento;
+
+            const edadCalculada = calcularEdadUniversal(fuenteEdad);
+
+            const nombres = censo.nombres || [censo.primer_nombre, censo.segundo_nombre].filter(Boolean).join(' ');
+            const apellidos = censo.apellidos || [censo.primer_apellido, censo.segundo_apellido].filter(Boolean).join(' ');
+
             return {
               found: true,
               isDuplicate: false,
               data: {
-                nombres: censo.nombres,
-                apellidos: censo.apellidos || '',
-                edad: edadCalculada !== '' ? Number(edadCalculada) : (censo.edad ? Number(censo.edad) : null),
-                puesto_votacion: censo.puesto_sugerido || null,
-                mesa: censo.mesa_sugerida ? String(censo.mesa_sugerida) : null,
+                nombres: nombres || '',
+                apellidos: apellidos || '',
+                edad: edadCalculada ?? (censo.edad ? Number(censo.edad) : null),
+                puesto_votacion: censo.puesto_sugerido || censo.puesto_votacion || censo.puesto || null,
+                mesa: censo.mesa_sugerida ? String(censo.mesa_sugerida) : (censo.mesa ? String(censo.mesa) : null),
                 municipio: censo.municipio || null,
                 departamento: censo.departamento || null,
               },

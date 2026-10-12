@@ -29,40 +29,16 @@ export function toTitleCase(str?: string | null): string {
   return formatearMayusculas(str);
 }
 
+import { calcularEdadUniversal } from '../utils/calculateAge';
+export { calcularEdadUniversal };
+
 /**
  * Función robusta para calcular o extraer la edad en años a partir de datos del censo.
- * Maneja números directos, strings numéricos y fechas en formatos YYYY-MM-DD, DD/MM/YYYY, ISO, etc.
+ * Utiliza el cálculo universal compatible con cualquier formato (número, año, fecha latina, ISO o Date).
  */
 export function calcularEdadDesdeCenso(valorEdadOFecNac: any): number | '' {
-  if (valorEdadOFecNac === undefined || valorEdadOFecNac === null || valorEdadOFecNac === '') {
-    return '';
-  }
-
-  // 1. Si ya viene como número válido de edad (ej. 45 o "45")
-  const posibleNumero = Number(valorEdadOFecNac);
-  if (!isNaN(posibleNumero) && posibleNumero > 0 && posibleNumero < 125) {
-    return Math.floor(posibleNumero);
-  }
-
-  // 2. Si viene como fecha
-  let fechaStr = valorEdadOFecNac.toString().trim();
-  // Si viene en formato DD/MM/YYYY o DD-MM-YYYY
-  if (/^\d{2}[\/\-]\d{2}[\/\-]\d{4}/.test(fechaStr)) {
-    const parts = fechaStr.split(/[\/\-]/);
-    fechaStr = `${parts[2]}-${parts[1]}-${parts[0]}`;
-  }
-
-  const fechaNac = new Date(fechaStr);
-  if (isNaN(fechaNac.getTime())) return '';
-
-  const hoy = new Date();
-  let edad = hoy.getFullYear() - fechaNac.getFullYear();
-  const mesDiff = hoy.getMonth() - fechaNac.getMonth();
-  if (mesDiff < 0 || (mesDiff === 0 && hoy.getDate() < fechaNac.getDate())) {
-    edad--;
-  }
-
-  return edad > 0 && edad < 125 ? edad : '';
+  const edad = calcularEdadUniversal(valorEdadOFecNac);
+  return edad !== null ? edad : '';
 }
 
 /**
