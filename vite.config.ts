@@ -224,12 +224,136 @@ function dnpLookupDevPlugin(): Plugin {
   };
 }
 
+function adminResetPasswordDevPlugin(): Plugin {
+  return {
+    name: 'admin-reset-password-dev-plugin',
+    configureServer(server) {
+      server.middlewares.use(async (req, res, next) => {
+        if (
+          (req.url === '/api/admin/reset-password' || req.url?.startsWith('/api/admin/reset-password?')) &&
+          req.method === 'POST'
+        ) {
+          let bodyStr = '';
+          req.on('data', (chunk) => {
+            bodyStr += chunk;
+          });
+          req.on('end', async () => {
+            res.setHeader('Content-Type', 'application/json');
+            try {
+              const body = JSON.parse(bodyStr || '{}');
+              const { userId, newPassword, adminRequesterId, userEmail, userName } = body || {};
+
+              if (!userId || !newPassword) {
+                res.statusCode = 400;
+                res.end(JSON.stringify({ error: 'Faltan parámetros requeridos (userId, newPassword).' }));
+                return;
+              }
+
+              const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://gwerezjurmxuwcqousqg.supabase.co';
+              let serviceRoleKey =
+                process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_SERVICE_ROLE_KEY || '';
+
+              if (!serviceRoleKey) {
+                try {
+                  const fs = await import('node:fs');
+                  const path = await import('node:path');
+                  const envPath = path.resolve(process.cwd(), '.env');
+                  if (fs.existsSync(envPath)) {
+                    const envContent = fs.readFileSync(envPath, 'utf-8');
+                    const match =
+                      envContent.match(/SUPABASE_SERVICE_ROLE_KEY=([^\r\n]+)/) ||
+                      envContent.match(/VITE_SUPABASE_SERVICE_ROLE_KEY=([^\r\n]+)/);
+                    if (match) serviceRoleKey = match[1].trim();
+                  }
+                } catch {
+                  // ignore
+                }
+              }
+
+              if (!serviceRoleKey) {
+                res.statusCode = 500;
+                res.end(JSON.stringify({ error: 'SUPABASE_SERVICE_ROLE_KEY no configurado en entorno.' }));
+                return;
+              }
+
+              const { createClient } = await import('@supabase/supabase-js');
+              const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
+                auth: {
+                  autoRefreshToken: false,
+                  persistSession: false,
+                },
+              });
+
+              // 1. Validar que el solicitante sea admin o superadmin si se envió adminRequesterId
+              if (adminRequesterId) {
+                const { data: requesterProfile } = await supabaseAdmin
+                  .from('profiles')
+                  .select('role')
+                  .eq('id', adminRequesterId)
+                  .single();
+
+                if (requesterProfile && !['superadmin', 'admin'].includes(requesterProfile.role)) {
+                  res.statusCode = 403;
+                  res.end(JSON.stringify({ error: 'No autorizado para resetear credenciales.' }));
+                  return;
+                }
+              }
+
+              // 2. Actualizar contraseña efectiva en auth.users
+              const { data: updatedUser, error: updateErr } = await supabaseAdmin.auth.admin.updateUserById(
+                userId,
+                {
+                  password: newPassword,
+                  email_confirm: true,
+                }
+              );
+
+              if (updateErr) {
+                res.statusCode = 400;
+                res.end(
+                  JSON.stringify({
+                    error: updateErr.message || 'Error al actualizar credencial en Supabase Auth.',
+                  })
+                );
+                return;
+              }
+
+              // 3. Auditoría inmutable
+              try {
+                await supabaseAdmin.from('security_audit_logs').insert({
+                  user_id: userId,
+                  user_email: userEmail || updatedUser?.user?.email || 'usuario@sistema.gov',
+                  user_name: userName || 'Usuario',
+                  event_type: 'PASSWORD_RESET_PROVISIONAL',
+                  severity: 'WARNING',
+                  action_detail: `Contraseña provisional asignada por el administrador ID: ${adminRequesterId || 'admin'}`,
+                });
+              } catch (auditErr) {
+                console.warn('[vite-admin-reset] Aviso auditoría:', auditErr);
+              }
+
+              res.statusCode = 200;
+              res.end(JSON.stringify({ success: true, message: 'Contraseña actualizada y habilitada para login.' }));
+            } catch (err: any) {
+              res.statusCode = 500;
+              res.end(JSON.stringify({ error: err.message || 'Error interno del servidor.' }));
+            }
+          });
+          return;
+        }
+        next();
+      });
+    },
+  };
+}
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
     dnpLookupDevPlugin(),
+    adminResetPasswordDevPlugin(),
   ],
   server: {
     host: true, // Permite escuchar en la red local

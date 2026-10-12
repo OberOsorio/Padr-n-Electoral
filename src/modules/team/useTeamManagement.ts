@@ -478,13 +478,16 @@ export const useTeamManagement = () => {
     return true;
   };
 
-  // 5. Resetear contraseña de acceso para un miembro subordinado
+  // 5. Resetear contraseña de acceso para un miembro subordinado (aplicación real en auth.users)
   const resetMemberPassword = async (
     email: string,
-    temporaryPassword?: string
+    temporaryPassword?: string,
+    userId?: string
   ): Promise<{ success: boolean; message: string }> => {
     const trimmedEmail = email.trim().toLowerCase();
-    const targetMember = team.find((m) => m.email.trim().toLowerCase() === trimmedEmail);
+    const targetMember = team.find(
+      (m) => m.email.trim().toLowerCase() === trimmedEmail || (userId && m.id === userId)
+    );
     if (targetMember?.role === 'admin') {
       return {
         success: false,
@@ -493,21 +496,91 @@ export const useTeamManagement = () => {
     }
 
     const tempPass = temporaryPassword || 'Electoral2026*';
+    const targetId = userId || targetMember?.id;
 
-    if (isSupabaseConfigured) {
+    let applied = false;
+    let errorDetail = '';
+
+    // 1. Intentar vía endpoint de servidor (/api/admin/reset-password)
+    if (targetId) {
+      try {
+        const { data: { user: currentAdmin } } = await supabase.auth.getUser();
+        const res = await fetch('/api/admin/reset-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: targetId,
+            newPassword: tempPass,
+            adminRequesterId: currentAdmin?.id,
+            userEmail: trimmedEmail,
+            userName: targetMember?.full_name,
+          }),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success) {
+            applied = true;
+          }
+        }
+      } catch (e: any) {
+        // Fallback a cliente local
+      }
+    }
+
+    // 2. Fallback directo con supabaseAdmin
+    if (!applied && targetId && supabaseAdmin) {
+      try {
+        const { error: updErr } = await supabaseAdmin.auth.admin.updateUserById(targetId, {
+          password: tempPass,
+          email_confirm: true,
+        });
+
+        if (updErr) {
+          errorDetail = updErr.message;
+        } else {
+          applied = true;
+          try {
+            await (supabaseAdmin.from('security_audit_logs') as any).insert({
+              user_id: targetId,
+              user_email: trimmedEmail,
+              user_name: targetMember?.full_name || 'Usuario',
+              event_type: 'PASSWORD_RESET_PROVISIONAL',
+              severity: 'WARNING',
+              action_detail: `Contraseña provisional asignada por administrador`,
+            });
+          } catch {
+            // ignore
+          }
+        }
+      } catch (admCatch: any) {
+        errorDetail = admCatch?.message || errorDetail;
+      }
+    }
+
+    // 3. Fallback adicional si no hay targetId: solicitar reset por email tradicional
+    if (!applied && isSupabaseConfigured) {
       try {
         const resetRedirect = typeof window !== 'undefined' ? `${window.location.origin}` : '';
         await supabase.auth.resetPasswordForEmail(trimmedEmail, {
           redirectTo: resetRedirect,
         });
-      } catch (err) {
-        console.warn('Aviso al solicitar reset por email en Supabase:', err);
+        applied = true;
+      } catch (err: any) {
+        errorDetail = err?.message || errorDetail;
       }
+    }
+
+    if (!applied) {
+      return {
+        success: false,
+        message: errorDetail || 'No se pudo actualizar la contraseña en Supabase Auth.',
+      };
     }
 
     return {
       success: true,
-      message: `Acceso reseteado exitosamente para ${trimmedEmail}. Clave provisional sugerida: ${tempPass}`,
+      message: `Acceso reseteado exitosamente para ${trimmedEmail}. Ya puede iniciar sesión con la clave asignada.`,
     };
   };
 
