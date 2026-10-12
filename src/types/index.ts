@@ -148,6 +148,8 @@ export interface ConsultarDocumentoExternoResult {
   nombres?: string | null;
   apellidos?: string | null;
   edad?: number | null;
+  puesto_sugerido?: string | null;
+  mesa_sugerida?: number | null;
   municipio?: string | null;
   departamento?: string | null;
   raw_response?: any;

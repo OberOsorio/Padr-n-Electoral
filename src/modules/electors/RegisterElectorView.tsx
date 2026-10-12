@@ -35,6 +35,7 @@ import {
   buscarCiudadanoEnCenso,
   calcularEdadUniversal,
   LOCAL_DEMO_CENSO,
+  estimarEdadPorCedula,
 } from '../../services/censoService';
 
 interface RegisterElectorViewProps {
@@ -290,16 +291,26 @@ export const RegisterElectorView = ({
             (censo as any).fec_nac ??
             (censo as any).fecha;
 
+          let edadFinal: number | null = null;
           const edadCalculada = calcularEdadUniversal(fuenteEdad);
           if (edadCalculada !== null && edadCalculada > 0) {
-            setEdad(edadCalculada);
+            edadFinal = edadCalculada;
+          } else if (censo.edad && Number(censo.edad) > 0) {
+            edadFinal = Number(censo.edad);
           } else {
             const demo = LOCAL_DEMO_CENSO[cleanNum];
             if (demo?.edad) {
-              setEdad(Number(demo.edad));
+              edadFinal = Number(demo.edad);
             } else {
-              setEdad('');
+              const est = estimarEdadPorCedula(cleanNum);
+              if (est !== '') edadFinal = Number(est);
             }
+          }
+
+          if (edadFinal && edadFinal > 0) {
+            setEdad(edadFinal);
+          } else {
+            setEdad('');
           }
 
           // Validar jurisdicción estrictamente por municipio explícito (nunca comparando puesto contra municipio)
@@ -506,7 +517,7 @@ export const RegisterElectorView = ({
 
     // Si la cédula fue alterada o se eliminó un dígito y teníamos datos autocompletados
     // de una consulta previa, limpiamos inmediatamente los datos para no dejar información obsoleta
-    if (seEliminoNumero || (autofilledCedulaRef.current && autofilledCedulaRef.current !== val) || isAutofilledFromCenso) {
+    if (seEliminoNumero || (autofilledCedulaRef.current && autofilledCedulaRef.current !== val)) {
       setNombres('');
       setApellidos('');
       setEdad('');

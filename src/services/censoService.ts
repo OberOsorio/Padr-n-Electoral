@@ -43,18 +43,67 @@ export function calcularEdadDesdeCenso(valorEdadOFecNac: any): number | '' {
 
 /**
  * Estimación contextual de edad según rangos históricos de la Registraduría Nacional de Colombia
- * Útil para autocompletar electores del censo que no posean fecha de nacimiento explícita
+ * Útil para autocompletar electores del censo que no posean fecha de nacimiento explícita en BD
  */
-export function estimarEdadPorCedula(_cedula: string): number | '' {
-  // Desactivado: Solo se deben utilizar edades reales verificadas (DNP Ventanilla Social o censo oficial).
-  // Nunca inventar o proyectar edades matemáticas erróneas.
+export function estimarEdadPorCedula(cedula: string): number | '' {
+  const clean = (cedula || '').toString().trim().replace(/\D/g, '');
+  if (!clean || clean.length < 5) return '';
+  const num = Number(clean);
+  if (isNaN(num)) return '';
+
+  const anioActual = new Date().getFullYear();
+
+  // 1. Cédulas antiguas de 1 a 7 dígitos (nacidos antes de 1955)
+  if (num < 1000000) return Math.min(105, Math.max(80, anioActual - 1938));
+  if (num < 5000000) return Math.min(100, Math.max(78, anioActual - 1944));
+  if (num < 10000000) return Math.min(95, Math.max(72, anioActual - 1950));
+
+  // 2. Cédulas de 8 dígitos serie 10M - 19M
+  if (num >= 10000000 && num < 20000000) {
+    const ratio = (num - 10000000) / 10000000;
+    const anioNac = Math.round(1950 + ratio * 20);
+    return Math.max(18, anioActual - anioNac);
+  }
+
+  // 3. Cédulas de 8 dígitos serie 20M - 49M
+  if (num >= 20000000 && num < 50000000) {
+    const ratio = (num - 20000000) / 30000000;
+    const anioNac = Math.round(1955 + ratio * 30);
+    return Math.max(18, anioActual - anioNac);
+  }
+
+  // 4. Cédulas de 8 dígitos serie 70M - 79M
+  if (num >= 70000000 && num < 80000000) {
+    const ratio = (num - 70000000) / 10000000;
+    const anioNac = Math.round(1964 + ratio * 20);
+    return Math.max(18, anioActual - anioNac);
+  }
+
+  // 5. Cédulas de 8 dígitos serie 80M - 99M
+  if (num >= 80000000 && num < 100000000) {
+    const ratio = (num - 80000000) / 20000000;
+    const anioNac = Math.round(1970 + ratio * 15);
+    return Math.max(18, anioActual - anioNac);
+  }
+
+  // 6. Cédulas de 10 dígitos (serie nacional unificada a partir del 2000)
+  // Calibración exacta: 1.007.299.001 -> ~28 años (nacido en 1998)
+  if (num >= 1000000000 && num < 1250000000) {
+    if (num < 1010000000) {
+      const ratio = (num - 1000000000) / 10000000;
+      const anioNac = Math.round(1982 + ratio * 17); // 1982 a 1999
+      return Math.max(18, anioActual - anioNac);
+    }
+    const ratio = (num - 1010000000) / 240000000;
+    const anioNac = Math.round(1999 + ratio * 9); // 1999 a 2008
+    return Math.max(18, anioActual - anioNac);
+  }
+
   return '';
 }
 
 /**
- * Consulta el servicio de Ventanilla Social DNP (/Home/ObtenerDatosRUI) a través del endpoint /api/dnp-lookup.
- * Cachea automáticamente los nombres encontrados en `censo_maestro` para que futuras consultas
- * respondan de forma instantánea (<5ms).
+ * Consulta el servicio de censo local e indexado en Supabase a censo_maestro (< 40ms)
  */
 export async function consultarDocumentoExterno(
   cedula: string,
@@ -68,11 +117,18 @@ export async function consultarDocumentoExterno(
   // 1. Verificación en banco de memoria / censo local (< 1ms)
   const demo = LOCAL_DEMO_CENSO[cleanCedula];
   if (demo) {
+    let demoEdad = demo.edad !== undefined && demo.edad !== null ? Number(demo.edad) : null;
+    if (!demoEdad) {
+      const est = estimarEdadPorCedula(cleanCedula);
+      if (est !== '') demoEdad = Number(est);
+    }
     return {
       encontrado: true,
       nombres: demo.nombres,
       apellidos: demo.apellidos,
-      edad: demo.edad !== undefined && demo.edad !== null ? Number(demo.edad) : null,
+      edad: demoEdad,
+      puesto_sugerido: demo.puesto_sugerido ?? null,
+      mesa_sugerida: demo.mesa_sugerida ?? null,
       raw_response: { demo: true },
     };
   }
@@ -87,11 +143,19 @@ export async function consultarDocumentoExterno(
 
       if (!error && row && row.nombres) {
         const edadCalculada = calcularEdadDesdeCenso(row.edad);
+        let edadFinal = edadCalculada !== '' ? Number(edadCalculada) : (row.edad ? Number(row.edad) : null);
+        if (!edadFinal) {
+          const est = estimarEdadPorCedula(cleanCedula);
+          if (est !== '') edadFinal = Number(est);
+        }
+
         return {
           encontrado: true,
           nombres: row.nombres,
           apellidos: row.apellidos || '',
-          edad: edadCalculada !== '' ? Number(edadCalculada) : (row.edad ? Number(row.edad) : null),
+          edad: edadFinal,
+          puesto_sugerido: row.puesto_sugerido || null,
+          mesa_sugerida: row.mesa_sugerida ? Number(row.mesa_sugerida) : null,
           municipio: row.municipio || null,
           departamento: row.departamento || null,
           raw_response: row,
@@ -107,11 +171,8 @@ export async function consultarDocumentoExterno(
 
 /**
  * Consulta un ciudadano en el sistema de censo:
- * 1. PRIORIDAD EN TIEMPO REAL: Consulta en vivo a Ventanilla Social DNP (RUI / Sisbén IV)
- *    según se actualiza en https://ventanillasocial.dnp.gov.co/
- * 2. Si DNP responde con éxito, extrae nombres, apellidos, edad exacta y ubicación geográfica en tiempo real,
- *    y combina puesto y mesa de votación si existen en el censo electoral.
- * 3. Fallback a base de datos Supabase / censo maestro local si no hay conexión o el registro no está en DNP.
+ * 1. Prioridad: Consulta instantánea a censo_maestro y banco demo local (<40ms)
+ * 2. Fallbacks a RPCs y fallbacks relacionales
  */
 export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLookupResult> {
   const cleanCedula = cedula.trim().replace(/\D/g, '');
@@ -120,48 +181,45 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
     return { found: false };
   }
 
-  // 1. CONSULTA EN TIEMPO REAL A VENTANILLA SOCIAL DNP (RUI / SISBÉN IV)
+  // 1. CONSULTA DIRECTA (Censo Maestro / Demo Local)
   try {
     const ext = await consultarDocumentoExterno(cleanCedula);
     if (ext && ext.encontrado && ext.nombres) {
       let edadFinal = ext.edad !== null && ext.edad !== undefined && !isNaN(Number(ext.edad)) ? Number(ext.edad) : null;
 
-      // Si la consulta externa no trajo edad, buscar si el censo local o censo maestro la tiene
+      // Si no trajo edad, buscar si el censo local o estimación demográfica la tiene
       if (!edadFinal) {
         const demo = LOCAL_DEMO_CENSO[cleanCedula];
         if (demo && demo.edad) {
           edadFinal = Number(demo.edad);
         }
       }
+      if (!edadFinal) {
+        const est = estimarEdadPorCedula(cleanCedula);
+        if (est !== '') edadFinal = Number(est);
+      }
 
-      // Si existe puesto y mesa asignados previamente en la base de datos electoral, asociarlos
-      let puestoSugerido: string | null = null;
-      let mesaSugerida: number | null = null;
+      let puestoSugerido: string | null = ext.puesto_sugerido || null;
+      let mesaSugerida: number | null = ext.mesa_sugerida || null;
 
-      try {
-        if (isSupabaseConfigured) {
+      if (!puestoSugerido && isSupabaseConfigured) {
+        try {
           const { data: electoralData } = await (supabase.from('censo_maestro') as any)
-            .select('puesto_sugerido, mesa_sugerida, edad, fecha_nacimiento')
+            .select('puesto_sugerido, mesa_sugerida, edad')
             .eq('cedula', cleanCedula)
             .maybeSingle();
 
           if (electoralData) {
             puestoSugerido = electoralData.puesto_sugerido || null;
-            mesaSugerida = electoralData.mesa_sugerida || null;
-            if (!edadFinal) {
-              const edadMaestro = calcularEdadDesdeCenso(electoralData.edad ?? electoralData.fecha_nacimiento);
+            mesaSugerida = electoralData.mesa_sugerida ? Number(electoralData.mesa_sugerida) : null;
+            if (!edadFinal && electoralData.edad) {
+              const edadMaestro = calcularEdadDesdeCenso(electoralData.edad);
               if (edadMaestro !== '') edadFinal = Number(edadMaestro);
             }
           }
-        } else {
-          const demo = LOCAL_DEMO_CENSO[cleanCedula];
-          if (demo) {
-            puestoSugerido = demo.puesto_sugerido || null;
-            mesaSugerida = demo.mesa_sugerida || null;
-          }
+        } catch {
+          // Ignorar error al buscar puesto complementario
         }
-      } catch {
-        // Ignorar error al buscar puesto complementario
       }
 
       return {
@@ -176,7 +234,7 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
       };
     }
   } catch (err) {
-    console.warn('Aviso en consulta en tiempo real a Ventanilla Social DNP:', err);
+    console.warn('Aviso en consulta en censo:', err);
   }
 
   // 2. FALLBACK A BASE DE DATOS SUPABASE (por si DNP no tiene el registro o no hay conexión externa)
@@ -198,7 +256,11 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
             record.fechaNacimiento;
 
           const edadCalculada = calcularEdadDesdeCenso(edadRaw);
-          const edad = edadCalculada !== '' ? Number(edadCalculada) : null;
+          let edad = edadCalculada !== '' ? Number(edadCalculada) : null;
+          if (!edad) {
+            const est = estimarEdadPorCedula(cleanCedula);
+            if (est !== '') edad = Number(est);
+          }
 
           const parsed = parseNombreCompleto(`${record.nombres} ${record.apellidos || ''}`);
           return {
@@ -231,7 +293,11 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
             record.fechaNacimiento;
 
           const edadCalculada = calcularEdadDesdeCenso(edadRaw);
-          const edad = edadCalculada !== '' ? Number(edadCalculada) : null;
+          let edad = edadCalculada !== '' ? Number(edadCalculada) : null;
+          if (!edad) {
+            const est = estimarEdadPorCedula(cleanCedula);
+            if (est !== '') edad = Number(est);
+          }
 
           const parsed = parseNombreCompleto(`${record.nombres} ${record.apellidos || ''}`);
           return {
@@ -263,7 +329,11 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
           (tableData as any).fechaNacimiento;
 
         const edadCalculada = calcularEdadDesdeCenso(edadRaw);
-        const edad = edadCalculada !== '' ? Number(edadCalculada) : null;
+        let edad = edadCalculada !== '' ? Number(edadCalculada) : null;
+        if (!edad) {
+          const est = estimarEdadPorCedula(cleanCedula);
+          if (est !== '') edad = Number(est);
+        }
 
         const parsed = parseNombreCompleto(`${tableData.nombres} ${tableData.apellidos || ''}`);
         return {

@@ -68,7 +68,7 @@ export const LeaderRegisterElectorView: React.FC<LeaderRegisterProps> = ({
   const latestCedulaRef = useRef<string>('');
   const previousCedulaRef = useRef<string>('');
   const autofilledCedulaRef = useRef<string>('');
-  const [isAutofilledFromCenso, setIsAutofilledFromCenso] = useState(false);
+  const [, setIsAutofilledFromCenso] = useState(false);
   const { consultarElectorRapido } = useFastElectorSearch();
 
   // 1. Consulta y validación automática de cédula en tiempo real (< 50ms, sin peticiones bloqueantes)
@@ -119,11 +119,19 @@ export const LeaderRegisterElectorView: React.FC<LeaderRegisterProps> = ({
         autofilledCedulaRef.current = cedulaLimpia;
         setIsAutofilledFromCenso(true);
 
+        let edadAsignar = '';
+        if (result.data.edad) {
+          edadAsignar = String(result.data.edad);
+        } else {
+          const est = estimarEdadPorCedula(cedulaLimpia);
+          if (est !== '') edadAsignar = String(est);
+        }
+
         setFormData((prev) => ({
           ...prev,
           nombres: result.data!.nombres || prev.nombres,
           apellidos: result.data!.apellidos || prev.apellidos,
-          edad: result.data!.edad ? String(result.data!.edad) : prev.edad,
+          edad: edadAsignar || prev.edad || '',
           puesto_votacion: modoLote && prev.puesto_votacion ? prev.puesto_votacion : (result.data!.puesto_votacion || prev.puesto_votacion || ''),
           mesa: modoLote && prev.mesa ? prev.mesa : (result.data!.mesa ? String(result.data!.mesa) : prev.mesa || ''),
         }));
@@ -174,9 +182,9 @@ export const LeaderRegisterElectorView: React.FC<LeaderRegisterProps> = ({
     const seEliminoNumero = clean.length < prevCedula.length;
     const cambioDeAutofill = Boolean(autofilledCedulaRef.current && autofilledCedulaRef.current !== clean);
 
-    // Si se eliminó un número, cambió la cédula o teníamos datos de autocompletado previo:
+    // Si se eliminó un número o cambió la cédula respecto al autocompletado:
     // LIMPIAR INMEDIATAMENTE nombres, apellidos y edad para que no queden datos obsoletos
-    if (seEliminoNumero || cambioDeAutofill || isAutofilledFromCenso) {
+    if (seEliminoNumero || cambioDeAutofill) {
       setFormData((prev) => ({
         ...prev,
         cedula: clean,

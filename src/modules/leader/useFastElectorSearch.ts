@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
-import { LOCAL_DEMO_CENSO } from '../../services/censoService';
+import { LOCAL_DEMO_CENSO, estimarEdadPorCedula } from '../../services/censoService';
 import { calcularEdadUniversal } from '../../utils/calculateAge';
 
 export interface FastElectorSearchResult {
@@ -84,13 +84,18 @@ export function useFastElectorSearch() {
         const demo = LOCAL_DEMO_CENSO[docLimpio];
         if (demo) {
           clearTimeout(timeoutId);
+          let demoEdad = demo.edad !== undefined && demo.edad !== null ? Number(demo.edad) : null;
+          if (!demoEdad) {
+            const est = estimarEdadPorCedula(docLimpio);
+            if (est !== '') demoEdad = Number(est);
+          }
           return {
             found: true,
             isDuplicate: false,
             data: {
               nombres: demo.nombres,
               apellidos: demo.apellidos,
-              edad: demo.edad ?? null,
+              edad: demoEdad,
               puesto_votacion: demo.puesto_sugerido ?? null,
               mesa: demo.mesa_sugerida ? String(demo.mesa_sugerida) : null,
             },
@@ -117,7 +122,14 @@ export function useFastElectorSearch() {
               censo.fec_nac ??
               censo.nacimiento;
 
-            const edadCalculada = calcularEdadUniversal(fuenteEdad);
+            let edadCalculada = calcularEdadUniversal(fuenteEdad);
+            if (!edadCalculada && censo.edad) {
+              edadCalculada = Number(censo.edad);
+            }
+            if (!edadCalculada) {
+              const est = estimarEdadPorCedula(docLimpio);
+              if (est !== '') edadCalculada = Number(est);
+            }
 
             const nombres = censo.nombres || [censo.primer_nombre, censo.segundo_nombre].filter(Boolean).join(' ');
             const apellidos = censo.apellidos || [censo.primer_apellido, censo.segundo_apellido].filter(Boolean).join(' ');
@@ -128,7 +140,7 @@ export function useFastElectorSearch() {
               data: {
                 nombres: nombres || '',
                 apellidos: apellidos || '',
-                edad: edadCalculada ?? (censo.edad ? Number(censo.edad) : null),
+                edad: edadCalculada,
                 puesto_votacion: censo.puesto_sugerido || censo.puesto_votacion || censo.puesto || null,
                 mesa: censo.mesa_sugerida ? String(censo.mesa_sugerida) : (censo.mesa ? String(censo.mesa) : null),
                 municipio: censo.municipio || null,
