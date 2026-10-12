@@ -19,11 +19,11 @@ export const AppRouter: React.FC<AppRouterProps> = ({ session, onSignOut }) => {
 
   const userRole = (session.role || 'admin').toLowerCase();
 
-  // Estado del entorno para SuperAdmin: 'gateway' | 'master' | 'campaign_preview'
-  const [superAdminMode, setSuperAdminMode] = useState<'gateway' | 'master' | 'campaign_preview'>(() => {
+  // Estado del entorno para SuperAdmin: 'gateway' | 'master' | 'campaign_preview' | 'owner_leader'
+  const [superAdminMode, setSuperAdminMode] = useState<'gateway' | 'master' | 'campaign_preview' | 'owner_leader'>(() => {
     const saved = sessionStorage.getItem('electoral_superadmin_mode');
-    if (saved === 'master' || saved === 'campaign_preview') {
-      return saved;
+    if (saved === 'master' || saved === 'campaign_preview' || saved === 'owner_leader') {
+      return saved as 'master' | 'campaign_preview' | 'owner_leader';
     }
     return 'gateway';
   });
@@ -43,6 +43,10 @@ export const AppRouter: React.FC<AppRouterProps> = ({ session, onSignOut }) => {
               setCurrentTenantId('sandbox');
               setSuperAdminMode('campaign_preview');
               sessionStorage.setItem('electoral_superadmin_mode', 'campaign_preview');
+            }}
+            onSelectOwnerLeader={() => {
+              setSuperAdminMode('owner_leader');
+              sessionStorage.setItem('electoral_superadmin_mode', 'owner_leader');
             }}
             onSignOut={() => {
               sessionStorage.removeItem('electoral_superadmin_mode');
@@ -68,6 +72,26 @@ export const AppRouter: React.FC<AppRouterProps> = ({ session, onSignOut }) => {
             sessionStorage.setItem('electoral_superadmin_mode', 'master');
           }}
           onOpenGateway={() => {
+            setSuperAdminMode('gateway');
+            sessionStorage.removeItem('electoral_superadmin_mode');
+          }}
+          onSignOut={() => {
+            sessionStorage.removeItem('electoral_superadmin_mode');
+            onSignOut();
+          }}
+        />
+      );
+    }
+
+    if (superAdminMode === 'owner_leader') {
+      return (
+        <LeaderWorkspaceView
+          userId={session.id || 'owner_leader'}
+          userName={`${session.userName || 'Propietario'} (Líder en Campo)`}
+          userEmail={session.email}
+          tenantId={null}
+          tenantName="Modo Propietario (Agnóstico)"
+          onBackToSelector={() => {
             setSuperAdminMode('gateway');
             sessionStorage.removeItem('electoral_superadmin_mode');
           }}

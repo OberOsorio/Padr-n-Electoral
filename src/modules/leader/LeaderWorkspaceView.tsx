@@ -23,6 +23,7 @@ interface LeaderWorkspaceViewProps {
   tenantId: string | null;
   tenantName?: string;
   onSignOut: () => void;
+  onBackToSelector?: () => void;
 }
 
 export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
@@ -32,6 +33,7 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
   tenantId,
   tenantName = 'Campaña Electoral',
   onSignOut,
+  onBackToSelector,
 }) => {
   const { currentTenant } = useTenant();
 
@@ -132,6 +134,16 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
+            {onBackToSelector && (
+              <button
+                type="button"
+                onClick={onBackToSelector}
+                className="px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all cursor-pointer flex items-center gap-1.5"
+                title="Volver a la selección de entornos"
+              >
+                <span>← Selector</span>
+              </button>
+            )}
             <ThemeToggle size="sm" />
             <button
               onClick={onSignOut}
