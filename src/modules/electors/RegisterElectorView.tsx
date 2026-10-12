@@ -33,10 +33,9 @@ import { ElectorLocationSelector } from './components/ElectorLocationSelector';
 import { useTenant } from '../../context/TenantContext';
 import {
   buscarCiudadanoEnCenso,
-  calcularEdadUniversal,
-  LOCAL_DEMO_CENSO,
   estimarEdadPorCedula,
 } from '../../services/censoService';
+import { parseConsultaDinamica } from '../../utils/electorResponseParser';
 
 interface RegisterElectorViewProps {
   onSuccess?: () => void;
@@ -273,67 +272,58 @@ export const RegisterElectorView = ({
           return;
         }
 
-        if (censo.found && (censo.nombres || (censo as any).primer_nombre)) {
-          const nom = censo.nombres || [(censo as any).primer_nombre, (censo as any).segundo_nombre].filter(Boolean).join(' ');
-          const ape = censo.apellidos || [(censo as any).primer_apellido, (censo as any).segundo_apellido].filter(Boolean).join(' ');
-          if (nom) setNombres(nom);
-          if (ape) setApellidos(ape);
+        if (censo.found) {
+          const elector = parseConsultaDinamica({
+            ok: censo.found,
+            nombres: censo.nombres,
+            apellidos: censo.apellidos,
+            edad: censo.edad,
+            municipio: censo.municipio,
+            departamento: censo.departamento,
+            ...(censo as any),
+          });
 
-          // Extraer la edad de cualquiera de las posibles propiedades que use la tabla/censo:
-          const fuenteEdad =
-            censo.edad ??
-            (censo as any).fecha_nacimiento ??
-            (censo as any).fechaNacimiento ??
-            (censo as any).anio_nacimiento ??
-            (censo as any).anioNacimiento ??
-            (censo as any).anios ??
-            (censo as any).nacimiento ??
-            (censo as any).fec_nac ??
-            (censo as any).fecha;
+          if (elector) {
+            setNombres(elector.nombres);
+            setApellidos(elector.apellidos);
 
-          let edadFinal: number | null = null;
-          const edadCalculada = calcularEdadUniversal(fuenteEdad);
-          if (edadCalculada !== null && edadCalculada > 0) {
-            edadFinal = edadCalculada;
-          } else if (censo.edad && Number(censo.edad) > 0) {
-            edadFinal = Number(censo.edad);
-          } else {
-            const demo = LOCAL_DEMO_CENSO[cleanNum];
-            if (demo?.edad) {
-              edadFinal = Number(demo.edad);
+            let edadFinal: number | null = null;
+            if (elector.edad && !isNaN(Number(elector.edad))) {
+              edadFinal = Number(elector.edad);
             } else {
               const est = estimarEdadPorCedula(cleanNum);
               if (est !== '') edadFinal = Number(est);
             }
-          }
 
-          if (edadFinal && edadFinal > 0) {
-            setEdad(edadFinal);
-          } else {
-            setEdad('');
-          }
+            if (edadFinal && edadFinal > 0) {
+              setEdad(edadFinal);
+            } else {
+              setEdad('');
+            }
 
-          // Validar jurisdicción estrictamente por municipio explícito (nunca comparando puesto contra municipio)
-          const esForaneo = validarJurisdiccionElector({
-            municipio: censo.municipio || (censo as any).municipio_votacion || null,
-            departamento: censo.departamento || null,
-            puesto: censo.puesto_sugerido || null,
-          });
+            // Validar jurisdicción estrictamente por municipio explícito (nunca comparando puesto contra municipio)
+            const esForaneo = validarJurisdiccionElector({
+              municipio: elector.municipio || censo.municipio || (censo as any).municipio_votacion || null,
+              departamento: elector.departamento || censo.departamento || null,
+              puesto: censo.puesto_sugerido || null,
+            });
 
-          if (!esForaneo && censo.puesto_sugerido) {
-            const matchedPlace = pollingPlaces.find(
-              (p) => normalizarTexto(p.name) === normalizarTexto(censo.puesto_sugerido!)
-            );
-            if (matchedPlace) {
-              setPuestoVotacion(matchedPlace.name);
-              if (censo.mesa_sugerida) {
-                setMesa(censo.mesa_sugerida);
+            if (!esForaneo && censo.puesto_sugerido) {
+              const matchedPlace = pollingPlaces.find(
+                (p) => normalizarTexto(p.name) === normalizarTexto(censo.puesto_sugerido!)
+              );
+              if (matchedPlace) {
+                setPuestoVotacion(matchedPlace.name);
+                if (censo.mesa_sugerida) {
+                  setMesa(censo.mesa_sugerida);
+                }
               }
             }
-          }
 
-          autofilledCedulaRef.current = cleanNum;
-          setIsAutofilledFromCenso(true);
+            autofilledCedulaRef.current = cleanNum;
+            setIsAutofilledFromCenso(true);
+            return;
+          }
         } else {
           // Si este número no está en el censo maestro, limpiar campos si estaban autocompletados
           if (autofilledCedulaRef.current || isAutofilledFromCenso) {

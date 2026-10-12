@@ -2,27 +2,10 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { CensoLookupResult, ConsultarDocumentoExternoResult } from '../types';
 import { parseNombreCompleto, formatearMayusculas } from '../utils/nameParser';
 
-// Banco de datos local precargado para pruebas de nombres y edades reales
-export const LOCAL_DEMO_CENSO: Record<string, { nombres: string; apellidos: string; edad?: number; puesto_sugerido?: string; mesa_sugerida?: number }> = {
-  '1007299001': { nombres: 'Ober Luis', apellidos: 'Osorio Orozco', edad: 28 },
-  '1047892341': { nombres: 'Carlos Eduardo', apellidos: 'Mendoza Ospina', edad: 38 },
-  '1098341902': { nombres: 'Laura Sofía', apellidos: 'Herrera Morales', edad: 29 },
-  '73542189': { nombres: 'Miguel Ángel', apellidos: 'Morales Torres', edad: 52 },
-  '1143670554': { nombres: 'Valentina', apellidos: 'Restrepo Castro', edad: 24 },
-  '1052884112': { nombres: 'Andrés Felipe', apellidos: 'Gómez Ortiz', edad: 31 },
-  '1085294019': { nombres: 'Esteban Camilo', apellidos: 'Torres Valderrama', edad: 34 },
-  '528391145': { nombres: 'María Lucía', apellidos: 'Pérez Domínguez', edad: 47 },
-  '1098456432': { nombres: 'Andrés Felipe', apellidos: 'Ramírez Gómez', edad: 33 },
-  '43987123': { nombres: 'Carmen Rosa', apellidos: 'Vargas Silva', edad: 42 },
-  '1047892903': { nombres: 'Jhonatan David', apellidos: 'Montoya Restrepo', edad: 35 },
-  '1020304050': { nombres: 'Juliana Patricia', apellidos: 'Salazar Cardona', edad: 28 },
-  '1030405060': { nombres: 'Diego Fernando', apellidos: 'Castro Muñoz', edad: 40 },
-  '1192746189': { nombres: 'Andrea Marcela', apellidos: 'Ortega Morales', edad: 26 },
-  '25970463': { nombres: 'Marcia Margarita', apellidos: 'Espitia Reinel', edad: 43 },
-  '25970436': { nombres: 'Erica del Carmen', apellidos: 'Orozco Urango', edad: 53 },
-  '1062680090': { nombres: 'Jeyner Esteban', apellidos: 'Osorio Orozco', edad: 34 },
-  '1062680096': { nombres: 'Erlinda Marcela', apellidos: 'Correa Arteaga', edad: 34 },
-};
+import { parseConsultaDinamica } from '../utils/electorResponseParser';
+
+// Banco en memoria dinámico (inicialmente vacío, sin datos personales en código fuente)
+export const LOCAL_DEMO_CENSO: Record<string, { nombres: string; apellidos: string; edad?: number; puesto_sugerido?: string; mesa_sugerida?: number }> = {};
 
 export function toTitleCase(str?: string | null): string {
   if (!str) return '';
@@ -141,25 +124,27 @@ export async function consultarDocumentoExterno(
         .eq('cedula', cleanCedula)
         .maybeSingle();
 
-      if (!error && row && row.nombres) {
-        const edadCalculada = calcularEdadDesdeCenso(row.edad);
-        let edadFinal = edadCalculada !== '' ? Number(edadCalculada) : (row.edad ? Number(row.edad) : null);
-        if (!edadFinal) {
-          const est = estimarEdadPorCedula(cleanCedula);
-          if (est !== '') edadFinal = Number(est);
-        }
+      if (!error && row) {
+        const parsed = parseConsultaDinamica(row);
+        if (parsed) {
+          let edadFinal = parsed.edad ? Number(parsed.edad) : null;
+          if (!edadFinal) {
+            const est = estimarEdadPorCedula(cleanCedula);
+            if (est !== '') edadFinal = Number(est);
+          }
 
-        return {
-          encontrado: true,
-          nombres: row.nombres,
-          apellidos: row.apellidos || '',
-          edad: edadFinal,
-          puesto_sugerido: row.puesto_sugerido || null,
-          mesa_sugerida: row.mesa_sugerida ? Number(row.mesa_sugerida) : null,
-          municipio: row.municipio || null,
-          departamento: row.departamento || null,
-          raw_response: row,
-        };
+          return {
+            encontrado: true,
+            nombres: parsed.nombres,
+            apellidos: parsed.apellidos,
+            edad: edadFinal,
+            puesto_sugerido: row.puesto_sugerido || null,
+            mesa_sugerida: row.mesa_sugerida ? Number(row.mesa_sugerida) : null,
+            municipio: parsed.municipio || row.municipio || null,
+            departamento: parsed.departamento || row.departamento || null,
+            raw_response: row,
+          };
+        }
       }
     } catch (err: any) {
       // ignore

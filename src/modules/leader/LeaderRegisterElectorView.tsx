@@ -16,6 +16,7 @@ import { supabase } from '../../services/supabase';
 import { getPollingPlacesForTenant, formatearPuestoSimple } from '../electors/constants';
 import { estimarEdadPorCedula } from '../../services/censoService';
 import { useFastElectorSearch } from './useFastElectorSearch';
+import { parseConsultaDinamica } from '../../utils/electorResponseParser';
 import type { PollingPlace } from '../../types';
 
 export interface LeaderRegisterProps {
@@ -119,26 +120,25 @@ export const LeaderRegisterElectorView: React.FC<LeaderRegisterProps> = ({
         autofilledCedulaRef.current = cedulaLimpia;
         setIsAutofilledFromCenso(true);
 
-        let edadAsignar = '';
-        if (result.data.edad) {
-          edadAsignar = String(result.data.edad);
-        } else {
+        const elector = parseConsultaDinamica(result.data);
+        let edadAsignar = elector?.edad || (result.data.edad ? String(result.data.edad) : '');
+        if (!edadAsignar) {
           const est = estimarEdadPorCedula(cedulaLimpia);
           if (est !== '') edadAsignar = String(est);
         }
 
         setFormData((prev) => ({
           ...prev,
-          nombres: result.data!.nombres || prev.nombres,
-          apellidos: result.data!.apellidos || prev.apellidos,
-          edad: edadAsignar || prev.edad || '',
+          nombres: elector?.nombres || result.data!.nombres || prev.nombres,
+          apellidos: elector?.apellidos || result.data!.apellidos || prev.apellidos,
+          edad: edadAsignar,
           puesto_votacion: modoLote && prev.puesto_votacion ? prev.puesto_votacion : (result.data!.puesto_votacion || prev.puesto_votacion || ''),
           mesa: modoLote && prev.mesa ? prev.mesa : (result.data!.mesa ? String(result.data!.mesa) : prev.mesa || ''),
         }));
 
         setEstadoCedula({
           tipo: 'ok',
-          mensaje: 'Datos verificados en el censo oficial.',
+          mensaje: `Datos verificados correctamente${edadAsignar ? ` (${edadAsignar} años)` : ''}`,
         });
       } else {
         // C. Cédula no encontrada en censo: limpiar para que el usuario digite manualmente

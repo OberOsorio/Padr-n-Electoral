@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { LOCAL_DEMO_CENSO, estimarEdadPorCedula } from '../../services/censoService';
-import { calcularEdadUniversal } from '../../utils/calculateAge';
+import { parseConsultaDinamica } from '../../utils/electorResponseParser';
 
 export interface FastElectorSearchResult {
   found: boolean;
@@ -112,41 +112,29 @@ export function useFastElectorSearch() {
 
           clearTimeout(timeoutId);
 
-          if (!censoErr && censo && (censo.nombres || censo.primer_nombre)) {
-            const fuenteEdad =
-              censo.edad ??
-              censo.fecha_nacimiento ??
-              censo.fechaNacimiento ??
-              censo.anio_nacimiento ??
-              censo.anioNacimiento ??
-              censo.fec_nac ??
-              censo.nacimiento;
+          if (!censoErr && censo) {
+            const elector = parseConsultaDinamica(censo);
+            if (elector) {
+              let edadCalculada = elector.edad ? Number(elector.edad) : null;
+              if (!edadCalculada) {
+                const est = estimarEdadPorCedula(docLimpio);
+                if (est !== '') edadCalculada = Number(est);
+              }
 
-            let edadCalculada = calcularEdadUniversal(fuenteEdad);
-            if (!edadCalculada && censo.edad) {
-              edadCalculada = Number(censo.edad);
+              return {
+                found: true,
+                isDuplicate: false,
+                data: {
+                  nombres: elector.nombres,
+                  apellidos: elector.apellidos,
+                  edad: edadCalculada,
+                  puesto_votacion: censo.puesto_sugerido || censo.puesto_votacion || censo.puesto || null,
+                  mesa: censo.mesa_sugerida ? String(censo.mesa_sugerida) : (censo.mesa ? String(censo.mesa) : null),
+                  municipio: elector.municipio || censo.municipio || null,
+                  departamento: elector.departamento || censo.departamento || null,
+                },
+              };
             }
-            if (!edadCalculada) {
-              const est = estimarEdadPorCedula(docLimpio);
-              if (est !== '') edadCalculada = Number(est);
-            }
-
-            const nombres = censo.nombres || [censo.primer_nombre, censo.segundo_nombre].filter(Boolean).join(' ');
-            const apellidos = censo.apellidos || [censo.primer_apellido, censo.segundo_apellido].filter(Boolean).join(' ');
-
-            return {
-              found: true,
-              isDuplicate: false,
-              data: {
-                nombres: nombres || '',
-                apellidos: apellidos || '',
-                edad: edadCalculada,
-                puesto_votacion: censo.puesto_sugerido || censo.puesto_votacion || censo.puesto || null,
-                mesa: censo.mesa_sugerida ? String(censo.mesa_sugerida) : (censo.mesa ? String(censo.mesa) : null),
-                municipio: censo.municipio || null,
-                departamento: censo.departamento || null,
-              },
-            };
           }
         }
 
