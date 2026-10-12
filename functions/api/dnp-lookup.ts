@@ -1,5 +1,6 @@
 // Cloudflare Pages Function: /api/dnp-lookup
-// Consulta el endpoint gubernamental de Ventanilla Social DNP para obtener datos de identidad
+// Consulta de alta velocidad al endpoint gubernamental de Ventanilla Social DNP para datos de identidad
+// Optimizaciones: Cookie parsing multi-cabecera, Cache API perimetral y ejecución paralela RUI + Sisbén (< 500ms)
 
 interface Env {}
 
@@ -98,42 +99,161 @@ function parseFullName(fullName: string): { nombres: string; apellidos: string }
   };
 }
 
-let cachedSession: { nonce: string; cookie: string; timestamp: number } | null = null;
+function trimNames(...parts: (string | undefined | null)[]): string {
+  return parts.filter(Boolean).map((p) => String(p).trim()).join(' ');
+}
 
-async function fetchFreshSession(): Promise<{ nonce: string; cookie: string; timestamp: number } | null> {
+function extractCookies(res: Response): string[] {
+  const cookies: string[] = [];
+  if (typeof (res.headers as any).getSetCookie === 'function') {
+    const list = (res.headers as any).getSetCookie();
+    if (Array.isArray(list) && list.length > 0) {
+      for (const item of list) {
+        if (item) cookies.push(item.split(';')[0].trim());
+      }
+      return cookies;
+    }
+  }
+
+  const raw = res.headers.get('set-cookie') || '';
+  const regex = /([a-zA-Z0-9_\-\.]+)=([^;,\s]+)/g;
+  let match;
+  while ((match = regex.exec(raw)) !== null) {
+    const key = match[1];
+    const val = match[2];
+    if (!['path', 'domain', 'expires', 'samesite', 'httponly', 'secure', 'max-age'].includes(key.toLowerCase())) {
+      cookies.push(`${key}=${val}`);
+    }
+  }
+  return [...new Set(cookies)];
+}
+
+interface SessionData {
+  nonce: string;
+  cookie: string;
+  timestamp: number;
+}
+
+let isolateSession: SessionData | null = null;
+const CACHE_KEY_URL = 'https://ventanillasocial-session.cache/active';
+
+async function fetchFreshSession(): Promise<SessionData | null> {
   try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 2800);
+
     const res = await fetch('https://ventanillasocial.dnp.gov.co/', {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
       },
+      signal: controller.signal,
     });
+    clearTimeout(timeout);
+
     const html = await res.text();
     const nonceMatch = html.match(/var\s+_ruiPubNonce\s*=\s*['"]([a-f0-9]+)['"]/i);
     const nonce = nonceMatch ? nonceMatch[1] : '';
+    const cookies = extractCookies(res);
 
-    const cookies: string[] = [];
-    res.headers.forEach((val, key) => {
-      if (key.toLowerCase() === 'set-cookie') {
-        cookies.push(val.split(';')[0]);
-      }
-    });
+    if (!nonce || cookies.length === 0) return null;
 
-    cachedSession = {
+    const fresh: SessionData = {
       nonce,
       cookie: cookies.join('; '),
       timestamp: Date.now(),
     };
-    return cachedSession;
+
+    isolateSession = fresh;
+    return fresh;
   } catch {
     return null;
   }
 }
 
-async function getSession(forceRefresh = false): Promise<{ nonce: string; cookie: string } | null> {
-  if (!forceRefresh && cachedSession && Date.now() - cachedSession.timestamp < 10 * 60 * 1000) {
-    return cachedSession;
+async function getCachedOrFreshSession(forceRefresh = false): Promise<SessionData | null> {
+  const now = Date.now();
+  // 1. Memoria rápida del isolate (< 10 minutos)
+  if (!forceRefresh && isolateSession && now - isolateSession.timestamp < 10 * 60 * 1000) {
+    return isolateSession;
   }
-  return await fetchFreshSession();
+
+  // 2. Cloudflare Edge Cache API (compartido entre workers del mismo PoP)
+  if (!forceRefresh) {
+    try {
+      const cache = (caches as any)?.default;
+      if (cache) {
+        const cacheReq = new Request(CACHE_KEY_URL, { method: 'GET' });
+        const match = await cache.match(cacheReq);
+        if (match) {
+          const cached = (await match.json()) as SessionData;
+          if (cached && cached.nonce && cached.cookie) {
+            isolateSession = { ...cached, timestamp: now };
+            return isolateSession;
+          }
+        }
+      }
+    } catch {
+      // Ignorar fallo de cache API y avanzar
+    }
+  }
+
+  // 3. Handshake fresco con DNP
+  const fresh = await fetchFreshSession();
+  if (fresh && fresh.nonce) {
+    try {
+      const cache = (caches as any)?.default;
+      if (cache) {
+        const cacheReq = new Request(CACHE_KEY_URL, { method: 'GET' });
+        const cacheRes = new Response(JSON.stringify(fresh), {
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'public, max-age=600',
+          },
+        });
+        await cache.put(cacheReq, cacheRes);
+      }
+    } catch {
+      // Ignorar fallo al persistir en cache
+    }
+  }
+
+  return fresh;
+}
+
+async function queryDnpEndpoint(
+  url: string,
+  payload: string,
+  session: SessionData,
+  timeoutMs = 2500
+): Promise<{ ok: boolean; status: number; data?: any }> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Accept': '*/*',
+        'Accept-Language': 'es-CO,es-ES;q=0.9,es;q=0.8,en;q=0.7',
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        'Cookie': session.cookie,
+        'Origin': 'https://ventanillasocial.dnp.gov.co',
+        'Referer': 'https://ventanillasocial.dnp.gov.co/',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-Rui-Nonce': session.nonce,
+      },
+      body: payload,
+      signal: controller.signal,
+    });
+
+    clearTimeout(timer);
+    const data = await res.json().catch(() => null);
+    return { ok: res.ok, status: res.status, data };
+  } catch {
+    clearTimeout(timer);
+    return { ok: false, status: 0, data: null };
+  }
 }
 
 export const onRequestPost = async (context: { request: Request; env: Env }) => {
@@ -166,155 +286,141 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
       return new Response(JSON.stringify(payload), { status: 200, headers });
     };
 
-    let session = await getSession();
+    let session = await getCachedOrFreshSession();
     if (!session || !session.nonce) {
-      session = await getSession(true);
+      session = await getCachedOrFreshSession(true);
+    }
+    if (!session || !session.nonce) {
+      return respond({ encontrado: false, error: 'No se pudo conectar con el servicio DNP' });
     }
 
-    const makeHeaders = (s: { cookie: string; nonce: string }): Record<string, string> => ({
-      'Accept': '*/*',
-      'Accept-Language': 'es-CO,es-ES;q=0.9,es;q=0.8,en;q=0.7',
-      'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-      'Cookie': s.cookie,
-      'Origin': 'https://ventanillasocial.dnp.gov.co',
-      'Referer': 'https://ventanillasocial.dnp.gov.co/',
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-      'X-Requested-With': 'XMLHttpRequest',
-      'X-Rui-Nonce': s.nonce,
-    });
+    const payloadCC = `pNumDoc=${encodeURIComponent(cedula)}&pTipDoc=${encodeURIComponent(tipDoc)}`;
 
-    const payload = `pNumDoc=${encodeURIComponent(cedula)}&pTipDoc=${encodeURIComponent(tipDoc)}`;
+    // 1. Ejecutar simultáneamente en paralelo RUI y Sisbén
+    let [rui, sisben] = await Promise.all([
+      queryDnpEndpoint('https://ventanillasocial.dnp.gov.co/Home/ObtenerDatosRUI', payloadCC, session),
+      queryDnpEndpoint('https://ventanillasocial.dnp.gov.co/Home/ConsultarGrupoSisben', payloadCC, session),
+    ]);
 
-    // 1. Petición a ObtenerDatosRUI
-    let headers = session ? makeHeaders(session) : {};
-    let ruiRes = await fetch('https://ventanillasocial.dnp.gov.co/Home/ObtenerDatosRUI', {
-      method: 'POST',
-      headers,
-      body: payload,
-    });
-    let ruiData = ((await ruiRes.json().catch(() => null)) || {}) as any;
-
-    // Si falla, reintentar refrescando la sesión
-    if ((!ruiData || !ruiData.ok) && (!ruiRes.ok || ruiRes.status === 200)) {
-      session = await getSession(true);
+    // 2. Si la sesión fue rechazada (HTTP 401, 403), refrescar sesión y reintentar una única vez
+    if (rui.status === 401 || rui.status === 403 || sisben.status === 401 || sisben.status === 403) {
+      session = await getCachedOrFreshSession(true);
       if (session && session.nonce) {
-        headers = makeHeaders(session);
-        ruiRes = await fetch('https://ventanillasocial.dnp.gov.co/Home/ObtenerDatosRUI', {
-          method: 'POST',
-          headers,
-          body: payload,
-        });
-        ruiData = ((await ruiRes.json().catch(() => null)) || {}) as any;
+        [rui, sisben] = await Promise.all([
+          queryDnpEndpoint('https://ventanillasocial.dnp.gov.co/Home/ObtenerDatosRUI', payloadCC, session),
+          queryDnpEndpoint('https://ventanillasocial.dnp.gov.co/Home/ConsultarGrupoSisben', payloadCC, session),
+        ]);
       }
     }
 
-    if (ruiData && ruiData.ok && ruiData.nombre) {
-      const { nombres, apellidos } = parseFullName(ruiData.nombre);
-      const edadVal = ruiData.edad || ruiData.anios || ruiData.fechaNacimiento || ruiData.fecNac || null;
+    // 3. Evaluar resultado en ObtenerDatosRUI
+    if (rui.data && rui.data.ok && rui.data.nombre) {
+      const { nombres, apellidos } = parseFullName(rui.data.nombre);
+      const edadVal =
+        rui.data.edad ??
+        rui.data.anios ??
+        rui.data.edadCalculada ??
+        rui.data.fechaNacimiento ??
+        rui.data.fecNac ??
+        null;
+
       return respond({
         encontrado: true,
         nombres,
         apellidos,
         edad: edadVal,
-        municipio: ruiData.municipio || null,
-        departamento: ruiData.departamento || null,
-        raw: ruiData,
+        municipio: rui.data.municipio || null,
+        departamento: rui.data.departamento || null,
+        raw: rui.data,
       });
     }
 
-    // 2. Fallback complementario a ConsultarGrupoSisben
-    const sisbenRes = await fetch('https://ventanillasocial.dnp.gov.co/Home/ConsultarGrupoSisben', {
-      method: 'POST',
-      headers,
-      body: payload,
-    });
+    // 4. Evaluar resultado en ConsultarGrupoSisben
+    if (sisben.data && sisben.data.ok) {
+      const rawNombre =
+        sisben.data.nombre ||
+        trimNames(sisben.data.primerNombre, sisben.data.segundoNombre, sisben.data.primerApellido, sisben.data.segundoApellido);
 
-    if (sisbenRes.ok) {
-      try {
-        const sisbenData = (await sisbenRes.json()) as any;
-        if (sisbenData && sisbenData.ok) {
-          const rawNombre =
-            sisbenData.nombre ||
-            trimNames(sisbenData.primerNombre, sisbenData.segundoNombre, sisbenData.primerApellido, sisbenData.segundoApellido);
+      if (rawNombre) {
+        const { nombres, apellidos } = parseFullName(rawNombre);
+        const edadVal =
+          sisben.data.edad ??
+          sisben.data.anios ??
+          sisben.data.edadCalculada ??
+          sisben.data.fechaNacimiento ??
+          sisben.data.fecNac ??
+          null;
 
-          if (rawNombre) {
-            const { nombres, apellidos } = parseFullName(rawNombre);
-            const edadVal = sisbenData.edad || sisbenData.fechaNacimiento || sisbenData.fecNac || null;
-            return respond({
-              encontrado: true,
-              nombres,
-              apellidos,
-              edad: edadVal,
-              municipio: sisbenData.municipio || null,
-              departamento: sisbenData.departamento || null,
-              raw: sisbenData,
-            });
-          }
-        }
-      } catch {
-        // Fall through
-      }
-    }
-
-    // 3. Fallback a Tarjeta de Identidad (tipoDoc=2) si se consultó como Cédula (tipoDoc=3)
-    if (tipDoc === '3') {
-      const payloadTI = `pNumDoc=${encodeURIComponent(cedula)}&pTipDoc=2`;
-      const ruiTIRes = await fetch('https://ventanillasocial.dnp.gov.co/Home/ObtenerDatosRUI', {
-        method: 'POST',
-        headers,
-        body: payloadTI,
-      });
-      const ruiTIData = ((await ruiTIRes.json().catch(() => null)) || {}) as any;
-      if (ruiTIData && ruiTIData.ok && ruiTIData.nombre) {
-        const { nombres, apellidos } = parseFullName(ruiTIData.nombre);
-        const edadVal = ruiTIData.edad || ruiTIData.anios || ruiTIData.fechaNacimiento || ruiTIData.fecNac || null;
         return respond({
           encontrado: true,
           nombres,
           apellidos,
           edad: edadVal,
-          municipio: ruiTIData.municipio || null,
-          departamento: ruiTIData.departamento || null,
-          raw: ruiTIData,
+          municipio: sisben.data.municipio || null,
+          departamento: sisben.data.departamento || null,
+          raw: sisben.data,
+        });
+      }
+    }
+
+    // 5. Fallback paralelo para Tarjeta de Identidad (jóvenes recién cedulados)
+    if (tipDoc === '3' && cedula.length <= 11) {
+      const payloadTI = `pNumDoc=${encodeURIComponent(cedula)}&pTipDoc=2`;
+      const [ruiTI, sisbenTI] = await Promise.all([
+        queryDnpEndpoint('https://ventanillasocial.dnp.gov.co/Home/ObtenerDatosRUI', payloadTI, session, 1800),
+        queryDnpEndpoint('https://ventanillasocial.dnp.gov.co/Home/ConsultarGrupoSisben', payloadTI, session, 1800),
+      ]);
+
+      if (ruiTI.data && ruiTI.data.ok && ruiTI.data.nombre) {
+        const { nombres, apellidos } = parseFullName(ruiTI.data.nombre);
+        const edadVal =
+          ruiTI.data.edad ??
+          ruiTI.data.anios ??
+          ruiTI.data.edadCalculada ??
+          ruiTI.data.fechaNacimiento ??
+          ruiTI.data.fecNac ??
+          null;
+
+        return respond({
+          encontrado: true,
+          nombres,
+          apellidos,
+          edad: edadVal,
+          municipio: ruiTI.data.municipio || null,
+          departamento: ruiTI.data.departamento || null,
+          raw: ruiTI.data,
         });
       }
 
-      const sisbenTIRes = await fetch('https://ventanillasocial.dnp.gov.co/Home/ConsultarGrupoSisben', {
-        method: 'POST',
-        headers,
-        body: payloadTI,
-      });
-      if (sisbenTIRes.ok) {
-        try {
-          const sisbenTIData = (await sisbenTIRes.json()) as any;
-          if (sisbenTIData && sisbenTIData.ok) {
-            const rawNombre =
-              sisbenTIData.nombre ||
-              trimNames(sisbenTIData.primerNombre, sisbenTIData.segundoNombre, sisbenTIData.primerApellido, sisbenTIData.segundoApellido);
-            if (rawNombre) {
-              const { nombres, apellidos } = parseFullName(rawNombre);
-              const edadVal = sisbenTIData.edad || sisbenTIData.fechaNacimiento || sisbenTIData.fecNac || null;
-              return respond({
-                encontrado: true,
-                nombres,
-                apellidos,
-                edad: edadVal,
-                municipio: sisbenTIData.municipio || null,
-                departamento: sisbenTIData.departamento || null,
-                raw: sisbenTIData,
-              });
-            }
-          }
-        } catch {
-          // Fall through
+      if (sisbenTI.data && sisbenTI.data.ok) {
+        const rawNombre =
+          sisbenTI.data.nombre ||
+          trimNames(sisbenTI.data.primerNombre, sisbenTI.data.segundoNombre, sisbenTI.data.primerApellido, sisbenTI.data.segundoApellido);
+
+        if (rawNombre) {
+          const { nombres, apellidos } = parseFullName(rawNombre);
+          const edadVal =
+            sisbenTI.data.edad ??
+            sisbenTI.data.anios ??
+            sisbenTI.data.edadCalculada ??
+            sisbenTI.data.fechaNacimiento ??
+            sisbenTI.data.fecNac ??
+            null;
+
+          return respond({
+            encontrado: true,
+            nombres,
+            apellidos,
+            edad: edadVal,
+            municipio: sisbenTI.data.municipio || null,
+            departamento: sisbenTI.data.departamento || null,
+            raw: sisbenTI.data,
+          });
         }
       }
     }
 
-    return new Response(JSON.stringify({ encontrado: false }), {
-      status: 200,
-      headers: corsHeaders,
-    });
+    return respond({ encontrado: false });
   } catch (err: any) {
     return new Response(JSON.stringify({ encontrado: false, error: err?.message || 'Error en consulta' }), {
       status: 500,
@@ -333,7 +439,3 @@ export const onRequestOptions = async () => {
     },
   });
 };
-
-function trimNames(...parts: (string | undefined | null)[]): string {
-  return parts.filter(Boolean).map((p) => String(p).trim()).join(' ');
-}

@@ -40,93 +40,103 @@ export function useFastElectorSearch() {
 
       setLoading(true);
 
-      // 2. Timeout forzado de 6.0 segundos máximo (garantiza handshake DNP sin colgar interfaz)
+      // 2. Timeout forzado de 3.5 segundos máximo (tiempo límite estricto para evitar colgar la interfaz)
       const timeoutId = setTimeout(() => {
         if (abortControllerRef.current) {
           abortControllerRef.current.abort();
         }
-      }, 6000);
+      }, 3500);
 
       try {
-        // A. Verificar duplicado en la campaña activa con consulta indexada a Supabase (< 30ms)
-        if (tenantId && isSupabaseConfigured) {
-          const { data: dupData } = await (supabase.from('electores') as any)
-            .select(`
-              id,
-              nombres,
-              apellidos,
-              puesto_votacion,
-              registrador:profiles(full_name, role)
-            `)
-            .eq('tenant_id', tenantId)
-            .eq('cedula', docLimpio)
-            .abortSignal(signal)
-            .maybeSingle();
+        // A. Lanzar en paralelo: verificación de duplicados en la campaña y consulta a DNP
+        const duplicatePromise = (async () => {
+          if (!tenantId || !isSupabaseConfigured) return null;
+          try {
+            const { data } = await (supabase.from('electores') as any)
+              .select(`
+                id,
+                nombres,
+                apellidos,
+                puesto_votacion,
+                registrador:profiles(full_name, role)
+              `)
+              .eq('tenant_id', tenantId)
+              .eq('cedula', docLimpio)
+              .abortSignal(signal)
+              .maybeSingle();
+            return data;
+          } catch {
+            return null;
+          }
+        })();
 
-          if (dupData) {
-            clearTimeout(timeoutId);
-            const registradorNombre = dupData.registrador?.full_name || 'otro líder de la campaña';
+        const dnpPromise = (async () => {
+          try {
+            const res = await fetch('/api/dnp-lookup', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ cedula: docLimpio, tipoDoc: '3' }),
+              signal,
+            });
+            if (res.ok) {
+              return await res.json();
+            }
+          } catch (e: any) {
+            if (e.name === 'AbortError') throw e;
+          }
+          return null;
+        })();
+
+        const [dupData, dnpData] = await Promise.all([duplicatePromise, dnpPromise]);
+
+        // Prioridad 1: Duplicado en la campaña activa
+        if (dupData) {
+          clearTimeout(timeoutId);
+          const registradorNombre = dupData.registrador?.full_name || 'otro líder de la campaña';
+          return {
+            found: true,
+            isDuplicate: true,
+            duplicateInfo: {
+              registradorNombre,
+              nombres: dupData.nombres,
+              apellidos: dupData.apellidos,
+              puesto_votacion: dupData.puesto_votacion || 'Principal',
+            },
+          };
+        }
+
+        // Prioridad 2: Encontrado en Ventanilla Social DNP oficial
+        if (dnpData && dnpData.encontrado) {
+          clearTimeout(timeoutId);
+          const elector = parseConsultaDinamica({
+            ok: true,
+            nombres: dnpData.nombres,
+            apellidos: dnpData.apellidos,
+            edad: dnpData.edad,
+            municipio: dnpData.municipio,
+            departamento: dnpData.departamento,
+            ...(dnpData.raw || {}),
+          });
+
+          if (elector) {
+            const edadCalculada = elector.edad ? Number(elector.edad) : null;
             return {
               found: true,
-              isDuplicate: true,
-              duplicateInfo: {
-                registradorNombre,
-                nombres: dupData.nombres,
-                apellidos: dupData.apellidos,
-                puesto_votacion: dupData.puesto_votacion || 'Principal',
+              isDuplicate: false,
+              data: {
+                nombres: elector.nombres,
+                apellidos: elector.apellidos,
+                edad: edadCalculada,
+                puesto_votacion: null,
+                mesa: null,
+                municipio: elector.municipio || dnpData.municipio || null,
+                departamento: elector.departamento || dnpData.departamento || null,
               },
             };
           }
         }
 
-        // B. Consulta directa y prioritaria a Ventanilla Social DNP (https://ventanillasocial.dnp.gov.co/)
-        try {
-          const res = await fetch('/api/dnp-lookup', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ cedula: docLimpio, tipoDoc: '3' }),
-            signal,
-          });
-
-          if (res.ok) {
-            const dnpData = await res.json();
-            if (dnpData && dnpData.encontrado) {
-              clearTimeout(timeoutId);
-              const elector = parseConsultaDinamica({
-                ok: true,
-                nombres: dnpData.nombres,
-                apellidos: dnpData.apellidos,
-                edad: dnpData.edad,
-                municipio: dnpData.municipio,
-                departamento: dnpData.departamento,
-                ...(dnpData.raw || {}),
-              });
-
-              if (elector) {
-                const edadCalculada = elector.edad ? Number(elector.edad) : null;
-
-                return {
-                  found: true,
-                  isDuplicate: false,
-                  data: {
-                    nombres: elector.nombres,
-                    apellidos: elector.apellidos,
-                    edad: edadCalculada,
-                    puesto_votacion: null,
-                    mesa: null,
-                    municipio: elector.municipio || dnpData.municipio || null,
-                    departamento: elector.departamento || dnpData.departamento || null,
-                  },
-                };
-              }
-            }
-          }
-        } catch (fetchErr: any) {
-          if (fetchErr.name === 'AbortError') throw fetchErr;
-          console.warn('Aviso en consulta Ventanilla Social DNP:', fetchErr);
-        }
-
-        // C. Fallback secundario a Supabase censo_maestro (solo lectura, sin guardar nada)
+        // Prioridad 3: Fallback a Supabase censo_maestro (solo lectura)
         if (isSupabaseConfigured) {
           const { data: censo, error: censoErr } = await (supabase.from('censo_maestro') as any)
             .select('*')
@@ -140,7 +150,6 @@ export function useFastElectorSearch() {
             const elector = parseConsultaDinamica(censo);
             if (elector) {
               const edadCalculada = elector.edad ? Number(elector.edad) : null;
-
               return {
                 found: true,
                 isDuplicate: false,
