@@ -156,40 +156,14 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
       });
     }
 
-    // 0. Cloudflare Edge Cache (POP local) para respuestas sub-10ms
-    const cache = typeof caches !== 'undefined' && (caches as any).default ? (caches as any).default : null;
-    const cacheUrl = new URL(context.request.url);
-    cacheUrl.searchParams.set('c', cedula);
-    cacheUrl.searchParams.set('t', tipDoc);
-    const cacheKey = new Request(cacheUrl.toString(), { method: 'GET' });
-
-    if (cache) {
-      try {
-        const cachedRes = await cache.match(cacheKey);
-        if (cachedRes) {
-          return cachedRes;
-        }
-      } catch {
-        // Cache miss / continue
-      }
-    }
-
-    const respondWithCache = (payload: any) => {
+    const respond = (payload: any) => {
       const headers = {
         ...corsHeaders,
-        'Cache-Control': payload.encontrado
-          ? 'public, max-age=60, s-maxage=300, stale-while-revalidate=600'
-          : 'no-cache',
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
       };
-      const res = new Response(JSON.stringify(payload), { status: 200, headers });
-      if (payload.encontrado && cache && (context as any).waitUntil) {
-        try {
-          (context as any).waitUntil(cache.put(cacheKey, res.clone()));
-        } catch {
-          // ignore cache put errors
-        }
-      }
-      return res;
+      return new Response(JSON.stringify(payload), { status: 200, headers });
     };
 
     let session = await getSession();
@@ -237,7 +211,7 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
     if (ruiData && ruiData.ok && ruiData.nombre) {
       const { nombres, apellidos } = parseFullName(ruiData.nombre);
       const edadVal = ruiData.edad || ruiData.anios || ruiData.fechaNacimiento || ruiData.fecNac || null;
-      return respondWithCache({
+      return respond({
         encontrado: true,
         nombres,
         apellidos,
@@ -266,7 +240,7 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
           if (rawNombre) {
             const { nombres, apellidos } = parseFullName(rawNombre);
             const edadVal = sisbenData.edad || sisbenData.fechaNacimiento || sisbenData.fecNac || null;
-            return respondWithCache({
+            return respond({
               encontrado: true,
               nombres,
               apellidos,
@@ -294,7 +268,7 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
       if (ruiTIData && ruiTIData.ok && ruiTIData.nombre) {
         const { nombres, apellidos } = parseFullName(ruiTIData.nombre);
         const edadVal = ruiTIData.edad || ruiTIData.anios || ruiTIData.fechaNacimiento || ruiTIData.fecNac || null;
-        return respondWithCache({
+        return respond({
           encontrado: true,
           nombres,
           apellidos,
@@ -320,7 +294,7 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
             if (rawNombre) {
               const { nombres, apellidos } = parseFullName(rawNombre);
               const edadVal = sisbenTIData.edad || sisbenTIData.fechaNacimiento || sisbenTIData.fecNac || null;
-              return respondWithCache({
+              return respond({
                 encontrado: true,
                 nombres,
                 apellidos,

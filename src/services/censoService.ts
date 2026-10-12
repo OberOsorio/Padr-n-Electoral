@@ -4,8 +4,7 @@ import { parseNombreCompleto, formatearMayusculas } from '../utils/nameParser';
 
 import { parseConsultaDinamica } from '../utils/electorResponseParser';
 
-// Banco en memoria dinámico (inicialmente vacío, sin datos personales en código fuente)
-export const LOCAL_DEMO_CENSO: Record<string, { nombres: string; apellidos: string; edad?: number; puesto_sugerido?: string; mesa_sugerida?: number }> = {};
+
 
 export function toTitleCase(str?: string | null): string {
   if (!str) return '';
@@ -279,29 +278,6 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
     } catch (err) {
       console.warn('Aviso en consulta de censo Supabase:', err);
     }
-  }
-
-  // 3. FALLBACK LOCAL DEMO
-  let localCenso = LOCAL_DEMO_CENSO;
-  const stored = localStorage.getItem('electoral_local_censo');
-  if (stored) {
-    try {
-      localCenso = { ...LOCAL_DEMO_CENSO, ...JSON.parse(stored) };
-    } catch (e) {
-      console.error('Error al leer censo local:', e);
-    }
-  }
-
-  const hit = localCenso[cleanCedula];
-  if (hit) {
-    return {
-      found: true,
-      nombres: hit.nombres,
-      apellidos: hit.apellidos,
-      edad: hit.edad ?? null,
-      puesto_sugerido: hit.puesto_sugerido ?? null,
-      mesa_sugerida: hit.mesa_sugerida ?? null,
-    };
   }
 
   return { found: false };
