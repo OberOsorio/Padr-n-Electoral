@@ -482,6 +482,7 @@ export const RegisterElectorView = ({
   // Manejador del cambio en cédula con debounce estricto de 250ms
   const handleCedulaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value.replace(/\D/g, ''); // Numpad: solo dígitos
+    const prevCedula = currentCedulaRef.current;
     setCedula(val);
     currentCedulaRef.current = val;
     setServerError(null);
@@ -490,9 +491,11 @@ export const RegisterElectorView = ({
       clearTimeout(debounceTimerRef.current);
     }
 
+    const seEliminoNumero = val.length < prevCedula.length;
+
     // Si la cédula fue alterada o se eliminó un dígito y teníamos datos autocompletados
     // de una consulta previa, limpiamos inmediatamente los datos para no dejar información obsoleta
-    if ((autofilledCedulaRef.current && autofilledCedulaRef.current !== val) || isAutofilledFromCenso) {
+    if (seEliminoNumero || (autofilledCedulaRef.current && autofilledCedulaRef.current !== val) || isAutofilledFromCenso) {
       setNombres('');
       setApellidos('');
       setEdad('');

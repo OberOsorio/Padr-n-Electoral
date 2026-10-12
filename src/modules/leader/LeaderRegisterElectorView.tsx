@@ -65,6 +65,9 @@ export const LeaderRegisterElectorView: React.FC<LeaderRegisterProps> = ({
 
   const debounceTimerRef = useRef<any>(null);
   const latestCedulaRef = useRef<string>('');
+  const previousCedulaRef = useRef<string>('');
+  const autofilledCedulaRef = useRef<string>('');
+  const [isAutofilledFromCenso, setIsAutofilledFromCenso] = useState(false);
 
   // 1. Consulta y validación automática de cédula en tiempo real
   const consultarCedula = async (cedulaRaw: string) => {
@@ -99,6 +102,18 @@ export const LeaderRegisterElectorView: React.FC<LeaderRegisterProps> = ({
 
         if (duplicado) {
           const registradorNombre = duplicado.registrador?.full_name || 'otro líder de la campaña';
+          // Limpiar datos de persona previa para no dejar información inconsistente
+          setFormData((prev) => ({
+            ...prev,
+            nombres: '',
+            apellidos: '',
+            edad: '',
+            puesto_votacion: modoLote ? prev.puesto_votacion : '',
+            mesa: modoLote ? prev.mesa : '',
+          }));
+          setIsAutofilledFromCenso(false);
+          autofilledCedulaRef.current = '';
+
           setEstadoCedula({
             tipo: 'error',
             mensaje: `Cédula ya registrada para ${duplicado.nombres} ${duplicado.apellidos} por ${registradorNombre} (Puesto: ${duplicado.puesto_votacion || 'Principal'}).`,
@@ -124,13 +139,16 @@ export const LeaderRegisterElectorView: React.FC<LeaderRegisterProps> = ({
           edadCalculada = estimarEdadPorCedula(cedulaLimpia) || '';
         }
 
+        autofilledCedulaRef.current = cedulaLimpia;
+        setIsAutofilledFromCenso(true);
+
         setFormData((prev) => ({
           ...prev,
           nombres: censoResult.nombres || prev.nombres,
           apellidos: censoResult.apellidos || prev.apellidos,
           edad: edadCalculada ? String(edadCalculada) : prev.edad,
-          puesto_votacion: prev.puesto_votacion || censoResult.puesto_sugerido || '',
-          mesa: prev.mesa || (censoResult.mesa_sugerida ? String(censoResult.mesa_sugerida) : ''),
+          puesto_votacion: modoLote && prev.puesto_votacion ? prev.puesto_votacion : (censoResult.puesto_sugerido || prev.puesto_votacion || ''),
+          mesa: modoLote && prev.mesa ? prev.mesa : (censoResult.mesa_sugerida ? String(censoResult.mesa_sugerida) : prev.mesa || ''),
         }));
 
         setEstadoCedula({
@@ -138,14 +156,19 @@ export const LeaderRegisterElectorView: React.FC<LeaderRegisterProps> = ({
           mensaje: 'Datos verificados en el censo oficial.',
         });
       } else {
-        // Estimar edad si la cédula es colombiana estándar
+        // Cédula no encontrada en censo: limpiar cualquier dato de persona previo
+        autofilledCedulaRef.current = '';
+        setIsAutofilledFromCenso(false);
+
         const edadEstimada = estimarEdadPorCedula(cedulaLimpia);
-        if (edadEstimada) {
-          setFormData((prev) => ({
-            ...prev,
-            edad: prev.edad || String(edadEstimada),
-          }));
-        }
+        setFormData((prev) => ({
+          ...prev,
+          nombres: '',
+          apellidos: '',
+          edad: edadEstimada ? String(edadEstimada) : '',
+          puesto_votacion: modoLote ? prev.puesto_votacion : '',
+          mesa: modoLote ? prev.mesa : '',
+        }));
 
         setEstadoCedula({
           tipo: 'ok',
@@ -163,11 +186,34 @@ export const LeaderRegisterElectorView: React.FC<LeaderRegisterProps> = ({
 
   const handleCedulaChange = (val: string) => {
     const clean = val.replace(/\D/g, '');
-    setFormData((prev) => ({ ...prev, cedula: clean }));
+    const prevCedula = previousCedulaRef.current;
+    previousCedulaRef.current = clean;
     setSuccessMsg(null);
 
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
+    }
+
+    const seEliminoNumero = clean.length < prevCedula.length;
+    const cambioDeAutofill = Boolean(autofilledCedulaRef.current && autofilledCedulaRef.current !== clean);
+
+    // Si se eliminó un número, cambió la cédula o teníamos datos de autocompletado previo:
+    // LIMPIAR INMEDIATAMENTE nombres, apellidos y edad para que no queden datos obsoletos
+    if (seEliminoNumero || cambioDeAutofill || isAutofilledFromCenso) {
+      setFormData((prev) => ({
+        ...prev,
+        cedula: clean,
+        nombres: '',
+        apellidos: '',
+        edad: '',
+        puesto_votacion: modoLote ? prev.puesto_votacion : '',
+        mesa: modoLote ? prev.mesa : '',
+      }));
+      setIsAutofilledFromCenso(false);
+      autofilledCedulaRef.current = '';
+      setEstadoCedula({ tipo: 'idle', mensaje: '' });
+    } else {
+      setFormData((prev) => ({ ...prev, cedula: clean }));
     }
 
     if (!clean) {
@@ -177,14 +223,28 @@ export const LeaderRegisterElectorView: React.FC<LeaderRegisterProps> = ({
         nombres: '',
         apellidos: '',
         edad: '',
+        puesto_votacion: modoLote ? prev.puesto_votacion : '',
+        mesa: modoLote ? prev.mesa : '',
       }));
       setEstadoCedula({ tipo: 'idle', mensaje: '' });
+      setIsAutofilledFromCenso(false);
+      autofilledCedulaRef.current = '';
+      setLoadingConsulta(false);
       return;
     }
 
+    if (clean.length < 5) {
+      setEstadoCedula({ tipo: 'idle', mensaje: '' });
+      setLoadingConsulta(false);
+      return;
+    }
+
+    setEstadoCedula({ tipo: 'idle', mensaje: 'Consultando documento...' });
+    setLoadingConsulta(true);
+
     debounceTimerRef.current = setTimeout(() => {
       consultarCedula(clean);
-    }, 300);
+    }, 250);
   };
 
   // 2. Limpieza total del formulario
@@ -202,6 +262,9 @@ export const LeaderRegisterElectorView: React.FC<LeaderRegisterProps> = ({
     setModoLote(false);
     setEstadoCedula({ tipo: 'idle', mensaje: '' });
     setSuccessMsg(null);
+    setIsAutofilledFromCenso(false);
+    autofilledCedulaRef.current = '';
+    previousCedulaRef.current = '';
   };
 
   // 3. Guardar elector en Supabase
