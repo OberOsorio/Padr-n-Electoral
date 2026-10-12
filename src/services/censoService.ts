@@ -69,32 +69,9 @@ export function calcularEdadDesdeCenso(valorEdadOFecNac: any): number | '' {
  * Estimación contextual de edad según rangos históricos de la Registraduría Nacional de Colombia
  * Útil para autocompletar electores del censo que no posean fecha de nacimiento explícita
  */
-export function estimarEdadPorCedula(cedula: string): number | '' {
-  const clean = (cedula || '').toString().trim().replace(/\D/g, '');
-  if (!clean || clean.length < 5) return '';
-  const num = Number(clean);
-  if (isNaN(num)) return '';
-
-  if (num < 1000000) return 88;
-  if (num < 5000000) return 82;
-  if (num < 10000000) return 76;
-  if (num >= 10000000 && num < 20000000) {
-    const ratio = (num - 10000000) / 10000000;
-    return Math.round(75 - ratio * 15);
-  }
-  if (num >= 20000000 && num < 50000000) {
-    const ratio = (num - 20000000) / 30000000;
-    return Math.round(70 - ratio * 25);
-  }
-  if (num >= 70000000 && num < 80000000) {
-    const ratio = (num - 70000000) / 10000000;
-    return Math.round(62 - ratio * 18);
-  }
-  if (num >= 1000000000 && num < 1200000000) {
-    const ratio = (num - 1000000000) / 200000000;
-    return Math.max(18, Math.round(42 - ratio * 24));
-  }
-
+export function estimarEdadPorCedula(_cedula: string): number | '' {
+  // Desactivado: Solo se deben utilizar edades reales verificadas (DNP Ventanilla Social o censo oficial).
+  // Nunca inventar o proyectar edades matemáticas erróneas.
   return '';
 }
 
@@ -140,6 +117,12 @@ export async function consultarDocumentoExterno(
             .catch((err: any) => console.warn('Aviso guardando en censo_maestro:', err));
         }
 
+        const rawEdad = data.edad ?? data.raw?.edad ?? null;
+        const edadNum =
+          rawEdad !== null && rawEdad !== undefined && rawEdad !== '' && !isNaN(Number(rawEdad)) && Number(rawEdad) > 0
+            ? Math.floor(Number(rawEdad))
+            : null;
+
         // Cache local en navegador para respuesta inmediata en pulsaciones repetidas
         try {
           const stored = localStorage.getItem('electoral_local_censo');
@@ -147,7 +130,7 @@ export async function consultarDocumentoExterno(
           cache[cleanCedula] = {
             nombres: parsed.nombres,
             apellidos: parsed.apellidos,
-            edad: data.edad ? Number(data.edad) : undefined,
+            edad: edadNum ?? undefined,
             municipio: data.municipio || undefined,
             departamento: data.departamento || undefined,
           };
@@ -160,7 +143,7 @@ export async function consultarDocumentoExterno(
           encontrado: true,
           nombres: parsed.nombres,
           apellidos: parsed.apellidos,
-          edad: data.edad ? Number(data.edad) : null,
+          edad: edadNum,
           municipio: data.municipio || null,
           departamento: data.departamento || null,
           raw_response: data,
@@ -228,11 +211,7 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
   try {
     const ext = await consultarDocumentoExterno(cleanCedula);
     if (ext && ext.encontrado && ext.nombres) {
-      let edadFinal = ext.edad;
-      if (!edadFinal) {
-        const est = estimarEdadPorCedula(cleanCedula);
-        if (est !== '') edadFinal = Number(est);
-      }
+      const edadFinal = ext.edad !== null && ext.edad !== undefined && !isNaN(Number(ext.edad)) ? Number(ext.edad) : null;
 
       // Si existe puesto y mesa asignados previamente en la base de datos electoral, asociarlos
       let puestoSugerido: string | null = null;
@@ -264,7 +243,7 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
         found: true,
         nombres: ext.nombres,
         apellidos: ext.apellidos ?? null,
-        edad: edadFinal ?? null,
+        edad: edadFinal,
         puesto_sugerido: puestoSugerido,
         mesa_sugerida: mesaSugerida,
         municipio: ext.municipio ?? null,
@@ -293,10 +272,7 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
             record.fec_nac ??
             record.fechaNacimiento;
 
-          let edadCalculada = calcularEdadDesdeCenso(edadRaw);
-          if (edadCalculada === '') {
-            edadCalculada = estimarEdadPorCedula(cleanCedula);
-          }
+          const edadCalculada = calcularEdadDesdeCenso(edadRaw);
           const edad = edadCalculada !== '' ? Number(edadCalculada) : null;
 
           const parsed = parseNombreCompleto(`${record.nombres} ${record.apellidos || ''}`);
@@ -329,10 +305,7 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
             record.fec_nac ??
             record.fechaNacimiento;
 
-          let edadCalculada = calcularEdadDesdeCenso(edadRaw);
-          if (edadCalculada === '') {
-            edadCalculada = estimarEdadPorCedula(cleanCedula);
-          }
+          const edadCalculada = calcularEdadDesdeCenso(edadRaw);
           const edad = edadCalculada !== '' ? Number(edadCalculada) : null;
 
           const parsed = parseNombreCompleto(`${record.nombres} ${record.apellidos || ''}`);
@@ -364,10 +337,7 @@ export async function buscarCiudadanoEnCenso(cedula: string): Promise<CensoLooku
           (tableData as any).fec_nac ??
           (tableData as any).fechaNacimiento;
 
-        let edadCalculada = calcularEdadDesdeCenso(edadRaw);
-        if (edadCalculada === '') {
-          edadCalculada = estimarEdadPorCedula(cleanCedula);
-        }
+        const edadCalculada = calcularEdadDesdeCenso(edadRaw);
         const edad = edadCalculada !== '' ? Number(edadCalculada) : null;
 
         const parsed = parseNombreCompleto(`${tableData.nombres} ${tableData.apellidos || ''}`);

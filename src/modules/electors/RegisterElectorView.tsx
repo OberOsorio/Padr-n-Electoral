@@ -34,7 +34,6 @@ import { useTenant } from '../../context/TenantContext';
 import {
   buscarCiudadanoEnCenso,
   calcularEdadDesdeCenso,
-  estimarEdadPorCedula,
 } from '../../services/censoService';
 
 interface RegisterElectorViewProps {
@@ -286,12 +285,10 @@ export const RegisterElectorView = ({
             (censo as any).fechaNacimiento;
 
           let edadFinal = calcularEdadDesdeCenso(edadObtenida);
-          if (edadFinal === '' && cleanNum) {
-            edadFinal = estimarEdadPorCedula(cleanNum);
-          }
-
           if (edadFinal !== '') {
             setEdad(Number(edadFinal));
+          } else {
+            setEdad('');
           }
 
           // Validar jurisdicción estrictamente por municipio explícito (nunca comparando puesto contra municipio)
