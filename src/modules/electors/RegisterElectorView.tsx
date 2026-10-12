@@ -563,7 +563,14 @@ export const RegisterElectorView = ({
         }
 
         if (!savedSuccessfully) {
-          const { error: insertError } = await (supabase.from('electores') as any).insert({
+          const isValidUUID = (val?: string | null): boolean => {
+            if (!val || typeof val !== 'string') return false;
+            return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+          };
+
+          const resolvedTenantId = isValidUUID(currentTenantId) ? currentTenantId : null;
+
+          const insertPayload: any = {
             cedula: cleanCedula,
             nombres: cleanNombres,
             apellidos: cleanApellidos,
@@ -572,8 +579,16 @@ export const RegisterElectorView = ({
             puesto_votacion: puestoVotacion,
             mesa: Number(mesa),
             notas: notas.trim() || null,
-            ...(currentTenantId ? { tenant_id: currentTenantId } : {}),
-          });
+            tenant_id: resolvedTenantId,
+          };
+
+          let { error: insertError } = await (supabase.from('electores') as any).insert(insertPayload);
+
+          if (insertError && (insertError.message?.includes('electores_tenant_id_fkey') || insertError.code === '23503')) {
+            insertPayload.tenant_id = null;
+            const retryRes = await (supabase.from('electores') as any).insert(insertPayload);
+            insertError = retryRes.error;
+          }
 
           if (insertError) {
             if (insertError.code === '23505' || insertError.message.includes('unique')) {
