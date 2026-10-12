@@ -82,106 +82,14 @@ export function estimarEdadPorCedula(_cedula: string): number | '' {
  */
 export async function consultarDocumentoExterno(
   cedula: string,
-  tipoDoc: string = '3'
+  _tipoDoc: string = '3'
 ): Promise<ConsultarDocumentoExternoResult> {
   const cleanCedula = cedula.trim().replace(/\D/g, '');
   if (cleanCedula.length < 5) {
     return { encontrado: false };
   }
 
-  // 1. Intento primario a través del proxy /api/dnp-lookup (Cloudflare Pages Function / Vite dev server)
-  try {
-    const apiRes = await fetch('/api/dnp-lookup', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        cedula: cleanCedula,
-        tipoDoc,
-      }),
-    });
-
-    if (apiRes.ok) {
-      const data = await apiRes.json();
-      if (data && data.encontrado && data.nombres) {
-        const parsed = parseNombreCompleto(`${data.nombres} ${data.apellidos || ''}`);
-        // Cachear en censo_maestro de forma segura vía RPC (Security Definer)
-        if (isSupabaseConfigured) {
-          (supabase.rpc as any)('guardar_en_censo_maestro', {
-            p_cedula: cleanCedula,
-            p_nombres: parsed.nombres,
-            p_apellidos: parsed.apellidos,
-          })
-            .then(() => {})
-            .catch((err: any) => console.warn('Aviso guardando en censo_maestro:', err));
-        }
-
-        const rawEdad = data.edad ?? data.raw?.edad ?? null;
-        const edadNum =
-          rawEdad !== null && rawEdad !== undefined && rawEdad !== '' && !isNaN(Number(rawEdad)) && Number(rawEdad) > 0
-            ? Math.floor(Number(rawEdad))
-            : null;
-
-        // Cache local en navegador para respuesta inmediata en pulsaciones repetidas
-        try {
-          const stored = localStorage.getItem('electoral_local_censo');
-          const cache = stored ? JSON.parse(stored) : {};
-          cache[cleanCedula] = {
-            nombres: parsed.nombres,
-            apellidos: parsed.apellidos,
-            edad: edadNum ?? undefined,
-            municipio: data.municipio || undefined,
-            departamento: data.departamento || undefined,
-          };
-          localStorage.setItem('electoral_local_censo', JSON.stringify(cache));
-        } catch {
-          // ignore localStorage error
-        }
-
-        return {
-          encontrado: true,
-          nombres: parsed.nombres,
-          apellidos: parsed.apellidos,
-          edad: edadNum,
-          municipio: data.municipio || null,
-          departamento: data.departamento || null,
-          raw_response: data,
-        };
-      }
-    }
-  } catch (apiErr) {
-    console.warn('Aviso en consulta /api/dnp-lookup:', apiErr);
-  }
-
-  // 2. Fallback secundario a RPC en Supabase
-  if (isSupabaseConfigured) {
-    try {
-      const { data, error } = await (supabase.rpc as any)('consultar_documento_externo', {
-        p_cedula: cleanCedula,
-        p_tipo_doc: tipoDoc,
-      });
-
-      if (!error && data) {
-        const row = Array.isArray(data) ? data[0] : data;
-        if (row && row.encontrado) {
-          const rawEdad = row.edad ?? row.anios ?? row.fecha_nacimiento ?? row.nacimiento ?? row.fec_nac;
-          const edadCalculada = calcularEdadDesdeCenso(rawEdad);
-          return {
-            encontrado: true,
-            nombres: row.nombres,
-            apellidos: row.apellidos,
-            edad: edadCalculada !== '' ? Number(edadCalculada) : (row.edad ? Number(row.edad) : null),
-            raw_response: row.raw_response,
-          };
-        }
-      }
-    } catch (err: any) {
-      // ignore
-    }
-  }
-
-  // 3. Fallback en censo local si existe
+  // 1. Verificación en banco de memoria / censo local (< 1ms)
   const demo = LOCAL_DEMO_CENSO[cleanCedula];
   if (demo) {
     return {
@@ -191,6 +99,31 @@ export async function consultarDocumentoExterno(
       edad: demo.edad !== undefined && demo.edad !== null ? Number(demo.edad) : null,
       raw_response: { demo: true },
     };
+  }
+
+  // 2. Consulta directa indexada en Supabase a censo_maestro (< 40ms)
+  if (isSupabaseConfigured) {
+    try {
+      const { data: row, error } = await (supabase.from('censo_maestro') as any)
+        .select('nombres, apellidos, edad, puesto_sugerido, mesa_sugerida, municipio, departamento')
+        .eq('cedula', cleanCedula)
+        .maybeSingle();
+
+      if (!error && row && row.nombres) {
+        const edadCalculada = calcularEdadDesdeCenso(row.edad);
+        return {
+          encontrado: true,
+          nombres: row.nombres,
+          apellidos: row.apellidos || '',
+          edad: edadCalculada !== '' ? Number(edadCalculada) : (row.edad ? Number(row.edad) : null),
+          municipio: row.municipio || null,
+          departamento: row.departamento || null,
+          raw_response: row,
+        };
+      }
+    } catch (err: any) {
+      // ignore
+    }
   }
 
   return { encontrado: false };

@@ -14,12 +14,8 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../services/supabase';
 import { getPollingPlacesForTenant, formatearPuestoSimple } from '../electors/constants';
-import {
-  buscarCiudadanoEnCenso,
-  calcularEdadDesdeCenso,
-  estimarEdadPorCedula,
-  LOCAL_DEMO_CENSO,
-} from '../../services/censoService';
+import { estimarEdadPorCedula } from '../../services/censoService';
+import { useFastElectorSearch } from './useFastElectorSearch';
 import type { PollingPlace } from '../../types';
 
 export interface LeaderRegisterProps {
@@ -73,8 +69,9 @@ export const LeaderRegisterElectorView: React.FC<LeaderRegisterProps> = ({
   const previousCedulaRef = useRef<string>('');
   const autofilledCedulaRef = useRef<string>('');
   const [isAutofilledFromCenso, setIsAutofilledFromCenso] = useState(false);
+  const { consultarElectorRapido } = useFastElectorSearch();
 
-  // 1. Consulta y validación automática de cédula en tiempo real
+  // 1. Consulta y validación automática de cédula en tiempo real (< 50ms, sin peticiones bloqueantes)
   const consultarCedula = async (cedulaRaw: string) => {
     const cedulaLimpia = cedulaRaw.trim().replace(/\D/g, '');
     latestCedulaRef.current = cedulaLimpia;
@@ -88,77 +85,47 @@ export const LeaderRegisterElectorView: React.FC<LeaderRegisterProps> = ({
     try {
       setLoadingConsulta(true);
 
-      // A. Validar duplicado en la campaña activa
-      if (activeTenant?.id) {
-        const { data: duplicado } = await (supabase.from('electores') as any)
-          .select(`
-            id,
-            nombres,
-            apellidos,
-            puesto_votacion,
-            registrado_por,
-            registrador:profiles(full_name, role)
-          `)
-          .eq('tenant_id', activeTenant.id)
-          .eq('cedula', cedulaLimpia)
-          .maybeSingle();
-
-        if (latestCedulaRef.current !== cedulaLimpia) return;
-
-        if (duplicado) {
-          const registradorNombre = duplicado.registrador?.full_name || 'otro líder de la campaña';
-          // Limpiar datos de persona previa para no dejar información inconsistente
-          setFormData((prev) => ({
-            ...prev,
-            nombres: '',
-            apellidos: '',
-            edad: '',
-            puesto_votacion: modoLote ? prev.puesto_votacion : '',
-            mesa: modoLote ? prev.mesa : '',
-          }));
-          setIsAutofilledFromCenso(false);
-          autofilledCedulaRef.current = '';
-
-          setEstadoCedula({
-            tipo: 'error',
-            mensaje: `Cédula ya registrada para ${duplicado.nombres} ${duplicado.apellidos} por ${registradorNombre} (Puesto: ${duplicado.puesto_votacion || 'Principal'}).`,
-          });
-          setLoadingConsulta(false);
-          return;
-        }
-      }
-
-      // B. Consultar censo/padrón general y DNP
-      const censoResult = await buscarCiudadanoEnCenso(cedulaLimpia);
+      const result = await consultarElectorRapido(cedulaLimpia, activeTenant?.id);
       if (latestCedulaRef.current !== cedulaLimpia) return;
 
-      if (censoResult.found && (censoResult.nombres || censoResult.apellidos)) {
-        const edadObtenida =
-          censoResult.edad ??
-          (censoResult as any).anios ??
-          (censoResult as any).fecha_nacimiento ??
-          (censoResult as any).nacimiento;
+      if (!result) {
+        setLoadingConsulta(false);
+        return;
+      }
 
-        let edadCalculada = calcularEdadDesdeCenso(edadObtenida);
-        if (!edadCalculada) {
-          const demo = LOCAL_DEMO_CENSO[cedulaLimpia];
-          if (demo?.edad) {
-            edadCalculada = demo.edad;
-          } else {
-            edadCalculada = estimarEdadPorCedula(cedulaLimpia) || '';
-          }
-        }
+      // A. Caso duplicado en la campaña
+      if (result.isDuplicate && result.duplicateInfo) {
+        setFormData((prev) => ({
+          ...prev,
+          nombres: '',
+          apellidos: '',
+          edad: '',
+          puesto_votacion: modoLote ? prev.puesto_votacion : '',
+          mesa: modoLote ? prev.mesa : '',
+        }));
+        setIsAutofilledFromCenso(false);
+        autofilledCedulaRef.current = '';
 
+        setEstadoCedula({
+          tipo: 'error',
+          mensaje: `Cédula ya registrada para ${result.duplicateInfo.nombres} ${result.duplicateInfo.apellidos} por ${result.duplicateInfo.registradorNombre} (Puesto: ${result.duplicateInfo.puesto_votacion || 'Principal'}).`,
+        });
+        setLoadingConsulta(false);
+        return;
+      }
+
+      // B. Caso encontrado en censo oficial o banco de datos
+      if (result.found && result.data) {
         autofilledCedulaRef.current = cedulaLimpia;
         setIsAutofilledFromCenso(true);
 
         setFormData((prev) => ({
           ...prev,
-          nombres: censoResult.nombres || prev.nombres,
-          apellidos: censoResult.apellidos || prev.apellidos,
-          edad: edadCalculada ? String(edadCalculada) : prev.edad,
-          puesto_votacion: modoLote && prev.puesto_votacion ? prev.puesto_votacion : (censoResult.puesto_sugerido || prev.puesto_votacion || ''),
-          mesa: modoLote && prev.mesa ? prev.mesa : (censoResult.mesa_sugerida ? String(censoResult.mesa_sugerida) : prev.mesa || ''),
+          nombres: result.data!.nombres || prev.nombres,
+          apellidos: result.data!.apellidos || prev.apellidos,
+          edad: result.data!.edad ? String(result.data!.edad) : prev.edad,
+          puesto_votacion: modoLote && prev.puesto_votacion ? prev.puesto_votacion : (result.data!.puesto_votacion || prev.puesto_votacion || ''),
+          mesa: modoLote && prev.mesa ? prev.mesa : (result.data!.mesa ? String(result.data!.mesa) : prev.mesa || ''),
         }));
 
         setEstadoCedula({
@@ -166,7 +133,7 @@ export const LeaderRegisterElectorView: React.FC<LeaderRegisterProps> = ({
           mensaje: 'Datos verificados en el censo oficial.',
         });
       } else {
-        // Cédula no encontrada en censo: limpiar cualquier dato de persona previo
+        // C. Cédula no encontrada en censo: limpiar para que el usuario digite manualmente
         autofilledCedulaRef.current = '';
         setIsAutofilledFromCenso(false);
 
