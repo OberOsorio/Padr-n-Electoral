@@ -214,7 +214,9 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
                 id: userId,
                 full_name: userName,
                 campaign_name: tenantName,
+                tenant_id: tenantId,
               }}
+              isOwnerMode={isOwner}
               stats={synchronizedStats}
               personalGoal={personalGoal}
               onNavigateToRegister={() => setActiveTab('register')}
