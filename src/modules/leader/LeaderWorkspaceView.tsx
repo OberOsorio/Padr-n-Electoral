@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Target,
   UserPlus,
@@ -100,13 +100,31 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
     { id: 'list' as const, label: 'Mis Votos', icon: Users, badge: votesCount },
   ];
 
+  // Estado para detectar scroll y elevar visualmente la barra fija
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 8);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   // Ancho responsivo del contenedor: expandido para la tabla de alta densidad
   const containerMaxWidth = activeTab === 'list' ? 'max-w-7xl' : 'max-w-2xl';
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col antialiased transition-colors">
-      {/* 1. Mobile-First Executive Header */}
-      <header className="sticky top-0 z-30 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800/80 px-4 py-3 transition-colors">
+      {/* 1. Mobile-First Executive Header Fijo / Sticky */}
+      <header
+        className={`sticky top-0 z-40 w-full backdrop-blur-xl transition-all duration-200 px-4 py-2.5 sm:py-3 ${
+          isScrolled
+            ? 'bg-white/95 dark:bg-[#070b16]/95 shadow-md shadow-slate-900/5 dark:shadow-black/50 border-b border-slate-200 dark:border-slate-800'
+            : 'bg-white/85 dark:bg-slate-950/85 border-b border-slate-200/80 dark:border-slate-800/80'
+        }`}
+      >
         <div className={`${containerMaxWidth} mx-auto flex items-center justify-between gap-3 transition-all duration-300`}>
           <div
             onClick={(e) => {

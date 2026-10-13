@@ -15,6 +15,10 @@
     --accent-blue: #3B82F6;
   }
 
+  html {
+    overflow-x: clip;
+  }
+
   body {
     margin: 0;
     padding: 0;
@@ -24,7 +28,7 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    overflow-x: hidden;
+    overflow-x: clip;
     transition: background-color 0.25s ease, color 0.25s ease;
   }
 
