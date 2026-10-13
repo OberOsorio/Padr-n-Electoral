@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Target,
   UserPlus,
@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLeaderWorkspace } from './useLeaderWorkspace';
+import { useLeaderVotesCount } from '../../hooks/useLeaderVotesCount';
 import { useTenant } from '../../context/TenantContext';
 import { ThemeToggle } from '../../components/ui/ThemeToggle';
 import type { ElectorWithRegistrant } from '../../types';
@@ -40,6 +41,13 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
   const isOwner = Boolean(isOwnerMode ?? (tenantId === null || userName.includes('Propietario')));
   const { currentTenant } = useTenant();
 
+  // Conteo exacto y reactivo en tiempo real conectado directamente a Supabase
+  const { votesCount, refreshCount } = useLeaderVotesCount({
+    currentUserId: userId,
+    tenantId: tenantId,
+    isOwnerMode: isOwner,
+  });
+
   const {
     electors: _electors,
     loading: _loading,
@@ -50,6 +58,14 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
     refreshElectors,
     stats,
   } = useLeaderWorkspace(userId, tenantId, isOwner);
+
+  // Estadísticas sincronizadas con el conteo real reactivo
+  const synchronizedStats = useMemo(() => ({
+    ...stats,
+    total: votesCount,
+    percentage: personalGoal > 0 ? Math.min(100, Math.round((votesCount / personalGoal) * 100)) : 0,
+    remaining: Math.max(0, personalGoal - votesCount),
+  }), [stats, votesCount, personalGoal]);
 
   // Active navigation tab for leader
   const [activeTab, setActiveTab] = useState<'goal' | 'register' | 'list'>('goal');
@@ -81,7 +97,7 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
   const tabs = [
     { id: 'goal' as const, label: 'Mi Meta', icon: Target },
     { id: 'register' as const, label: 'Registrar', icon: UserPlus },
-    { id: 'list' as const, label: 'Mis Votos', icon: Users, badge: stats.total },
+    { id: 'list' as const, label: 'Mis Votos', icon: Users, badge: votesCount },
   ];
 
   // Ancho responsivo del contenedor: expandido para la tabla de alta densidad
@@ -199,7 +215,7 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
                 full_name: userName,
                 campaign_name: tenantName,
               }}
-              stats={stats}
+              stats={synchronizedStats}
               personalGoal={personalGoal}
               onNavigateToRegister={() => setActiveTab('register')}
               onNavigateToList={() => setActiveTab('list')}
@@ -214,6 +230,7 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
               activeTenant={currentTenant || (tenantId ? { id: tenantId, name: tenantName } : null)}
               onSuccess={() => {
                 refreshElectors();
+                refreshCount();
               }}
             />
           )}

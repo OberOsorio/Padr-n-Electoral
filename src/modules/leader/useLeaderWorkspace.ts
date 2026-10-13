@@ -145,7 +145,7 @@ export const useLeaderWorkspace = (
 
     try {
       let query = (supabase.from('electores') as any).select(
-        'id, cedula, nombres, apellidos, telefono, direccion, puesto_votacion, mesa, edad, notas, registrado_por, tenant_id, created_at'
+        'id, cedula, nombres, apellidos, telefono, puesto_votacion, mesa, edad, notas, registrado_por, tenant_id, created_at'
       );
 
       // Regla de consulta inteligente:
@@ -166,11 +166,11 @@ export const useLeaderWorkspace = (
       setElectors((data as LeaderElector[]) || []);
     } catch (err) {
       console.warn('Error consultando electores de Supabase para el líder:', err);
-      // Respaldo local en caso de desconexión
+      // Respaldo local en caso de desconexión sin sembrar registros falsos
       const stored =
         localStorage.getItem(LOCAL_STORAGE_ELECTORS_KEY) ||
         localStorage.getItem('electoral_leader_electors');
-      const list: LeaderElector[] = stored ? JSON.parse(stored) : INITIAL_LEADER_ELECTORS;
+      const list: LeaderElector[] = stored ? JSON.parse(stored) : [];
       setElectors(isOwnerMode ? list : list.filter((e) => e.registrado_por === userId));
     } finally {
       setLoading(false);
