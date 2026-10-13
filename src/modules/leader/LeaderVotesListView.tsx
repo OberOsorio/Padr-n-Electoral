@@ -8,10 +8,16 @@ import {
   Loader2, 
   Building2,
   MessageCircle,
-  Users
+  Users,
+  Pencil,
+  Trash2,
+  X,
+  Save,
+  AlertTriangle
 } from 'lucide-react';
 import { useRealElectoresList } from './useRealElectoresList';
 import { useTenant } from '../../context/TenantContext';
+import { supabase } from '../../services/supabase';
 
 export interface LeaderVotesViewProps {
   isOwnerMode?: boolean;
@@ -49,7 +55,80 @@ export const LeaderVotesListView: React.FC<LeaderVotesViewProps> = ({
     searchQuery: searchTerm,
   });
 
+  // Estados para Edición y Eliminación de Raíz
+  const [electorEditando, setElectorEditando] = useState<any | null>(null);
+  const [electorAEliminar, setElectorAEliminar] = useState<any | null>(null);
+  const [guardandoEdicion, setGuardandoEdicion] = useState(false);
+  const [eliminandoRaiz, setEliminandoRaiz] = useState(false);
+  const [modalError, setModalError] = useState<string | null>(null);
+
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+
+  // 1. ELIMINACIÓN DIRECTA DE RAÍZ EN SUPABASE (HARD DELETE)
+  const handleEliminarDeRaiz = async () => {
+    if (!electorAEliminar) return;
+
+    try {
+      setEliminandoRaiz(true);
+      setModalError(null);
+
+      const { error } = await supabase
+        .from('electores')
+        .delete()
+        .eq('id', electorAEliminar.id);
+
+      if (error) throw error;
+
+      // Cerrar modal y refrescar la tabla en tiempo real
+      setElectorAEliminar(null);
+      await refetch();
+    } catch (err: any) {
+      console.error('Error al eliminar elector de raíz:', err);
+      setModalError(`No se pudo eliminar el registro: ${err.message || 'Error desconocido'}`);
+    } finally {
+      setEliminandoRaiz(false);
+    }
+  };
+
+  // 2. ACTUALIZACIÓN DIRECTA EN SUPABASE (UPDATE)
+  const handleGuardarEdicion = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!electorEditando) return;
+
+    try {
+      setGuardandoEdicion(true);
+      setModalError(null);
+
+      const edadNum = electorEditando.edad
+        ? parseInt(String(electorEditando.edad).replace(/\D/g, ''), 10)
+        : null;
+      const mesaNum = electorEditando.mesa
+        ? parseInt(String(electorEditando.mesa).replace(/\D/g, ''), 10)
+        : null;
+
+      const { error } = await (supabase.from('electores') as any)
+        .update({
+          nombres: electorEditando.nombres.trim(),
+          apellidos: electorEditando.apellidos.trim(),
+          telefono: electorEditando.telefono?.trim() || null,
+          edad: !isNaN(Number(edadNum)) ? edadNum : null,
+          puesto_votacion: electorEditando.puesto_votacion?.trim() || null,
+          mesa: !isNaN(Number(mesaNum)) ? mesaNum : null,
+          notas: electorEditando.observaciones?.trim() || electorEditando.notas?.trim() || null,
+        })
+        .eq('id', electorEditando.id);
+
+      if (error) throw error;
+
+      setElectorEditando(null);
+      await refetch();
+    } catch (err: any) {
+      console.error('Error al actualizar elector:', err);
+      setModalError(`No se pudo actualizar el registro: ${err.message || 'Error desconocido'}`);
+    } finally {
+      setGuardandoEdicion(false);
+    }
+  };
 
   const handleWhatsAppClick = (elector: any) => {
     if (onOpenWhatsApp) {
@@ -147,41 +226,37 @@ export const LeaderVotesListView: React.FC<LeaderVotesViewProps> = ({
       {/* 2. Tabla de Datos Reales */}
       <div className="bg-white dark:bg-[#070b14] border border-slate-200 dark:border-[#162345] rounded-3xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
+          <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="border-b border-slate-200 dark:border-[#162345] bg-slate-50/70 dark:bg-[#0b1328]/60 text-slate-500 dark:text-slate-400 uppercase font-bold text-[10px] tracking-wider">
-                <th className="py-3.5 px-4">Documento</th>
-                <th className="py-3.5 px-4">Nombre Completo</th>
-                <th className="py-3.5 px-4">Teléfono</th>
-                <th className="py-3.5 px-4">Puesto de Votación</th>
-                <th className="py-3.5 px-4">Mesa</th>
-                <th className="py-3.5 px-4">Registrado Por</th>
-                <th className="py-3.5 px-4">Fecha</th>
-                <th className="py-3.5 px-4 text-center">Acciones</th>
+              <tr className="border-b border-slate-100 dark:border-[#162345] bg-slate-50/75 dark:bg-[#0b1328]/80 text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider font-mono">
+                <th className="py-3 px-4">DOCUMENTO</th>
+                <th className="py-3 px-4">NOMBRE COMPLETO</th>
+                <th className="py-3 px-4">TELÉFONO</th>
+                <th className="py-3 px-4">PUESTO DE VOTACIÓN</th>
+                <th className="py-3 px-4">MESA</th>
+                <th className="py-3 px-4">REGISTRADO POR</th>
+                <th className="py-3 px-4">FECHA</th>
+                <th className="py-3 px-4 text-right">ACCIONES</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-[#121c33] text-slate-800 dark:text-slate-200">
-              {loading ? (
+            <tbody className="divide-y divide-slate-100 dark:divide-[#162345]/50">
+              {loading && electores.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-14 text-center text-slate-400">
+                  <td colSpan={8} className="py-12 text-center text-slate-400">
                     <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-blue-500" />
-                    <span className="font-medium">Cargando registros reales de la base de datos...</span>
+                    <span>Cargando registros reales de la base de datos...</span>
                   </td>
                 </tr>
               ) : electores.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-16 text-center">
-                    <div className="max-w-xs mx-auto space-y-2">
-                      <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-[#0f172a] text-slate-400 flex items-center justify-center mx-auto">
-                        <Users className="w-5 h-5" />
-                      </div>
-                      <p className="font-bold text-slate-800 dark:text-white">No se encontraron registros</p>
-                      <p className="text-xs text-slate-400 leading-relaxed">
-                        {searchTerm
-                          ? 'No hay electores que coincidan con la búsqueda.'
-                          : 'Aún no hay votantes registrados en la base de datos.'}
-                      </p>
-                    </div>
+                  <td colSpan={8} className="py-12 text-center text-slate-400">
+                    <Users className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                    <p className="font-semibold text-slate-600 dark:text-slate-300">
+                      No se encontraron electores en este entorno
+                    </p>
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      Usa el botón "+ Registrar Nuevo" para agregar votantes a tu equipo.
+                    </p>
                   </td>
                 </tr>
               ) : (
@@ -235,19 +310,53 @@ export const LeaderVotesListView: React.FC<LeaderVotesViewProps> = ({
                     </td>
 
                     {/* Acciones */}
-                    <td className="py-3.5 px-4 text-center">
-                      {elector.telefono && elector.telefono !== '—' ? (
+                    <td className="py-3.5 px-4 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        {/* WhatsApp (si tiene teléfono) */}
+                        {elector.telefono && elector.telefono !== '—' && (
+                          <button
+                            type="button"
+                            onClick={() => handleWhatsAppClick(elector)}
+                            className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 dark:text-emerald-400 transition-colors cursor-pointer"
+                            title="Contactar por WhatsApp"
+                          >
+                            <MessageCircle className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+
+                        {/* Botón Editar */}
                         <button
-                          onClick={() => handleWhatsAppClick(elector)}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 transition-all text-[11px] font-semibold cursor-pointer"
-                          title="Contactar por WhatsApp"
+                          type="button"
+                          onClick={() => {
+                            setModalError(null);
+                            const cleanMesa = elector.rawMesa != null 
+                              ? String(elector.rawMesa) 
+                              : elector.mesa ? String(elector.mesa).replace(/\D/g, '') : '';
+                            setElectorEditando({
+                              ...elector,
+                              mesa: cleanMesa,
+                              observaciones: elector.notas || elector.observaciones || '',
+                            });
+                          }}
+                          className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 dark:text-slate-400 dark:hover:text-sky-400 transition-colors cursor-pointer"
+                          title="Editar información"
                         >
-                          <MessageCircle className="w-3.5 h-3.5" />
-                          <span>WhatsApp</span>
+                          <Pencil className="w-3.5 h-3.5" />
                         </button>
-                      ) : (
-                        <span className="text-slate-400 text-[11px]">—</span>
-                      )}
+
+                        {/* Botón Eliminar de Raíz */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setModalError(null);
+                            setElectorAEliminar(elector);
+                          }}
+                          className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 dark:text-slate-400 dark:hover:text-rose-400 transition-colors cursor-pointer"
+                          title="Eliminar de raíz de la base de datos"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -296,6 +405,206 @@ export const LeaderVotesListView: React.FC<LeaderVotesViewProps> = ({
         </div>
 
       </div>
+
+      {/* --- MODAL DE CONFIRMACIÓN DE ELIMINACIÓN DE RAÍZ --- */}
+      {electorAEliminar && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-[#0b1328] border border-slate-200 dark:border-[#162345] rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-center gap-3 text-rose-600 dark:text-rose-400">
+              <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-bold text-base text-slate-900 dark:text-white">
+                  ¿Eliminar elector de raíz?
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Esta acción no se puede deshacer.</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-[#060a14] p-3 rounded-xl border border-slate-100 dark:border-[#1a2b50]">
+              Se borrará definitivamente el registro de <strong>{electorAEliminar.nombres} {electorAEliminar.apellidos}</strong> (C.C. {electorAEliminar.cedula}) de la base de datos de Supabase.
+            </p>
+
+            {modalError && (
+              <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs">
+                {modalError}
+              </div>
+            )}
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                disabled={eliminandoRaiz}
+                onClick={() => setElectorAEliminar(null)}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={eliminandoRaiz}
+                onClick={handleEliminarDeRaiz}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white shadow-md shadow-rose-600/20 flex items-center gap-1.5 transition-all cursor-pointer"
+              >
+                {eliminandoRaiz ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Trash2 className="w-3.5 h-3.5" />
+                )}
+                <span>{eliminandoRaiz ? 'Borrando...' : 'Sí, eliminar de raíz'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- MODAL DE EDICIÓN FLOTANTE --- */}
+      {electorEditando && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-[#0b1328] border border-slate-200 dark:border-[#162345] rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-[#162345]">
+              <div className="flex items-center gap-2">
+                <Pencil className="w-4 h-4 text-blue-600 dark:text-sky-400" />
+                <h3 className="font-bold text-sm text-slate-900 dark:text-white">
+                  Editar Elector (C.C. {electorEditando.cedula})
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setElectorEditando(null)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {modalError && (
+              <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs">
+                {modalError}
+              </div>
+            )}
+
+            <form onSubmit={handleGuardarEdicion} className="space-y-3.5 text-xs">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-600 dark:text-slate-400 uppercase text-[10px] block mb-1">
+                    Nombres *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={electorEditando.nombres || ''}
+                    onChange={(e) => setElectorEditando({ ...electorEditando, nombres: e.target.value })}
+                    className="w-full bg-slate-50 dark:bg-[#060a14] border border-slate-200 dark:border-[#1a2b50] rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-600 dark:text-slate-400 uppercase text-[10px] block mb-1">
+                    Apellidos *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={electorEditando.apellidos || ''}
+                    onChange={(e) => setElectorEditando({ ...electorEditando, apellidos: e.target.value })}
+                    className="w-full bg-slate-50 dark:bg-[#060a14] border border-slate-200 dark:border-[#1a2b50] rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-600 dark:text-slate-400 uppercase text-[10px] block mb-1">
+                    Teléfono
+                  </label>
+                  <input
+                    type="text"
+                    value={electorEditando.telefono !== '—' ? (electorEditando.telefono || '') : ''}
+                    onChange={(e) => setElectorEditando({ ...electorEditando, telefono: e.target.value })}
+                    placeholder="3001234567"
+                    className="w-full bg-slate-50 dark:bg-[#060a14] border border-slate-200 dark:border-[#1a2b50] rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-600 dark:text-slate-400 uppercase text-[10px] block mb-1">
+                    Edad
+                  </label>
+                  <input
+                    type="number"
+                    value={electorEditando.edad || ''}
+                    onChange={(e) => setElectorEditando({ ...electorEditando, edad: e.target.value })}
+                    placeholder="Ej. 35"
+                    className="w-full bg-slate-50 dark:bg-[#060a14] border border-slate-200 dark:border-[#1a2b50] rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-600 dark:text-slate-400 uppercase text-[10px] block mb-1">
+                    Puesto de Votación
+                  </label>
+                  <input
+                    type="text"
+                    value={electorEditando.puesto_votacion !== 'No asignado' ? (electorEditando.puesto_votacion || '') : ''}
+                    onChange={(e) => setElectorEditando({ ...electorEditando, puesto_votacion: e.target.value })}
+                    className="w-full bg-slate-50 dark:bg-[#060a14] border border-slate-200 dark:border-[#1a2b50] rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-600 dark:text-slate-400 uppercase text-[10px] block mb-1">
+                    Mesa
+                  </label>
+                  <input
+                    type="text"
+                    value={electorEditando.mesa || ''}
+                    onChange={(e) => setElectorEditando({ ...electorEditando, mesa: e.target.value })}
+                    placeholder="Ej: 2"
+                    className="w-full bg-slate-50 dark:bg-[#060a14] border border-slate-200 dark:border-[#1a2b50] rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-600 dark:text-slate-400 uppercase text-[10px] block mb-1">
+                  Observaciones / Notas
+                </label>
+                <textarea
+                  rows={2}
+                  value={electorEditando.observaciones || ''}
+                  onChange={(e) => setElectorEditando({ ...electorEditando, observaciones: e.target.value })}
+                  placeholder="Anotaciones de seguimiento o compromiso..."
+                  className="w-full bg-slate-50 dark:bg-[#060a14] border border-slate-200 dark:border-[#1a2b50] rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-[#162345]">
+                <button
+                  type="button"
+                  disabled={guardandoEdicion}
+                  onClick={() => setElectorEditando(null)}
+                  className="px-4 py-2 rounded-xl font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={guardandoEdicion}
+                  className="px-4 py-2 rounded-xl font-bold bg-blue-600 hover:bg-blue-500 text-white flex items-center gap-1.5 shadow-md shadow-blue-600/20 cursor-pointer"
+                >
+                  {guardandoEdicion ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Save className="w-3.5 h-3.5" />
+                  )}
+                  <span>{guardandoEdicion ? 'Guardando...' : 'Guardar Cambios'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
     </div>
   );

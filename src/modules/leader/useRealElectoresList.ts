@@ -7,8 +7,12 @@ export interface ElectorRow {
   nombres: string;
   apellidos: string;
   telefono?: string;
+  edad?: number | string | null;
   puesto_votacion?: string;
   mesa?: string;
+  rawMesa?: number | string | null;
+  notas?: string | null;
+  observaciones?: string | null;
   created_at: string;
   registrado_por?: string;
   campana_nombre?: string;
@@ -47,7 +51,7 @@ export function useRealElectoresList({
       let query = (supabase.from('electores') as any)
         .select(
           `
-          id, cedula, nombres, apellidos, telefono, puesto_votacion, mesa, created_at, registrado_por, tenant_id,
+          id, cedula, nombres, apellidos, telefono, edad, puesto_votacion, mesa, notas, created_at, registrado_por, tenant_id,
           profiles(full_name),
           tenants(name)
         `,
@@ -98,8 +102,12 @@ export function useRealElectoresList({
         nombres: item.nombres,
         apellidos: item.apellidos,
         telefono: item.telefono || '—',
+        edad: item.edad,
         puesto_votacion: item.puesto_votacion || 'No asignado',
         mesa: item.mesa ? `Mesa ${item.mesa}` : '—',
+        rawMesa: item.mesa,
+        notas: item.notas,
+        observaciones: item.notas,
         created_at: item.created_at
           ? new Date(item.created_at).toLocaleDateString('es-CO', {
               day: '2-digit',
@@ -110,7 +118,6 @@ export function useRealElectoresList({
         registrado_por: item.profiles?.full_name || 'Sistema / Propietario',
         campana_nombre: item.tenants?.name || 'General / Agnóstica',
         tenant_id: item.tenant_id,
-        raw: item,
       }));
 
       setElectores(formateados);
