@@ -3,7 +3,6 @@ import {
   UserCheck, 
   RotateCcw, 
   UserPlus, 
-  ShieldCheck, 
   Phone, 
   MapPin, 
   Loader2, 
@@ -154,7 +153,7 @@ export const LeaderRegisterElectorView: React.FC<LeaderRegisterProps> = ({
 
         setEstadoCedula({
           tipo: 'ok',
-          mensaje: `Datos verificados correctamente${edadAsignar ? ` (${edadAsignar} años)` : ''}`,
+          mensaje: 'Datos verificados correctamente.',
         });
       } else {
         // C. Cédula no encontrada: limpiar campos para que el usuario digite manualmente
@@ -440,11 +439,6 @@ export const LeaderRegisterElectorView: React.FC<LeaderRegisterProps> = ({
               </p>
             </div>
           </div>
-
-          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200 dark:bg-[#060a14] dark:text-slate-300 dark:border-[#1a2b50] font-mono">
-            <ShieldCheck className="w-4 h-4 text-emerald-500"/>
-            <span>Validación Segura</span>
-          </div>
         </div>
 
         {/* Mensaje de Éxito al Registrar */}
@@ -646,20 +640,6 @@ export const LeaderRegisterElectorView: React.FC<LeaderRegisterProps> = ({
                 </select>
               </div>
             </div>
-          </div>
-
-          {/* Modo Lote Checkbox */}
-          <div className="flex items-center gap-2.5 pt-1">
-            <input
-              type="checkbox"
-              id="modoLote"
-              checked={modoLote}
-              onChange={(e) => setModoLote(e.target.checked)}
-              className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-blue-600 focus:ring-0 cursor-pointer accent-blue-600"
-            />
-            <label htmlFor="modoLote" className="text-xs text-slate-600 dark:text-slate-400 select-none cursor-pointer">
-              Recordar puesto y mesa para el siguiente registro (Modo Lote)
-            </label>
           </div>
 
           {/* Observaciones */}

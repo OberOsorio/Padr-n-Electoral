@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { MapPin, Layers, Check, Search, ChevronDown, BookmarkCheck, Building2 } from 'lucide-react';
+import { MapPin, Layers, Check, Search, ChevronDown, Building2 } from 'lucide-react';
 import type { PollingPlace } from '../../../types';
 import { normalizarTexto } from '../../../services/divipoleService';
 
@@ -141,10 +141,10 @@ export const ElectorLocationSelector: React.FC<ElectorLocationSelectorProps> = (
   availableMunicipios,
   disabled = false,
   mesaInputRef,
-  rememberLocation = false,
-  onRememberLocationChange,
+  rememberLocation: _rememberLocation = false,
+  onRememberLocationChange: _onRememberLocationChange,
   showSectionWrapper = true,
-  showRememberCheckbox = true,
+  showRememberCheckbox: _showRememberCheckbox = false,
   className = '',
 }) => {
   const [isOpenCombobox, setIsOpenCombobox] = useState(false);
@@ -416,33 +416,6 @@ export const ElectorLocationSelector: React.FC<ElectorLocationSelectorProps> = (
           </div>
         </div>
       </div>
-
-      {/* Checkbox Memoria de Sesión */}
-      {showRememberCheckbox && onRememberLocationChange && (
-        <div className="pt-2 flex items-center justify-between border-t border-slate-200 dark:border-slate-700/50">
-          <label className="flex items-center gap-2.5 cursor-pointer select-none group">
-            <input
-              type="checkbox"
-              checked={rememberLocation}
-              onChange={(e) => onRememberLocationChange(e.target.checked)}
-              className="sr-only peer"
-            />
-            <div className="w-4 h-4 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 peer-checked:bg-blue-600 peer-checked:border-blue-500 flex items-center justify-center transition-colors">
-              <Check className="w-3 h-3 text-white opacity-0 peer-checked:opacity-100 stroke-[3]" />
-            </div>
-            <span className="text-xs text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
-              Recordar puesto y mesa para el siguiente registro (Modo Lote)
-            </span>
-          </label>
-
-          {rememberLocation && (
-            <span className="text-[10px] font-mono text-amber-600 dark:text-[#E5B869] flex items-center gap-1 font-medium">
-              <BookmarkCheck className="w-3 h-3" />
-              Memoria activa
-            </span>
-          )}
-        </div>
-      )}
     </div>
   );
 
