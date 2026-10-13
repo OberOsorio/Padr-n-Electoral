@@ -450,7 +450,7 @@ async function handleSearchElector(request, env) {
     // 3. Consulta vía Colombia Gateway Bridge (Bypass ultra-rápido de geobloqueo/WAF DNP)
     const gatewayUrl =
       env?.COLOMBIA_GATEWAY_URL ||
-      'https://cut-tracked-thereafter-fundamentals.trycloudflare.com';
+      'https://swing-committed-issued-summary.trycloudflare.com';
 
     if (gatewayUrl) {
       try {
