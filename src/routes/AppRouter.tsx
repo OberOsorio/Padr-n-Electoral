@@ -91,6 +91,7 @@ export const AppRouter: React.FC<AppRouterProps> = ({ session, onSignOut }) => {
           userEmail={session.email}
           tenantId={null}
           tenantName="Modo Propietario (Agnóstico)"
+          isOwnerMode={true}
           onBackToSelector={() => {
             setSuperAdminMode('gateway');
             sessionStorage.removeItem('electoral_superadmin_mode');
@@ -143,6 +144,7 @@ export const AppRouter: React.FC<AppRouterProps> = ({ session, onSignOut }) => {
         userEmail={session.email}
         tenantId={session.tenantId ?? null}
         tenantName={userTenant?.name}
+        isOwnerMode={false}
         onSignOut={onSignOut}
       />
     );

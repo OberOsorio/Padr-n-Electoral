@@ -12,7 +12,7 @@ import { ThemeToggle } from '../../components/ui/ThemeToggle';
 import type { ElectorWithRegistrant } from '../../types';
 import { LeaderDashboardView } from './LeaderDashboardView';
 import { LeaderRegisterElectorView } from './LeaderRegisterElectorView';
-import { LeaderMyElectorsView } from './LeaderMyElectorsView';
+import { LeaderVotesListView } from './LeaderVotesListView';
 import { EditElectorModal } from '../electors/components/EditElectorModal';
 import { DeleteConfirmModal } from '../electors/components/DeleteConfirmModal';
 
@@ -22,6 +22,7 @@ interface LeaderWorkspaceViewProps {
   userEmail: string;
   tenantId: string | null;
   tenantName?: string;
+  isOwnerMode?: boolean;
   onSignOut: () => void;
   onBackToSelector?: () => void;
 }
@@ -32,21 +33,23 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
   userEmail: _userEmail,
   tenantId,
   tenantName = 'Campaña Electoral',
+  isOwnerMode,
   onSignOut,
   onBackToSelector,
 }) => {
+  const isOwner = Boolean(isOwnerMode ?? (tenantId === null || userName.includes('Propietario')));
   const { currentTenant } = useTenant();
 
   const {
-    electors,
-    loading,
+    electors: _electors,
+    loading: _loading,
     personalGoal,
     deleteElector,
     updateElector,
     markWhatsAppSent,
     refreshElectors,
     stats,
-  } = useLeaderWorkspace(userId, tenantId);
+  } = useLeaderWorkspace(userId, tenantId, isOwner);
 
   // Active navigation tab for leader
   const [activeTab, setActiveTab] = useState<'goal' | 'register' | 'list'>('goal');
@@ -54,20 +57,6 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
   // Estados para modales de edición y eliminación de electores
   const [editingElector, setEditingElector] = useState<ElectorWithRegistrant | null>(null);
   const [deletingElector, setDeletingElector] = useState<ElectorWithRegistrant | null>(null);
-
-  // List search query
-  const [searchQuery, setSearchQuery] = useState('');
-
-  // Filter electors in list tab
-  const filteredElectors = electors.filter((e) => {
-    const q = searchQuery.toLowerCase();
-    return (
-      e.nombres.toLowerCase().includes(q) ||
-      e.apellidos.toLowerCase().includes(q) ||
-      e.cedula.includes(q) ||
-      e.puesto_votacion.toLowerCase().includes(q)
-    );
-  });
 
   // Helper to open WhatsApp with custom voter message
   const handleOpenWhatsApp = (elector: {
@@ -229,17 +218,14 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
             />
           )}
 
-          {/* TAB 3: MIS ELECTORES REGISTRADOS (TABLA DE ALTA DENSIDAD) */}
+          {/* TAB 3: MIS ELECTORES REGISTRADOS (TABLA DE ALTA DENSIDAD CON DATOS REALES) */}
           {activeTab === 'list' && (
-            <LeaderMyElectorsView
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              filteredElectors={filteredElectors}
-              loading={loading}
-              onNavigateToRegister={() => setActiveTab('register')}
+            <LeaderVotesListView
+              isOwnerMode={isOwner}
+              currentUserId={userId}
+              activeTenantId={tenantId}
+              onNavigateRegister={() => setActiveTab('register')}
               onOpenWhatsApp={handleOpenWhatsApp}
-              onEdit={(el) => setEditingElector(el)}
-              onDelete={(el) => setDeletingElector(el)}
             />
           )}
         </AnimatePresence>

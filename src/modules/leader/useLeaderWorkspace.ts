@@ -96,7 +96,11 @@ export const INITIAL_LEADER_ELECTORS: LeaderElector[] = [
   },
 ];
 
-export const useLeaderWorkspace = (userId: string, tenantId: string | null) => {
+export const useLeaderWorkspace = (
+  userId: string,
+  tenantId: string | null,
+  isOwnerMode: boolean = false
+) => {
   const [electors, setElectors] = useState<LeaderElector[]>([]);
   const [loading, setLoading] = useState(true);
   const [personalGoal, setPersonalGoal] = useState<number>(() => {
@@ -110,13 +114,15 @@ export const useLeaderWorkspace = (userId: string, tenantId: string | null) => {
     localStorage.setItem(`electoral_leader_goal_${userId}`, String(valid));
   }, [userId]);
 
-  // Cargar electores registrados exclusivamente por este líder
+  // Cargar electores registrados (con soporte para modo propietario agnóstico y líder asignado)
   const fetchMyElectors = useCallback(async () => {
     setLoading(true);
 
     if (!isSupabaseConfigured) {
       try {
-        const stored = localStorage.getItem(LOCAL_STORAGE_ELECTORS_KEY);
+        const stored =
+          localStorage.getItem(LOCAL_STORAGE_ELECTORS_KEY) ||
+          localStorage.getItem('electoral_leader_electors');
         let list: LeaderElector[] = stored ? JSON.parse(stored) : [];
 
         // Si la lista local no tiene electores del líder demo, sembrar datos de ejemplo
@@ -126,7 +132,7 @@ export const useLeaderWorkspace = (userId: string, tenantId: string | null) => {
           localStorage.setItem(LOCAL_STORAGE_ELECTORS_KEY, JSON.stringify(list));
         }
 
-        const filtered = list.filter((e) => e.registrado_por === userId);
+        const filtered = isOwnerMode ? list : list.filter((e) => e.registrado_por === userId);
         setElectors(filtered);
       } catch (err) {
         console.error('Error al cargar electores del líder en modo local:', err);
@@ -138,23 +144,38 @@ export const useLeaderWorkspace = (userId: string, tenantId: string | null) => {
     }
 
     try {
-      const { data, error } = await (supabase.from('electores') as any)
-        .select('id, cedula, nombres, apellidos, telefono, direccion, puesto_votacion, mesa, edad, notas, registrado_por, tenant_id, created_at')
-        .eq('registrado_por', userId)
-        .order('created_at', { ascending: false });
+      let query = (supabase.from('electores') as any).select(
+        'id, cedula, nombres, apellidos, telefono, direccion, puesto_votacion, mesa, edad, notas, registrado_por, tenant_id, created_at'
+      );
+
+      // Regla de consulta inteligente:
+      if (!isOwnerMode) {
+        if (tenantId) {
+          query = query.eq('tenant_id', tenantId).eq('registrado_por', userId);
+        } else {
+          query = query.eq('registrado_por', userId);
+        }
+      } else if (tenantId) {
+        query = query.eq('tenant_id', tenantId);
+      }
+      // Si es isOwnerMode y tenantId es null: no filtra por tenant ni por usuario, muestra los reales de la BD
+
+      const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) throw error;
       setElectors((data as LeaderElector[]) || []);
     } catch (err) {
       console.warn('Error consultando electores de Supabase para el líder:', err);
       // Respaldo local en caso de desconexión
-      const stored = localStorage.getItem(LOCAL_STORAGE_ELECTORS_KEY);
+      const stored =
+        localStorage.getItem(LOCAL_STORAGE_ELECTORS_KEY) ||
+        localStorage.getItem('electoral_leader_electors');
       const list: LeaderElector[] = stored ? JSON.parse(stored) : INITIAL_LEADER_ELECTORS;
-      setElectors(list.filter((e) => e.registrado_por === userId));
+      setElectors(isOwnerMode ? list : list.filter((e) => e.registrado_por === userId));
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, [userId, tenantId, isOwnerMode]);
 
   useEffect(() => {
     fetchMyElectors();
