@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
+import { supabase } from '../../services/supabase';
 
 export interface ElectorLookupResult {
   nombres: string;
@@ -66,37 +67,86 @@ export function useElectorSearch() {
           // Evaluar fallback de red
         }
 
-        // 4. Fallback de alta resiliencia si el host actual no tiene el proxy activo o devolvió vacío
+        // 4. Fallback de alta resiliencia directo a Supabase
         if (!res || (!res.encontrado && !res.duplicado)) {
-          const fallbackUrls = [
-            'https://padron-electoral.aethelcodesas.workers.dev/api/search-elector',
-          ];
+          try {
+            // Anti-duplicado en campaña activa
+            if (tenantId) {
+              const { data: existente } = await (supabase as any)
+                .from('electores')
+                .select('id, nombres, apellidos, puesto_votacion')
+                .eq('tenant_id', tenantId)
+                .eq('cedula', docLimpio)
+                .maybeSingle();
 
-          for (const fbUrl of fallbackUrls) {
-            try {
-              if (window.location.origin.includes(new URL(fbUrl).host)) continue;
-              const fbResponse = await fetch(fbUrl, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  cedula: docLimpio,
-                  tenantId: tenantId || null,
-                }),
-                signal: abortControllerRef.current.signal,
-              });
+              if (existente) {
+                res = {
+                  ok: true,
+                  duplicado: true,
+                  encontrado: false,
+                  mensaje: `Elector ya registrado (${existente.nombres} ${existente.apellidos}).`,
+                  data: {
+                    nombres: existente.nombres,
+                    apellidos: existente.apellidos,
+                    puesto_votacion: existente.puesto_votacion || '',
+                  },
+                };
+              }
+            }
 
-              if (fbResponse.ok) {
-                const fbJson = await fbResponse.json();
-                if (fbJson && (fbJson.encontrado || fbJson.duplicado)) {
-                  res = fbJson;
-                  break;
+            if (!res?.duplicado) {
+              const { data: persona } = await (supabase as any)
+                .from('censo_electoral')
+                .select('nombres, apellidos, edad, anio_nacimiento, puesto_votacion, mesa, municipio, departamento')
+                .eq('cedula', docLimpio)
+                .maybeSingle();
+
+              if (persona) {
+                let edadFinal = persona.edad ? String(persona.edad) : '';
+                if (!edadFinal && persona.anio_nacimiento) {
+                  const anio = parseInt(String(persona.anio_nacimiento), 10);
+                  if (!isNaN(anio) && anio > 1900) {
+                    edadFinal = String(new Date().getFullYear() - anio);
+                  }
+                }
+
+                res = {
+                  ok: true,
+                  duplicado: false,
+                  encontrado: true,
+                  nombres: persona.nombres || '',
+                  apellidos: persona.apellidos || '',
+                  edad: edadFinal,
+                  puesto_votacion: persona.puesto_votacion || '',
+                  mesa: persona.mesa ? String(persona.mesa) : '',
+                  municipio: persona.municipio || '',
+                  departamento: persona.departamento || '',
+                };
+              } else {
+                const { data: maestro } = await (supabase as any)
+                  .from('censo_maestro')
+                  .select('nombres, apellidos, edad, puesto_sugerido, mesa_sugerida, municipio, departamento')
+                  .eq('cedula', docLimpio)
+                  .maybeSingle();
+
+                if (maestro) {
+                  res = {
+                    ok: true,
+                    duplicado: false,
+                    encontrado: true,
+                    nombres: maestro.nombres || '',
+                    apellidos: maestro.apellidos || '',
+                    edad: maestro.edad ? String(maestro.edad) : '',
+                    puesto_votacion: maestro.puesto_sugerido || '',
+                    mesa: maestro.mesa_sugerida ? String(maestro.mesa_sugerida) : '',
+                    municipio: maestro.municipio || '',
+                    departamento: maestro.departamento || '',
+                  };
                 }
               }
-            } catch {
-              // Continuar con siguiente endpoint
             }
+          } catch (dbErr) {
+            console.warn('Error en fallback directo Supabase:', dbErr);
           }
         }
 

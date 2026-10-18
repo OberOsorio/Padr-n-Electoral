@@ -101,18 +101,125 @@ export const LeaderRegisterElectorView: React.FC<LeaderRegisterProps> = ({
 
     setLoadingConsulta(true);
     try {
-      const res = await fetch('/api/search-elector', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          cedula: cedulaLimpia,
-          tenantId: activeTenant?.id || null,
-        }),
-      });
+      let respuesta: any = null;
+
+      // 1. Intentar endpoint /api/search-elector (Vercel Serverless Function)
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 3500);
+        const res = await fetch('/api/search-elector', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            cedula: cedulaLimpia,
+            tenantId: activeTenant?.id || null,
+          }),
+          signal: controller.signal,
+        });
+        clearTimeout(timer);
+        if (res.ok) {
+          respuesta = await res.json().catch(() => null);
+        }
+      } catch (netErr) {
+        console.warn('API /api/search-elector falló o agotó tiempo, usando consulta directa Supabase:', netErr);
+      }
+
+      // 2. Si no respondió la API o no encontró, consultar directamente Supabase (Capa de resiliencia frontend)
+      if (!respuesta || (!respuesta.encontrado && !respuesta.duplicado)) {
+        try {
+          // Anti-duplicado en la campaña activa
+          if (activeTenant?.id) {
+            const { data: existente } = await (supabase as any)
+              .from('electores')
+              .select('id, nombres, apellidos, puesto_votacion')
+              .eq('tenant_id', activeTenant.id)
+              .eq('cedula', cedulaLimpia)
+              .maybeSingle();
+
+            if (existente) {
+              respuesta = {
+                ok: true,
+                duplicado: true,
+                encontrado: false,
+                mensaje: `Este documento ya está registrado en esta campaña (${existente.nombres} ${existente.apellidos}).`,
+                data: {
+                  nombres: existente.nombres,
+                  apellidos: existente.apellidos,
+                  puesto_votacion: existente.puesto_votacion || 'Principal',
+                },
+              };
+            }
+          }
+
+          // Si no es duplicado, buscar en censo_electoral
+          if (!respuesta?.duplicado) {
+            const { data: persona } = await (supabase as any)
+              .from('censo_electoral')
+              .select('nombres, apellidos, edad, anio_nacimiento, puesto_votacion, mesa, municipio, departamento')
+              .eq('cedula', cedulaLimpia)
+              .maybeSingle();
+
+            if (persona) {
+              let edadFinal = persona.edad ? String(persona.edad) : '';
+              if (!edadFinal && persona.anio_nacimiento) {
+                const anio = parseInt(String(persona.anio_nacimiento), 10);
+                if (!isNaN(anio) && anio > 1900) {
+                  edadFinal = String(new Date().getFullYear() - anio);
+                }
+              }
+
+              const dataObj = {
+                nombres: persona.nombres || '',
+                apellidos: persona.apellidos || '',
+                edad: edadFinal,
+                puesto_votacion: persona.puesto_votacion || '',
+                mesa: persona.mesa ? String(persona.mesa) : '',
+                municipio: persona.municipio || '',
+                departamento: persona.departamento || '',
+              };
+
+              respuesta = {
+                ok: true,
+                duplicado: false,
+                encontrado: true,
+                ...dataObj,
+                data: dataObj,
+              };
+            } else {
+              // Buscar en censo_maestro
+              const { data: maestro } = await (supabase as any)
+                .from('censo_maestro')
+                .select('nombres, apellidos, edad, puesto_sugerido, mesa_sugerida, municipio, departamento')
+                .eq('cedula', cedulaLimpia)
+                .maybeSingle();
+
+              if (maestro) {
+                const dataObj = {
+                  nombres: maestro.nombres || '',
+                  apellidos: maestro.apellidos || '',
+                  edad: maestro.edad ? String(maestro.edad) : '',
+                  puesto_votacion: maestro.puesto_sugerido || '',
+                  mesa: maestro.mesa_sugerida ? String(maestro.mesa_sugerida) : '',
+                  municipio: maestro.municipio || '',
+                  departamento: maestro.departamento || '',
+                };
+
+                respuesta = {
+                  ok: true,
+                  duplicado: false,
+                  encontrado: true,
+                  ...dataObj,
+                  data: dataObj,
+                };
+              }
+            }
+          }
+        } catch (dbErr) {
+          console.warn('Error en consulta de respaldo directa Supabase:', dbErr);
+        }
+      }
 
       if (latestCedulaRef.current !== cedulaLimpia) return;
-
-      const respuesta = await res.json().catch(() => null);
 
       if (!respuesta || !respuesta.ok) {
         setEstadoCedula({
