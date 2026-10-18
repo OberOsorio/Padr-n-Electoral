@@ -143,7 +143,7 @@ export const MasterDashboardView: React.FC<MasterDashboardViewProps> = ({
             </div>
             <div className="mt-2 text-[10px] font-mono text-slate-500 dark:text-slate-400 space-y-0.5">
               <p className="flex justify-between">
-                <span>Cloudflare Edge:</span> <span className="text-emerald-500 font-semibold">24ms</span>
+                <span>Vercel Edge Network:</span> <span className="text-emerald-500 font-semibold">24ms</span>
               </p>
               <p className="flex justify-between">
                 <span>Supabase PostgreSQL:</span> <span className="text-emerald-500 font-semibold">RLS Conforme</span>

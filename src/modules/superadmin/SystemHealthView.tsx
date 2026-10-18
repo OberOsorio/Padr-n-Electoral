@@ -79,8 +79,8 @@ export const InfrastructureHealthView: React.FC = () => {
     {
       id: 'edge',
       nombre: 'Red de Distribución Global',
-      descripcion: 'Cloudflare Anycast CDN & DNS',
-      endpoint: 'edge.global.cloudflare/v4',
+      descripcion: 'Vercel Edge Network & Global CDN',
+      endpoint: 'edge.global.vercel.app/v4',
       protocolo: 'HTTP/3 • TLS 1.3 • 285+ PoPs',
       latencia: liveLatency,
       uptime: '100% (30d)',
@@ -183,7 +183,7 @@ export const InfrastructureHealthView: React.FC = () => {
 
           <div className="relative z-10 flex items-center justify-between mb-3">
             <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Latencia Edge Cloudflare
+              Latencia Edge Vercel
             </span>
             <div className="p-2 rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20">
               <Globe2 className="w-4 h-4"/>

@@ -26,8 +26,8 @@ dist-ssr
 *.sln
 *.sw?
 
-# Cloudflare Wrangler
-.wrangler/
+# Vercel
+.vercel
 
 # Supabase
 supabase/.temp/

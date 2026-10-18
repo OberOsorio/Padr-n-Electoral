@@ -1,8 +1,4 @@
-// Cloudflare Pages Function: /api/dnp-lookup
-// Consulta de alta velocidad al endpoint gubernamental de Ventanilla Social DNP para datos de identidad
-// Optimizaciones: Cookie parsing multi-cabecera, Cache API perimetral y ejecución paralela RUI + Sisbén (< 500ms)
-
-interface Env {}
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 function formatCase(str: string): string {
   if (!str) return '';
@@ -135,7 +131,6 @@ interface SessionData {
 }
 
 let isolateSession: SessionData | null = null;
-const CACHE_KEY_URL = 'https://ventanillasocial-session.cache/active';
 
 async function fetchFreshSession(): Promise<SessionData | null> {
   try {
@@ -172,51 +167,10 @@ async function fetchFreshSession(): Promise<SessionData | null> {
 
 async function getCachedOrFreshSession(forceRefresh = false): Promise<SessionData | null> {
   const now = Date.now();
-  // 1. Memoria rápida del isolate (< 10 minutos)
   if (!forceRefresh && isolateSession && now - isolateSession.timestamp < 10 * 60 * 1000) {
     return isolateSession;
   }
-
-  // 2. Cloudflare Edge Cache API (compartido entre workers del mismo PoP)
-  if (!forceRefresh) {
-    try {
-      const cache = (caches as any)?.default;
-      if (cache) {
-        const cacheReq = new Request(CACHE_KEY_URL, { method: 'GET' });
-        const match = await cache.match(cacheReq);
-        if (match) {
-          const cached = (await match.json()) as SessionData;
-          if (cached && cached.nonce && cached.cookie) {
-            isolateSession = { ...cached, timestamp: now };
-            return isolateSession;
-          }
-        }
-      }
-    } catch {
-      // Ignorar fallo de cache API y avanzar
-    }
-  }
-
-  // 3. Handshake fresco con DNP
   const fresh = await fetchFreshSession();
-  if (fresh && fresh.nonce) {
-    try {
-      const cache = (caches as any)?.default;
-      if (cache) {
-        const cacheReq = new Request(CACHE_KEY_URL, { method: 'GET' });
-        const cacheRes = new Response(JSON.stringify(fresh), {
-          headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'public, max-age=600',
-          },
-        });
-        await cache.put(cacheReq, cacheRes);
-      }
-    } catch {
-      // Ignorar fallo al persistir en cache
-    }
-  }
-
   return fresh;
 }
 
@@ -256,53 +210,43 @@ async function queryDnpEndpoint(
   }
 }
 
-export const onRequestPost = async (context: { request: Request; env: Env }) => {
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Content-Type': 'application/json',
-  };
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({ encontrado: false, error: 'Método no permitido' });
+  }
 
   try {
-    const body = (await context.request.json()) as { cedula?: string; tipoDoc?: string };
-    const cedula = (body.cedula || '').trim().replace(/\D/g, '');
-    const tipDoc = body.tipoDoc || '3'; // 3 = Cédula de Ciudadanía en Colombia
+    const { cedula: rawCedula, tipoDoc } = req.body || {};
+    const cedula = String(rawCedula || '').trim().replace(/\D/g, '');
+    const tipDoc = tipoDoc || '3';
 
     if (!cedula || cedula.length < 5) {
-      return new Response(JSON.stringify({ encontrado: false, error: 'Documento inválido' }), {
-        status: 400,
-        headers: corsHeaders,
-      });
+      return res.status(400).json({ encontrado: false, error: 'Documento inválido' });
     }
-
-    const respond = (payload: any) => {
-      const headers = {
-        ...corsHeaders,
-        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
-      };
-      return new Response(JSON.stringify(payload), { status: 200, headers });
-    };
 
     let session = await getCachedOrFreshSession();
     if (!session || !session.nonce) {
       session = await getCachedOrFreshSession(true);
     }
     if (!session || !session.nonce) {
-      return respond({ encontrado: false, error: 'No se pudo conectar con el servicio DNP' });
+      return res.status(200).json({ encontrado: false, error: 'No se pudo conectar con el servicio DNP' });
     }
 
     const payloadCC = `pNumDoc=${encodeURIComponent(cedula)}&pTipDoc=${encodeURIComponent(tipDoc)}`;
 
-    // 1. Ejecutar simultáneamente en paralelo RUI y Sisbén
     let [rui, sisben] = await Promise.all([
       queryDnpEndpoint('https://ventanillasocial.dnp.gov.co/Home/ObtenerDatosRUI', payloadCC, session),
       queryDnpEndpoint('https://ventanillasocial.dnp.gov.co/Home/ConsultarGrupoSisben', payloadCC, session),
     ]);
 
-    // 2. Si la sesión fue rechazada (HTTP 401, 403), refrescar sesión y reintentar una única vez
     if (rui.status === 401 || rui.status === 403 || sisben.status === 401 || sisben.status === 403) {
       session = await getCachedOrFreshSession(true);
       if (session && session.nonce) {
@@ -313,7 +257,6 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
       }
     }
 
-    // 3. Evaluar resultado en ObtenerDatosRUI
     if (rui.data && rui.data.ok && rui.data.nombre) {
       const { nombres, apellidos } = parseFullName(rui.data.nombre);
       const edadVal =
@@ -324,7 +267,7 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
         rui.data.fecNac ??
         null;
 
-      return respond({
+      return res.status(200).json({
         encontrado: true,
         nombres,
         apellidos,
@@ -335,7 +278,6 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
       });
     }
 
-    // 4. Evaluar resultado en ConsultarGrupoSisben
     if (sisben.data && sisben.data.ok) {
       const rawNombre =
         sisben.data.nombre ||
@@ -351,7 +293,7 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
           sisben.data.fecNac ??
           null;
 
-        return respond({
+        return res.status(200).json({
           encontrado: true,
           nombres,
           apellidos,
@@ -363,79 +305,8 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
       }
     }
 
-    // 5. Fallback paralelo para Tarjeta de Identidad (jóvenes recién cedulados)
-    if (tipDoc === '3' && cedula.length <= 11) {
-      const payloadTI = `pNumDoc=${encodeURIComponent(cedula)}&pTipDoc=2`;
-      const [ruiTI, sisbenTI] = await Promise.all([
-        queryDnpEndpoint('https://ventanillasocial.dnp.gov.co/Home/ObtenerDatosRUI', payloadTI, session, 1800),
-        queryDnpEndpoint('https://ventanillasocial.dnp.gov.co/Home/ConsultarGrupoSisben', payloadTI, session, 1800),
-      ]);
-
-      if (ruiTI.data && ruiTI.data.ok && ruiTI.data.nombre) {
-        const { nombres, apellidos } = parseFullName(ruiTI.data.nombre);
-        const edadVal =
-          ruiTI.data.edad ??
-          ruiTI.data.anios ??
-          ruiTI.data.edadCalculada ??
-          ruiTI.data.fechaNacimiento ??
-          ruiTI.data.fecNac ??
-          null;
-
-        return respond({
-          encontrado: true,
-          nombres,
-          apellidos,
-          edad: edadVal,
-          municipio: ruiTI.data.municipio || null,
-          departamento: ruiTI.data.departamento || null,
-          raw: ruiTI.data,
-        });
-      }
-
-      if (sisbenTI.data && sisbenTI.data.ok) {
-        const rawNombre =
-          sisbenTI.data.nombre ||
-          trimNames(sisbenTI.data.primerNombre, sisbenTI.data.segundoNombre, sisbenTI.data.primerApellido, sisbenTI.data.segundoApellido);
-
-        if (rawNombre) {
-          const { nombres, apellidos } = parseFullName(rawNombre);
-          const edadVal =
-            sisbenTI.data.edad ??
-            sisbenTI.data.anios ??
-            sisbenTI.data.edadCalculada ??
-            sisbenTI.data.fechaNacimiento ??
-            sisbenTI.data.fecNac ??
-            null;
-
-          return respond({
-            encontrado: true,
-            nombres,
-            apellidos,
-            edad: edadVal,
-            municipio: sisbenTI.data.municipio || null,
-            departamento: sisbenTI.data.departamento || null,
-            raw: sisbenTI.data,
-          });
-        }
-      }
-    }
-
-    return respond({ encontrado: false });
+    return res.status(200).json({ encontrado: false });
   } catch (err: any) {
-    return new Response(JSON.stringify({ encontrado: false, error: err?.message || 'Error en consulta' }), {
-      status: 500,
-      headers: corsHeaders,
-    });
+    return res.status(500).json({ encontrado: false, error: err?.message || 'Error en consulta' });
   }
-};
-
-export const onRequestOptions = async () => {
-  return new Response(null, {
-    status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    },
-  });
-};
+}

@@ -600,7 +600,7 @@ export default defineConfig({
   server: {
     host: true, // Permite escuchar en la red local
     port: 5173,
-    allowedHosts: true, // Permite el acceso desde cualquier túnel como trycloudflare.com
+    allowedHosts: true, // Permite el acceso desde cualquier host o preview deployment
   },
   build: {
     target: 'esnext',
