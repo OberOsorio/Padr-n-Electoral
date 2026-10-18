@@ -210,6 +210,102 @@ async function queryDnpEndpoint(
   }
 }
 
+export interface DnpCitizenResult {
+  encontrado: boolean;
+  nombres?: string;
+  apellidos?: string;
+  edad?: string | number | null;
+  municipio?: string | null;
+  departamento?: string | null;
+  raw?: any;
+  error?: string;
+}
+
+export async function fetchDnpCitizen(
+  cedula: string,
+  tipoDoc = '3',
+  timeoutMs = 2500
+): Promise<DnpCitizenResult> {
+  try {
+    let session = await getCachedOrFreshSession();
+    if (!session || !session.nonce) {
+      session = await getCachedOrFreshSession(true);
+    }
+    if (!session || !session.nonce) {
+      return { encontrado: false, error: 'No se pudo conectar con el servicio DNP' };
+    }
+
+    const payloadCC = `pNumDoc=${encodeURIComponent(cedula)}&pTipDoc=${encodeURIComponent(tipoDoc)}`;
+
+    let [rui, sisben] = await Promise.all([
+      queryDnpEndpoint('https://ventanillasocial.dnp.gov.co/Home/ObtenerDatosRUI', payloadCC, session, timeoutMs),
+      queryDnpEndpoint('https://ventanillasocial.dnp.gov.co/Home/ConsultarGrupoSisben', payloadCC, session, timeoutMs),
+    ]);
+
+    if (rui.status === 401 || rui.status === 403 || sisben.status === 401 || sisben.status === 403) {
+      session = await getCachedOrFreshSession(true);
+      if (session && session.nonce) {
+        [rui, sisben] = await Promise.all([
+          queryDnpEndpoint('https://ventanillasocial.dnp.gov.co/Home/ObtenerDatosRUI', payloadCC, session, timeoutMs),
+          queryDnpEndpoint('https://ventanillasocial.dnp.gov.co/Home/ConsultarGrupoSisben', payloadCC, session, timeoutMs),
+        ]);
+      }
+    }
+
+    if (rui.data && rui.data.ok && rui.data.nombre) {
+      const { nombres, apellidos } = parseFullName(rui.data.nombre);
+      const edadVal =
+        rui.data.edad ??
+        rui.data.anios ??
+        rui.data.edadCalculada ??
+        rui.data.fechaNacimiento ??
+        rui.data.fecNac ??
+        null;
+
+      return {
+        encontrado: true,
+        nombres,
+        apellidos,
+        edad: edadVal,
+        municipio: rui.data.municipio || null,
+        departamento: rui.data.departamento || null,
+        raw: rui.data,
+      };
+    }
+
+    if (sisben.data && sisben.data.ok) {
+      const rawNombre =
+        sisben.data.nombre ||
+        trimNames(sisben.data.primerNombre, sisben.data.segundoNombre, sisben.data.primerApellido, sisben.data.segundoApellido);
+
+      if (rawNombre) {
+        const { nombres, apellidos } = parseFullName(rawNombre);
+        const edadVal =
+          sisben.data.edad ??
+          sisben.data.anios ??
+          sisben.data.edadCalculada ??
+          sisben.data.fechaNacimiento ??
+          sisben.data.fecNac ??
+          null;
+
+        return {
+          encontrado: true,
+          nombres,
+          apellidos,
+          edad: edadVal,
+          municipio: sisben.data.municipio || null,
+          departamento: sisben.data.departamento || null,
+          raw: sisben.data,
+        };
+      }
+    }
+
+    return { encontrado: false };
+  } catch (err: any) {
+    return { encontrado: false, error: err?.message || 'Error en consulta DNP' };
+  }
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -232,80 +328,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ encontrado: false, error: 'Documento inválido' });
     }
 
-    let session = await getCachedOrFreshSession();
-    if (!session || !session.nonce) {
-      session = await getCachedOrFreshSession(true);
-    }
-    if (!session || !session.nonce) {
-      return res.status(200).json({ encontrado: false, error: 'No se pudo conectar con el servicio DNP' });
-    }
-
-    const payloadCC = `pNumDoc=${encodeURIComponent(cedula)}&pTipDoc=${encodeURIComponent(tipDoc)}`;
-
-    let [rui, sisben] = await Promise.all([
-      queryDnpEndpoint('https://ventanillasocial.dnp.gov.co/Home/ObtenerDatosRUI', payloadCC, session),
-      queryDnpEndpoint('https://ventanillasocial.dnp.gov.co/Home/ConsultarGrupoSisben', payloadCC, session),
-    ]);
-
-    if (rui.status === 401 || rui.status === 403 || sisben.status === 401 || sisben.status === 403) {
-      session = await getCachedOrFreshSession(true);
-      if (session && session.nonce) {
-        [rui, sisben] = await Promise.all([
-          queryDnpEndpoint('https://ventanillasocial.dnp.gov.co/Home/ObtenerDatosRUI', payloadCC, session),
-          queryDnpEndpoint('https://ventanillasocial.dnp.gov.co/Home/ConsultarGrupoSisben', payloadCC, session),
-        ]);
-      }
-    }
-
-    if (rui.data && rui.data.ok && rui.data.nombre) {
-      const { nombres, apellidos } = parseFullName(rui.data.nombre);
-      const edadVal =
-        rui.data.edad ??
-        rui.data.anios ??
-        rui.data.edadCalculada ??
-        rui.data.fechaNacimiento ??
-        rui.data.fecNac ??
-        null;
-
-      return res.status(200).json({
-        encontrado: true,
-        nombres,
-        apellidos,
-        edad: edadVal,
-        municipio: rui.data.municipio || null,
-        departamento: rui.data.departamento || null,
-        raw: rui.data,
-      });
-    }
-
-    if (sisben.data && sisben.data.ok) {
-      const rawNombre =
-        sisben.data.nombre ||
-        trimNames(sisben.data.primerNombre, sisben.data.segundoNombre, sisben.data.primerApellido, sisben.data.segundoApellido);
-
-      if (rawNombre) {
-        const { nombres, apellidos } = parseFullName(rawNombre);
-        const edadVal =
-          sisben.data.edad ??
-          sisben.data.anios ??
-          sisben.data.edadCalculada ??
-          sisben.data.fechaNacimiento ??
-          sisben.data.fecNac ??
-          null;
-
-        return res.status(200).json({
-          encontrado: true,
-          nombres,
-          apellidos,
-          edad: edadVal,
-          municipio: sisben.data.municipio || null,
-          departamento: sisben.data.departamento || null,
-          raw: sisben.data,
-        });
-      }
-    }
-
-    return res.status(200).json({ encontrado: false });
+    const result = await fetchDnpCitizen(cedula, tipDoc);
+    return res.status(200).json(result);
   } catch (err: any) {
     return res.status(500).json({ encontrado: false, error: err?.message || 'Error en consulta' });
   }
