@@ -1,6 +1,7 @@
 {
   "version": 2,
   "buildCommand": "npm run build",
+  "installCommand": "npm install --loglevel=error",
   "outputDirectory": "dist",
   "framework": "vite",
   "rewrites": [
