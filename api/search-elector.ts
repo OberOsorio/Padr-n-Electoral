@@ -165,18 +165,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         console.log(`[Lookup] Encontrado en servicio externo DNP: ${dnpResult.nombres} ${dnpResult.apellidos}`);
 
         // Auto-persistir en censo_electoral de Supabase para futuras consultas instantáneas
-        supabase
-          .from('censo_electoral')
-          .upsert({
-            cedula: docLimpio,
-            nombres: dnpResult.nombres,
-            apellidos: dnpResult.apellidos || '',
-            edad: dnpResult.edad ? parseInt(String(dnpResult.edad), 10) : null,
-            municipio: dnpResult.municipio || '',
-            departamento: dnpResult.departamento || '',
-          })
-          .then(() => console.log(`[Lookup] Auto-guardado en censo_electoral para cédula: ${docLimpio}`))
-          .catch((saveErr) => console.warn('[Lookup Warn] Error al auto-guardar en censo_electoral:', saveErr?.message || saveErr));
+        try {
+          await supabase
+            .from('censo_electoral')
+            .upsert({
+              cedula: docLimpio,
+              nombres: dnpResult.nombres,
+              apellidos: dnpResult.apellidos || '',
+              edad: dnpResult.edad ? parseInt(String(dnpResult.edad), 10) : null,
+              municipio: dnpResult.municipio || '',
+              departamento: dnpResult.departamento || '',
+            });
+          console.log(`[Lookup] Auto-guardado en censo_electoral para cédula: ${docLimpio}`);
+        } catch (saveErr: any) {
+          console.warn('[Lookup Warn] Error al auto-guardar en censo_electoral:', saveErr?.message || saveErr);
+        }
 
         const dataObj = {
           nombres: dnpResult.nombres,
