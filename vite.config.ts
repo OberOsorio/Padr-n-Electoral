@@ -104,165 +104,358 @@ function dnpLookupDevPlugin(): Plugin {
           req.on('end', async () => {
             try {
               const body = JSON.parse(bodyStr || '{}');
-              const cedula = (body.cedula || '').trim().replace(/\D/g, '');
-              const tipDoc = body.tipoDoc || '3';
+              const cedula = String(body.cedula || body.documento || '').trim().replace(/\D/g, '');
+              const tenantId = body.tenantId || null;
+              const tipDoc = String(body.tipoDoc || '3');
 
               if (!cedula || cedula.length < 5) {
                 res.statusCode = 400;
                 res.setHeader('Content-Type', 'application/json');
-                res.end(JSON.stringify({ encontrado: false, error: 'Documento inválido' }));
+                res.end(JSON.stringify({ ok: false, error: 'Documento inválido' }));
                 return;
               }
 
-              let session = await getSession();
-              if (!session || !session.nonce) {
-                session = await getSession(true);
-              }
-              if (!session || !session.nonce) {
-                res.setHeader('Content-Type', 'application/json');
-                res.end(JSON.stringify({ encontrado: false, error: 'No se pudo conectar con DNP' }));
-                return;
-              }
+              const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://gwerezjurmxuwcqousqg.supabase.co';
+              const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3ZXJlemp1cm14dXdjcW91c3FnIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc5MDM0ODA1MSwiZXhwIjoyMTA1OTI0MDUxfQ.Z4bqbeoCOZPoBRtw1uFENwXuLPHO5lU89MOQqYnBL1Y';
 
-              const payloadCC = `pNumDoc=${encodeURIComponent(cedula)}&pTipDoc=${encodeURIComponent(tipDoc)}`;
-
-              // 1. Ejecutar en paralelo RUI y Sisbén
-              let [rui, sisben] = await Promise.all([
-                queryDevEndpoint('https://ventanillasocial.dnp.gov.co/Home/ObtenerDatosRUI', payloadCC, session),
-                queryDevEndpoint('https://ventanillasocial.dnp.gov.co/Home/ConsultarGrupoSisben', payloadCC, session),
-              ]);
-
-              // 2. Si la sesión fue rechazada (HTTP 401, 403), reintentar una única vez con sesión fresca
-              if (rui.status === 401 || rui.status === 403 || sisben.status === 401 || sisben.status === 403) {
-                const refreshed = await getSession(true);
-                if (refreshed && refreshed.nonce) {
-                  session = refreshed;
-                  [rui, sisben] = await Promise.all([
-                    queryDevEndpoint('https://ventanillasocial.dnp.gov.co/Home/ObtenerDatosRUI', payloadCC, session),
-                    queryDevEndpoint('https://ventanillasocial.dnp.gov.co/Home/ConsultarGrupoSisben', payloadCC, session),
-                  ]);
+              // 1. Anti-colisión en campaña activa (Supabase electores)
+              if (tenantId) {
+                try {
+                  const dupRes = await fetch(
+                    `${SUPABASE_URL}/rest/v1/electores?tenant_id=eq.${tenantId}&cedula=eq.${cedula}&select=id,nombres,apellidos,puesto_votacion`,
+                    { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }
+                  );
+                  if (dupRes.ok) {
+                    const dupRows = (await dupRes.json().catch(() => [])) as any[];
+                    if (dupRows && dupRows.length > 0) {
+                      const prim = dupRows[0];
+                      res.setHeader('Content-Type', 'application/json');
+                      res.end(JSON.stringify({
+                        ok: true,
+                        duplicado: true,
+                        encontrado: false,
+                        mensaje: `Este documento ya está registrado en esta campaña (${prim.nombres} ${prim.apellidos}).`,
+                        data: {
+                          nombres: prim.nombres,
+                          apellidos: prim.apellidos,
+                          puesto_votacion: prim.puesto_votacion || 'Principal',
+                        },
+                      }));
+                      return;
+                    }
+                  }
+                } catch (dupErr) {
+                  console.warn('[dnp-dev-plugin] Error checking duplicates:', dupErr);
                 }
               }
 
-              // 3. Evaluar RUI
-              if (rui.data && rui.data.ok && rui.data.nombre) {
-                const { nombres, apellidos } = parseNombreCompleto(rui.data.nombre);
-                const edadVal =
-                  rui.data.edad ??
-                  rui.data.anios ??
-                  rui.data.edadCalculada ??
-                  rui.data.fechaNacimiento ??
-                  rui.data.fecNac ??
-                  null;
-
-                res.setHeader('Content-Type', 'application/json');
-                res.end(JSON.stringify({
-                  encontrado: true,
-                  nombres,
-                  apellidos,
-                  edad: edadVal,
-                  municipio: rui.data.municipio || null,
-                  departamento: rui.data.departamento || null,
-                  raw: rui.data,
-                }));
-                return;
-              }
-
-              // 4. Evaluar Sisbén
-              if (sisben.data && sisben.data.ok) {
-                const rawNombre =
-                  sisben.data.nombre ||
-                  `${sisben.data.primerNombre || ''} ${sisben.data.segundoNombre || ''} ${sisben.data.primerApellido || ''} ${sisben.data.segundoApellido || ''}`.trim();
-                if (rawNombre) {
-                  const { nombres, apellidos } = parseNombreCompleto(rawNombre);
-                  const edadVal =
-                    sisben.data.edad ??
-                    sisben.data.anios ??
-                    sisben.data.edadCalculada ??
-                    sisben.data.fechaNacimiento ??
-                    sisben.data.fecNac ??
-                    null;
-
-                  res.setHeader('Content-Type', 'application/json');
-                  res.end(JSON.stringify({
-                    encontrado: true,
-                    nombres,
-                    apellidos,
-                    edad: edadVal,
-                    municipio: sisben.data.municipio || null,
-                    departamento: sisben.data.departamento || null,
-                    raw: sisben.data,
-                  }));
-                  return;
-                }
-              }
-
-              // 5. Fallback paralelo para Tarjeta de Identidad
-              if (tipDoc === '3' && cedula.length <= 11 && session) {
-                const payloadTI = `pNumDoc=${encodeURIComponent(cedula)}&pTipDoc=2`;
-                const [ruiTI, sisbenTI] = await Promise.all([
-                  queryDevEndpoint('https://ventanillasocial.dnp.gov.co/Home/ObtenerDatosRUI', payloadTI, session, 1800),
-                  queryDevEndpoint('https://ventanillasocial.dnp.gov.co/Home/ConsultarGrupoSisben', payloadTI, session, 1800),
-                ]);
-
-                if (ruiTI.data && ruiTI.data.ok && ruiTI.data.nombre) {
-                  const { nombres, apellidos } = parseNombreCompleto(ruiTI.data.nombre);
-                  const edadVal =
-                    ruiTI.data.edad ??
-                    ruiTI.data.anios ??
-                    ruiTI.data.edadCalculada ??
-                    ruiTI.data.fechaNacimiento ??
-                    ruiTI.data.fecNac ??
-                    null;
-
-                  res.setHeader('Content-Type', 'application/json');
-                  res.end(JSON.stringify({
-                    encontrado: true,
-                    nombres,
-                    apellidos,
-                    edad: edadVal,
-                    municipio: ruiTI.data.municipio || null,
-                    departamento: ruiTI.data.departamento || null,
-                    raw: ruiTI.data,
-                  }));
-                  return;
-                }
-
-                if (sisbenTI.data && sisbenTI.data.ok) {
-                  const rawNombre =
-                    sisbenTI.data.nombre ||
-                    `${sisbenTI.data.primerNombre || ''} ${sisbenTI.data.segundoNombre || ''} ${sisbenTI.data.primerApellido || ''} ${sisbenTI.data.segundoApellido || ''}`.trim();
-                  if (rawNombre) {
-                    const { nombres, apellidos } = parseNombreCompleto(rawNombre);
-                    const edadVal =
-                      sisbenTI.data.edad ??
-                      sisbenTI.data.anios ??
-                      sisbenTI.data.edadCalculada ??
-                      sisbenTI.data.fechaNacimiento ??
-                      sisbenTI.data.fecNac ??
-                      null;
-
+              // 2. Buscar en Supabase censo_electoral
+              try {
+                const censoRes = await fetch(
+                  `${SUPABASE_URL}/rest/v1/censo_electoral?cedula=eq.${cedula}&select=nombres,apellidos,edad,anio_nacimiento,puesto_votacion,mesa,municipio,departamento`,
+                  { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }
+                );
+                if (censoRes.ok) {
+                  const censoRows = (await censoRes.json().catch(() => [])) as any[];
+                  if (censoRows && censoRows.length > 0) {
+                    const persona = censoRows[0];
+                    let edadFinal = persona.edad ? String(persona.edad) : '';
+                    if (!edadFinal && persona.anio_nacimiento) {
+                      const anio = parseInt(String(persona.anio_nacimiento), 10);
+                      if (!isNaN(anio) && anio > 1900) {
+                        edadFinal = String(new Date().getFullYear() - anio);
+                      }
+                    }
+                    const dataObj = {
+                      nombres: persona.nombres || '',
+                      apellidos: persona.apellidos || '',
+                      edad: edadFinal,
+                      puesto_votacion: persona.puesto_votacion || '',
+                      mesa: persona.mesa ? String(persona.mesa) : '',
+                      municipio: persona.municipio || '',
+                      departamento: persona.departamento || '',
+                    };
                     res.setHeader('Content-Type', 'application/json');
                     res.end(JSON.stringify({
+                      ok: true,
+                      duplicado: false,
                       encontrado: true,
-                      nombres,
-                      apellidos,
-                      edad: edadVal,
-                      municipio: sisbenTI.data.municipio || null,
-                      departamento: sisbenTI.data.departamento || null,
-                      raw: sisbenTI.data,
+                      ...dataObj,
+                      data: dataObj,
                     }));
                     return;
                   }
                 }
+              } catch (censoErr) {
+                console.warn('[dnp-dev-plugin] Error querying censo_electoral:', censoErr);
               }
 
+              // 2.1 Buscar en Supabase censo_maestro
+              try {
+                const maestroRes = await fetch(
+                  `${SUPABASE_URL}/rest/v1/censo_maestro?cedula=eq.${cedula}&select=nombres,apellidos,edad,puesto_sugerido,mesa_sugerida,municipio,departamento`,
+                  { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }
+                );
+                if (maestroRes.ok) {
+                  const maestroRows = (await maestroRes.json().catch(() => [])) as any[];
+                  if (maestroRows && maestroRows.length > 0) {
+                    const row = maestroRows[0];
+                    const dataObj = {
+                      nombres: row.nombres || '',
+                      apellidos: row.apellidos || '',
+                      edad: row.edad ? String(row.edad) : '',
+                      puesto_votacion: row.puesto_sugerido || '',
+                      mesa: row.mesa_sugerida ? String(row.mesa_sugerida) : '',
+                      municipio: row.municipio || '',
+                      departamento: row.departamento || '',
+                    };
+                    res.setHeader('Content-Type', 'application/json');
+                    res.end(JSON.stringify({
+                      ok: true,
+                      duplicado: false,
+                      encontrado: true,
+                      ...dataObj,
+                      data: dataObj,
+                    }));
+                    return;
+                  }
+                }
+              } catch (maestroErr) {
+                console.warn('[dnp-dev-plugin] Error querying censo_maestro:', maestroErr);
+              }
+
+              // 3. Fallback en vivo a Ventanilla Social DNP oficial
+              let session = await getSession();
+              if (!session || !session.nonce) {
+                session = await getSession(true);
+              }
+
+              if (session && session.nonce) {
+                const payloadCC = `pNumDoc=${encodeURIComponent(cedula)}&pTipDoc=${encodeURIComponent(tipDoc)}`;
+
+                // Ejecutar en paralelo RUI y Sisbén
+                let [rui, sisben] = await Promise.all([
+                  queryDevEndpoint('https://ventanillasocial.dnp.gov.co/Home/ObtenerDatosRUI', payloadCC, session),
+                  queryDevEndpoint('https://ventanillasocial.dnp.gov.co/Home/ConsultarGrupoSisben', payloadCC, session),
+                ]);
+
+                // Si la sesión fue rechazada (HTTP 401, 403), reintentar una vez con sesión fresca
+                if (rui.status === 401 || rui.status === 403 || sisben.status === 401 || sisben.status === 403) {
+                  const refreshed = await getSession(true);
+                  if (refreshed && refreshed.nonce) {
+                    session = refreshed;
+                    [rui, sisben] = await Promise.all([
+                      queryDevEndpoint('https://ventanillasocial.dnp.gov.co/Home/ObtenerDatosRUI', payloadCC, session),
+                      queryDevEndpoint('https://ventanillasocial.dnp.gov.co/Home/ConsultarGrupoSisben', payloadCC, session),
+                    ]);
+                  }
+                }
+
+                // Evaluar RUI
+                if (rui.data && rui.data.ok && rui.data.nombre) {
+                  const { nombres, apellidos } = parseNombreCompleto(rui.data.nombre);
+                  const edadVal =
+                    rui.data.edad ??
+                    rui.data.anios ??
+                    rui.data.edadCalculada ??
+                    rui.data.fechaNacimiento ??
+                    rui.data.fecNac ??
+                    null;
+                  const edadFinal = edadVal !== null ? String(edadVal) : '';
+
+                  // Sincronizar automáticamente en censo_electoral de Supabase
+                  fetch(`${SUPABASE_URL}/rest/v1/censo_electoral`, {
+                    method: 'POST',
+                    headers: {
+                      apikey: SUPABASE_KEY,
+                      Authorization: `Bearer ${SUPABASE_KEY}`,
+                      'Content-Type': 'application/json',
+                      'Prefer': 'resolution=merge-duplicates',
+                    },
+                    body: JSON.stringify({
+                      cedula,
+                      nombres,
+                      apellidos,
+                      edad: edadVal ? parseInt(String(edadVal), 10) : null,
+                      municipio: rui.data.municipio || '',
+                      departamento: rui.data.departamento || '',
+                    }),
+                  }).catch(() => {});
+
+                  const dataObj = {
+                    nombres,
+                    apellidos,
+                    edad: edadFinal,
+                    puesto_votacion: '',
+                    mesa: '',
+                    municipio: rui.data.municipio || '',
+                    departamento: rui.data.departamento || '',
+                  };
+
+                  res.setHeader('Content-Type', 'application/json');
+                  res.end(JSON.stringify({
+                    ok: true,
+                    duplicado: false,
+                    encontrado: true,
+                    ...dataObj,
+                    data: dataObj,
+                    raw: rui.data,
+                  }));
+                  return;
+                }
+
+                // Evaluar Sisbén
+                if (sisben.data && sisben.data.ok) {
+                  const rawNombre =
+                    sisben.data.nombre ||
+                    `${sisben.data.primerNombre || ''} ${sisben.data.segundoNombre || ''} ${sisben.data.primerApellido || ''} ${sisben.data.segundoApellido || ''}`.trim();
+                  if (rawNombre) {
+                    const { nombres, apellidos } = parseNombreCompleto(rawNombre);
+                    const edadVal =
+                      sisben.data.edad ??
+                      sisben.data.anios ??
+                      sisben.data.edadCalculada ??
+                      sisben.data.fechaNacimiento ??
+                      sisben.data.fecNac ??
+                      null;
+                    const edadFinal = edadVal !== null ? String(edadVal) : '';
+
+                    // Sincronizar automáticamente en censo_electoral de Supabase
+                    fetch(`${SUPABASE_URL}/rest/v1/censo_electoral`, {
+                      method: 'POST',
+                      headers: {
+                        apikey: SUPABASE_KEY,
+                        Authorization: `Bearer ${SUPABASE_KEY}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'resolution=merge-duplicates',
+                      },
+                      body: JSON.stringify({
+                        cedula,
+                        nombres,
+                        apellidos,
+                        edad: edadVal ? parseInt(String(edadVal), 10) : null,
+                        municipio: sisben.data.municipio || '',
+                        departamento: sisben.data.departamento || '',
+                      }),
+                    }).catch(() => {});
+
+                    const dataObj = {
+                      nombres,
+                      apellidos,
+                      edad: edadFinal,
+                      puesto_votacion: '',
+                      mesa: '',
+                      municipio: sisben.data.municipio || '',
+                      departamento: sisben.data.departamento || '',
+                    };
+
+                    res.setHeader('Content-Type', 'application/json');
+                    res.end(JSON.stringify({
+                      ok: true,
+                      duplicado: false,
+                      encontrado: true,
+                      ...dataObj,
+                      data: dataObj,
+                      raw: sisben.data,
+                    }));
+                    return;
+                  }
+                }
+
+                // Fallback para Tarjeta de Identidad
+                if (tipDoc === '3' && cedula.length <= 11) {
+                  const payloadTI = `pNumDoc=${encodeURIComponent(cedula)}&pTipDoc=2`;
+                  const [ruiTI, sisbenTI] = await Promise.all([
+                    queryDevEndpoint('https://ventanillasocial.dnp.gov.co/Home/ObtenerDatosRUI', payloadTI, session, 1800),
+                    queryDevEndpoint('https://ventanillasocial.dnp.gov.co/Home/ConsultarGrupoSisben', payloadTI, session, 1800),
+                  ]);
+
+                  if (ruiTI.data && ruiTI.data.ok && ruiTI.data.nombre) {
+                    const { nombres, apellidos } = parseNombreCompleto(ruiTI.data.nombre);
+                    const edadVal =
+                      ruiTI.data.edad ??
+                      ruiTI.data.anios ??
+                      ruiTI.data.edadCalculada ??
+                      ruiTI.data.fechaNacimiento ??
+                      ruiTI.data.fecNac ??
+                      null;
+                    const edadFinal = edadVal !== null ? String(edadVal) : '';
+
+                    const dataObj = {
+                      nombres,
+                      apellidos,
+                      edad: edadFinal,
+                      puesto_votacion: '',
+                      mesa: '',
+                      municipio: ruiTI.data.municipio || '',
+                      departamento: ruiTI.data.departamento || '',
+                    };
+
+                    res.setHeader('Content-Type', 'application/json');
+                    res.end(JSON.stringify({
+                      ok: true,
+                      duplicado: false,
+                      encontrado: true,
+                      ...dataObj,
+                      data: dataObj,
+                      raw: ruiTI.data,
+                    }));
+                    return;
+                  }
+
+                  if (sisbenTI.data && sisbenTI.data.ok) {
+                    const rawNombre =
+                      sisbenTI.data.nombre ||
+                      `${sisbenTI.data.primerNombre || ''} ${sisbenTI.data.segundoNombre || ''} ${sisbenTI.data.primerApellido || ''} ${sisbenTI.data.segundoApellido || ''}`.trim();
+                    if (rawNombre) {
+                      const { nombres, apellidos } = parseNombreCompleto(rawNombre);
+                      const edadVal =
+                        sisbenTI.data.edad ??
+                        sisbenTI.data.anios ??
+                        sisbenTI.data.edadCalculada ??
+                        sisbenTI.data.fechaNacimiento ??
+                        sisbenTI.data.fecNac ??
+                        null;
+                      const edadFinal = edadVal !== null ? String(edadVal) : '';
+
+                      const dataObj = {
+                        nombres,
+                        apellidos,
+                        edad: edadFinal,
+                        puesto_votacion: '',
+                        mesa: '',
+                        municipio: sisbenTI.data.municipio || '',
+                        departamento: sisbenTI.data.departamento || '',
+                      };
+
+                      res.setHeader('Content-Type', 'application/json');
+                      res.end(JSON.stringify({
+                        ok: true,
+                        duplicado: false,
+                        encontrado: true,
+                        ...dataObj,
+                        data: dataObj,
+                        raw: sisbenTI.data,
+                      }));
+                      return;
+                    }
+                  }
+                }
+              }
+
+              // 4. Si no se encontró en censo ni en DNP
               res.setHeader('Content-Type', 'application/json');
-              res.end(JSON.stringify({ encontrado: false }));
+              res.end(JSON.stringify({
+                ok: true,
+                duplicado: false,
+                encontrado: false,
+                data: null,
+                mensaje: 'Disponible para registro',
+              }));
             } catch (err: any) {
               res.statusCode = 500;
               res.setHeader('Content-Type', 'application/json');
-              res.end(JSON.stringify({ encontrado: false, error: err?.message }));
+              res.end(JSON.stringify({ ok: false, error: err?.message || 'Error en servidor de desarrollo' }));
             }
           });
           return;

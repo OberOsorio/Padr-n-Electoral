@@ -141,11 +141,11 @@ export const LeaderRegisterElectorView: React.FC<LeaderRegisterProps> = ({
       }
 
       // Si está disponible:
-      if (respuesta.encontrado && respuesta.data) {
+      if (respuesta.encontrado && (respuesta.data || respuesta.nombres)) {
         autofilledCedulaRef.current = cedulaLimpia;
         setIsAutofilledFromCenso(true);
 
-        const data = respuesta.data;
+        const data = respuesta.data || respuesta;
         const edadString = data.edad !== undefined && data.edad !== null ? String(data.edad) : '';
 
         setFormData((prev) => ({

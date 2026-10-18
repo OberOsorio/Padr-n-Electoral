@@ -105,8 +105,8 @@ export function useElectorSearch() {
         // Caso A: Duplicado en la campaña activa
         if (res && res.duplicado) {
           return {
-            nombres: res.data?.nombres || '',
-            apellidos: res.data?.apellidos || '',
+            nombres: res.data?.nombres || res.nombres || '',
+            apellidos: res.data?.apellidos || res.apellidos || '',
             edad: '',
             duplicado: true,
             mensaje: res.mensaje || 'Elector ya registrado en esta campaña.',
@@ -119,24 +119,27 @@ export function useElectorSearch() {
         }
 
         const payloadData = res.data || res;
-        if (!payloadData || (!payloadData.nombres && !payloadData.apellidos)) {
+        const nombresVal = payloadData?.nombres || res?.nombres || '';
+        const apellidosVal = payloadData?.apellidos || res?.apellidos || '';
+
+        if (!nombresVal && !apellidosVal) {
           return null;
         }
 
         // Caso C: Documento verificado
         return {
-          nombres: payloadData.nombres || '',
-          apellidos: payloadData.apellidos || '',
+          nombres: nombresVal,
+          apellidos: apellidosVal,
           edad:
-            payloadData.edad !== undefined && payloadData.edad !== null
+            payloadData?.edad !== undefined && payloadData?.edad !== null
               ? String(payloadData.edad)
-              : '',
-          municipio: payloadData.municipio || '',
-          departamento: payloadData.departamento || '',
-          puesto_votacion: payloadData.puesto_votacion || payloadData.puesto_sugerido || '',
+              : (res.edad ? String(res.edad) : ''),
+          municipio: payloadData?.municipio || res.municipio || '',
+          departamento: payloadData?.departamento || res.departamento || '',
+          puesto_votacion: payloadData?.puesto_votacion || payloadData?.puesto_sugerido || res.puesto_votacion || '',
           mesa:
-            payloadData.mesa || payloadData.mesa_sugerida
-              ? String(payloadData.mesa || payloadData.mesa_sugerida)
+            payloadData?.mesa || payloadData?.mesa_sugerida || res.mesa
+              ? String(payloadData?.mesa || payloadData?.mesa_sugerida || res.mesa)
               : '',
           duplicado: false,
           mensaje: res.mensaje || '',

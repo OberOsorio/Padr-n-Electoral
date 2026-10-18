@@ -95,20 +95,23 @@ export async function onRequestPost(context: any) {
         }
       }
 
+      const dataObj = {
+        nombres: persona.nombres || '',
+        apellidos: persona.apellidos || '',
+        edad: edadFinal,
+        puesto_votacion: persona.puesto_votacion || '',
+        mesa: persona.mesa ? String(persona.mesa) : '',
+        municipio: persona.municipio || '',
+        departamento: persona.departamento || '',
+      };
+
       return new Response(
         JSON.stringify({
           ok: true,
           duplicado: false,
           encontrado: true,
-          data: {
-            nombres: persona.nombres || '',
-            apellidos: persona.apellidos || '',
-            edad: edadFinal,
-            puesto_votacion: persona.puesto_votacion || '',
-            mesa: persona.mesa ? String(persona.mesa) : '',
-            municipio: persona.municipio || '',
-            departamento: persona.departamento || '',
-          },
+          ...dataObj,
+          data: dataObj,
         }),
         { status: 200, headers: CORS_HEADERS }
       );
@@ -122,20 +125,23 @@ export async function onRequestPost(context: any) {
       .maybeSingle();
 
     if (maestro) {
+      const dataObj = {
+        nombres: maestro.nombres || '',
+        apellidos: maestro.apellidos || '',
+        edad: maestro.edad ? String(maestro.edad) : '',
+        puesto_votacion: maestro.puesto_sugerido || '',
+        mesa: maestro.mesa_sugerida ? String(maestro.mesa_sugerida) : '',
+        municipio: maestro.municipio || '',
+        departamento: maestro.departamento || '',
+      };
+
       return new Response(
         JSON.stringify({
           ok: true,
           duplicado: false,
           encontrado: true,
-          data: {
-            nombres: maestro.nombres || '',
-            apellidos: maestro.apellidos || '',
-            edad: maestro.edad ? String(maestro.edad) : '',
-            puesto_votacion: maestro.puesto_sugerido || '',
-            mesa: maestro.mesa_sugerida ? String(maestro.mesa_sugerida) : '',
-            municipio: maestro.municipio || '',
-            departamento: maestro.departamento || '',
-          },
+          ...dataObj,
+          data: dataObj,
         }),
         { status: 200, headers: CORS_HEADERS }
       );
