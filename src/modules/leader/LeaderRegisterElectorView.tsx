@@ -13,8 +13,6 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../services/supabase';
 import { getPollingPlacesForTenant, formatearPuestoSimple } from '../electors/constants';
-import { useFastElectorSearch } from './useFastElectorSearch';
-import { parseConsultaDinamica } from '../../utils/electorResponseParser';
 import type { PollingPlace } from '../../types';
 import { PremiumAlertModal, type AlertType } from '../../components/common/PremiumAlertModal';
 
@@ -89,9 +87,8 @@ export const LeaderRegisterElectorView: React.FC<LeaderRegisterProps> = ({
   const previousCedulaRef = useRef<string>('');
   const autofilledCedulaRef = useRef<string>('');
   const [, setIsAutofilledFromCenso] = useState(false);
-  const { consultarElectorRapido } = useFastElectorSearch();
 
-  // 1. Consulta y validación automática de cédula en tiempo real (< 50ms, sin peticiones bloqueantes)
+  // 1. Consulta y validación de cédula con el endpoint /api/search-elector
   const consultarCedula = async (cedulaRaw: string) => {
     const cedulaLimpia = cedulaRaw.trim().replace(/\D/g, '');
     latestCedulaRef.current = cedulaLimpia;
@@ -102,61 +99,71 @@ export const LeaderRegisterElectorView: React.FC<LeaderRegisterProps> = ({
       return;
     }
 
+    setLoadingConsulta(true);
     try {
-      setLoadingConsulta(true);
+      const res = await fetch('/api/search-elector', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cedula: cedulaLimpia,
+          tenantId: activeTenant?.id || null,
+        }),
+      });
 
-      const result = await consultarElectorRapido(cedulaLimpia, activeTenant?.id);
       if (latestCedulaRef.current !== cedulaLimpia) return;
 
-      if (!result) {
-        setLoadingConsulta(false);
+      const respuesta = await res.json().catch(() => null);
+
+      if (!respuesta || !respuesta.ok) {
+        setEstadoCedula({
+          tipo: 'error',
+          mensaje: respuesta?.error || 'Error al consultar documento',
+        });
         return;
       }
 
-      // A. Caso duplicado en la campaña
-      if (result.isDuplicate && result.duplicateInfo) {
+      if (respuesta.duplicado) {
+        autofilledCedulaRef.current = '';
+        setIsAutofilledFromCenso(false);
         setFormData((prev) => ({
           ...prev,
           nombres: '',
           apellidos: '',
           edad: '',
-          puesto_votacion: modoLote ? prev.puesto_votacion : '',
-          mesa: modoLote ? prev.mesa : '',
+          puesto_votacion: '',
+          mesa: '',
         }));
-        setIsAutofilledFromCenso(false);
-        autofilledCedulaRef.current = '';
-
         setEstadoCedula({
           tipo: 'error',
-          mensaje: `Cédula ya registrada para ${result.duplicateInfo.nombres} ${result.duplicateInfo.apellidos} por ${result.duplicateInfo.registradorNombre} (Puesto: ${result.duplicateInfo.puesto_votacion || 'Principal'}).`,
+          mensaje: respuesta.mensaje || 'Este documento ya está registrado en esta campaña.',
         });
-        setLoadingConsulta(false);
         return;
       }
 
-      // B. Caso encontrado en censo oficial o banco de datos
-      if (result.found && result.data) {
+      // Si está disponible:
+      if (respuesta.encontrado && respuesta.data) {
         autofilledCedulaRef.current = cedulaLimpia;
         setIsAutofilledFromCenso(true);
 
-        const elector = parseConsultaDinamica(result.data);
-        const edadAsignar = elector?.edad || (result.data.edad ? String(result.data.edad) : '');
+        const data = respuesta.data;
+        const edadString = data.edad !== undefined && data.edad !== null ? String(data.edad) : '';
 
         setFormData((prev) => ({
           ...prev,
-          nombres: elector?.nombres || result.data!.nombres || prev.nombres,
-          apellidos: elector?.apellidos || result.data!.apellidos || prev.apellidos,
-          edad: edadAsignar,
-          puesto_votacion: modoLote && prev.puesto_votacion ? prev.puesto_votacion : (result.data!.puesto_votacion || prev.puesto_votacion || ''),
-          mesa: modoLote && prev.mesa ? prev.mesa : (result.data!.mesa ? String(result.data!.mesa) : prev.mesa || ''),
+          cedula: cedulaLimpia,
+          nombres: data.nombres || prev.nombres,
+          apellidos: data.apellidos || prev.apellidos,
+          edad: edadString || prev.edad,
+          puesto_votacion: data.puesto_votacion || prev.puesto_votacion,
+          mesa: data.mesa ? String(data.mesa) : prev.mesa,
         }));
 
         setEstadoCedula({
           tipo: 'ok',
-          mensaje: 'Datos verificados correctamente.',
+          mensaje: 'Disponible para registro (Datos verificados)',
         });
       } else {
-        // C. Cédula no encontrada: limpiar campos para que el usuario digite manualmente
+        // Disponible pero sin datos precargados: habilitar para llenado manual
         autofilledCedulaRef.current = '';
         setIsAutofilledFromCenso(false);
 
@@ -165,17 +172,23 @@ export const LeaderRegisterElectorView: React.FC<LeaderRegisterProps> = ({
           nombres: '',
           apellidos: '',
           edad: '',
-          puesto_votacion: modoLote ? prev.puesto_votacion : '',
-          mesa: modoLote ? prev.mesa : '',
+          puesto_votacion: '',
+          mesa: '',
         }));
 
         setEstadoCedula({
           tipo: 'ok',
-          mensaje: 'Disponible para registro.',
+          mensaje: 'Disponible para registro',
         });
       }
-    } catch (err) {
-      console.error('Error al consultar documento:', err);
+    } catch (error) {
+      console.error('Fallo de red en consulta:', error);
+      if (latestCedulaRef.current === cedulaLimpia) {
+        setEstadoCedula({
+          tipo: 'error',
+          mensaje: 'No se pudo conectar con el servicio. Ingrese los datos manualmente.',
+        });
+      }
     } finally {
       if (latestCedulaRef.current === cedulaLimpia) {
         setLoadingConsulta(false);

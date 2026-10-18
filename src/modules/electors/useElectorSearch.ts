@@ -70,7 +70,6 @@ export function useElectorSearch() {
         if (!res || (!res.encontrado && !res.duplicado)) {
           const fallbackUrls = [
             'https://padron-electoral.aethelcodesas.workers.dev/api/search-elector',
-            'https://swing-committed-issued-summary.trycloudflare.com/api/search-elector',
           ];
 
           for (const fbUrl of fallbackUrls) {

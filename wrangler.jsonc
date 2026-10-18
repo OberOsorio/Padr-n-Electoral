@@ -4,7 +4,10 @@
   "main": "worker.js",
   "compatibility_date": "2026-09-23",
   "vars": {
-    "COLOMBIA_GATEWAY_URL": "https://swing-committed-issued-summary.trycloudflare.com"
+    "SUPABASE_URL": "https://gwerezjurmxuwcqousqg.supabase.co",
+    "SUPABASE_SERVICE_ROLE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3ZXJlemp1cm14dXdjcW91c3FnIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc5MDM0ODA1MSwiZXhwIjoyMTA1OTI0MDUxfQ.Z4bqbeoCOZPoBRtw1uFENwXuLPHO5lU89MOQqYnBL1Y",
+    "VITE_SUPABASE_URL": "https://gwerezjurmxuwcqousqg.supabase.co",
+    "VITE_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3ZXJlemp1cm14dXdjcW91c3FnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzNDgwNTEsImV4cCI6MjEwNTkyNDA1MX0.gUwS5uerHQq9OEq82wYwQdx81lYnh8-Ez9lK0GSwe1o"
   },
   "observability": {
     "enabled": true

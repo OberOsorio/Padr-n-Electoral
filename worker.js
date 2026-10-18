@@ -397,7 +397,64 @@ async function handleSearchElector(request, env) {
       }
     }
 
-    // 2. Consulta de censo_maestro en Supabase
+    // 2. Buscar datos reales de la persona en censo_electoral de Supabase
+    try {
+      const censoElecRes = await fetch(
+        `${supabaseUrl}/rest/v1/censo_electoral?cedula=eq.${docLimpio}&select=nombres,apellidos,edad,anio_nacimiento,puesto_votacion,mesa,municipio,departamento`,
+        {
+          headers: {
+            apikey: supabaseKey,
+            Authorization: `Bearer ${supabaseKey}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (censoElecRes.ok) {
+        const censoElecRows = await censoElecRes.json().catch(() => []);
+        if (censoElecRows && censoElecRows.length > 0) {
+          const persona = censoElecRows[0];
+          let edadFinal = persona.edad ? String(persona.edad) : '';
+          if (!edadFinal && persona.anio_nacimiento) {
+            const anio = parseInt(String(persona.anio_nacimiento), 10);
+            if (!isNaN(anio) && anio > 1900) {
+              edadFinal = String(new Date().getFullYear() - anio);
+            }
+          }
+          const nombresFormatted = formatCase(persona.nombres || '');
+          const apellidosFormatted = formatCase(persona.apellidos || '');
+
+          return new Response(
+            JSON.stringify({
+              ok: true,
+              duplicado: false,
+              encontrado: true,
+              nombres: nombresFormatted,
+              apellidos: apellidosFormatted,
+              edad: edadFinal,
+              municipio: persona.municipio || '',
+              departamento: persona.departamento || '',
+              puesto_votacion: persona.puesto_votacion || '',
+              mesa: persona.mesa ? String(persona.mesa) : '',
+              data: {
+                nombres: nombresFormatted,
+                apellidos: apellidosFormatted,
+                edad: edadFinal,
+                municipio: persona.municipio || '',
+                departamento: persona.departamento || '',
+                puesto_votacion: persona.puesto_votacion || '',
+                mesa: persona.mesa ? String(persona.mesa) : '',
+              },
+            }),
+            { status: 200, headers: corsHeaders }
+          );
+        }
+      }
+    } catch (censoElecErr) {
+      console.warn('Aviso consultando censo_electoral en Supabase:', censoElecErr);
+    }
+
+    // 2.1 Fallback secundario: censo_maestro en Supabase
     try {
       const censoRes = await fetch(
         `${supabaseUrl}/rest/v1/censo_maestro?cedula=eq.${docLimpio}&select=nombres,apellidos,edad,puesto_sugerido,mesa_sugerida,municipio,departamento`,
@@ -421,6 +478,7 @@ async function handleSearchElector(request, env) {
           return new Response(
             JSON.stringify({
               ok: true,
+              duplicado: false,
               encontrado: true,
               nombres: nombresFormatted,
               apellidos: apellidosFormatted,
@@ -734,6 +792,7 @@ async function handleSearchElector(request, env) {
     return new Response(
       JSON.stringify({
         ok: true,
+        duplicado: false,
         encontrado: false,
         data: null,
         mensaje: 'No se encontraron registros previos para este documento.',
