@@ -295,7 +295,7 @@ export const DirectorDashboardView: React.FC<DirectorDashboardViewProps> = React
             </span>
             <span className="inline-flex items-center gap-0.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
               <TrendingUp className="w-3 h-3" />
-              <span>{data?.totalLideres ?? 1} tot.</span>
+              <span>{data?.totalLideres ?? 0} tot.</span>
             </span>
           </div>
         </div>

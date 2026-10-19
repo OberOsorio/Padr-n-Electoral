@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
+import { supabaseAdmin } from '../../lib/supabaseAdmin';
 import { useTenant } from '../../context/TenantContext';
 import { isValidUUID } from '../../utils/uuid';
 import { type DateRangeOption } from './DateRangeSelector';
@@ -133,23 +134,8 @@ export function useDashboardData(tenantIdProp?: string, selectedRange: DateRange
       let electoresRows: any[] = [];
 
       if (isSupabaseConfigured) {
-        try {
-          const authUserRes = await supabase.auth.getUser();
-          console.log('[Dashboard Debug] Usuario actual:', authUserRes.data.user?.id);
-        } catch (authErr) {
-          console.log('[Dashboard Debug] Error obteniendo usuario:', authErr);
-        }
-        console.log('[Dashboard Debug] Tenant ID utilizado para la consulta:', activeTenantId);
-
-        const { data: debugElectores, error: errElectoresDebug, count: debugCount } = await supabase
-          .from('electores')
-          .select('*', { count: 'exact' });
-
-        console.log('[Dashboard Debug] Error de electores:', errElectoresDebug);
-        console.log('[Dashboard Debug] Cantidad de electores encontrados sin filtro:', debugCount);
-        console.log('[Dashboard Debug] Filas recibidas:', debugElectores);
-
-        let query = supabase
+        const client = supabaseAdmin || supabase;
+        let query = client
           .from('electores')
           .select('id, cedula, nombres, apellidos, edad, mesa, puesto_votacion, created_at, registrado_por, telefono');
 
@@ -216,27 +202,29 @@ export function useDashboardData(tenantIdProp?: string, selectedRange: DateRange
       ).length || totalElectores;
 
       // =========================================================================
-      // 3. LÍDERES Y PERFILES DE CAMPAÑA (Únicamente registros reales)
+      // 3. LÍDERES Y PERFILES DE CAMPAÑA (Únicamente registros reales de la BD)
       // =========================================================================
       let perfilesRows: any[] = [];
 
       if (isSupabaseConfigured) {
-        let pQuery = supabase
+        const client = supabaseAdmin || supabase;
+        let pQuery = client
           .from('profiles')
-          .select('id, full_name, role, meta_electores, is_active, tenant_id');
+          .select('id, full_name, email, role, meta_electores, is_active, tenant_id')
+          .order('created_at', { ascending: true });
 
         if (activeTenantId && isValidUUID(activeTenantId)) {
-          pQuery = (pQuery as any).eq('tenant_id', activeTenantId);
+          pQuery = (pQuery as any).or(`tenant_id.eq.${activeTenantId},tenant_id.is.null`);
         }
 
         const { data: dbProfiles, error: errProfiles } = await pQuery;
         if (!errProfiles && dbProfiles) {
           perfilesRows = dbProfiles;
+        } else if (errProfiles) {
+          console.warn('Aviso al consultar perfiles en Supabase:', errProfiles.message);
         }
-      }
-
-      // Enriquecer con almacenamiento local si no hay perfiles en DB
-      if (perfilesRows.length === 0) {
+      } else {
+        // En modo offline sin Supabase: leer perfiles locales de localStorage
         try {
           const stored = typeof window !== 'undefined' ? localStorage.getItem('electoral_local_team') : null;
           if (stored) {
@@ -268,8 +256,10 @@ export function useDashboardData(tenantIdProp?: string, selectedRange: DateRange
       });
 
       // Meta global de la campaña calculada de las metas reales de líderes
-      const sumMetas = soloLideres.reduce((acc, p) => acc + (p.meta_electores || 0), 0);
-      const metaGlobal = sumMetas > 0 ? sumMetas : (totalHistorico > 0 ? totalHistorico : 100);
+      const sumMetas = soloLideres.reduce((acc, p) => acc + (Number(p.meta_electores) || 0), 0);
+      const metaGlobal = sumMetas > 0
+        ? sumMetas
+        : (soloLideres.length > 0 ? soloLideres.length * 50 : 100);
       const porcentajeAvance = metaGlobal > 0 ? Number(((totalHistorico / metaGlobal) * 100).toFixed(1)) : 0;
 
       // =========================================================================
@@ -431,20 +421,22 @@ export function useDashboardData(tenantIdProp?: string, selectedRange: DateRange
       // =========================================================================
       // 6. RENDIMIENTO DEL EQUIPO (Únicamente líderes y coordinadores)
       // =========================================================================
-      const rendimientoLideres = soloLideres.map((p) => {
-        const gestionados = conteoPorLider[p.id] || 0;
-        const meta = p.meta_electores && p.meta_electores > 0 ? p.meta_electores : 50;
-        const avance = meta > 0 ? Math.min(100, Math.round((gestionados / meta) * 100)) : (gestionados > 0 ? 100 : 0);
-        return {
-          id: p.id,
-          nombre: p.full_name || 'Líder Operativo',
-          rol: p.role === 'coordinador' ? 'Coordinador' : 'Líder',
-          meta,
-          gestionados,
-          avance,
-          estado: (gestionados > 0 ? 'ACTIVO' : 'ATENCIÓN') as 'ACTIVO' | 'ATENCIÓN',
-        };
-      });
+      const rendimientoLideres = soloLideres
+        .map((p) => {
+          const gestionados = conteoPorLider[p.id] || 0;
+          const meta = p.meta_electores && Number(p.meta_electores) > 0 ? Number(p.meta_electores) : 50;
+          const avance = meta > 0 ? Math.min(100, Math.round((gestionados / meta) * 100)) : (gestionados > 0 ? 100 : 0);
+          return {
+            id: p.id,
+            nombre: p.full_name || 'Líder Operativo',
+            rol: p.role === 'coordinador' ? 'Coordinador' : 'Líder',
+            meta,
+            gestionados,
+            avance,
+            estado: (gestionados > 0 ? 'ACTIVO' : 'ATENCIÓN') as 'ACTIVO' | 'ATENCIÓN',
+          };
+        })
+        .sort((a, b) => b.gestionados - a.gestionados || a.nombre.localeCompare(b.nombre));
 
       const activosCount = rendimientoLideres.filter((l) => l.estado === 'ACTIVO').length;
       const sinActividadCount = rendimientoLideres.filter((l) => l.estado === 'ATENCIÓN').length;
