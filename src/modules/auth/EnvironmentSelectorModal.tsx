@@ -79,45 +79,65 @@ export const EnvironmentSelectorModal: React.FC<EnvironmentSelectorProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
             
             {/* 1. MASTER PLATFORM CONTROL */}
-            <div className="flex flex-col justify-between p-6 rounded-3xl border border-slate-200 dark:border-[#162345] bg-slate-50/50 dark:bg-[#0b1328]/60 hover:border-purple-500/50 hover:shadow-xl hover:shadow-purple-500/5 transition-all group">
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={onSelectMaster}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onSelectMaster();
+                }
+              }}
+              className="flex flex-col justify-between p-6 rounded-3xl border border-slate-200 dark:border-[#162345] bg-slate-50/50 dark:bg-[#0b1328]/60 hover:border-purple-500/60 hover:bg-purple-50/20 dark:hover:bg-[#121430]/70 hover:shadow-xl hover:shadow-purple-500/10 active:scale-[0.98] transition-all duration-200 group cursor-pointer select-none text-left"
+            >
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <div className="w-12 h-12 rounded-2xl bg-purple-600/10 border border-purple-600/25 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-2xl bg-purple-600/10 border border-purple-600/25 text-purple-600 dark:text-purple-400 flex items-center justify-center group-hover:scale-105 group-hover:bg-purple-600/20 transition-all">
                     <ShieldCheck className="w-6 h-6"/>
                   </div>
                   <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
                     MASTER SAAS
                   </span>
                 </div>
-                <h3 className="text-base font-bold text-slate-900 dark:text-white mb-2">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white mb-2 group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors">
                   Master Platform Control
                 </h3>
                 <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
                   Gestión global de campañas, estado de servidores, auditoría y control de infraestructura SaaS.
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={onSelectMaster}
-                className="w-full pt-4 border-t border-slate-200 dark:border-[#162345] flex items-center justify-between text-xs font-bold text-purple-600 dark:text-purple-400 group-hover:text-purple-500 transition-colors cursor-pointer"
+              <div
+                className="w-full pt-4 border-t border-slate-200 dark:border-[#162345] flex items-center justify-between text-xs font-bold text-purple-600 dark:text-purple-400 group-hover:text-purple-500 dark:group-hover:text-purple-300 transition-colors pointer-events-none"
               >
                 <span>Ingresar al Panel Maestro</span>
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform"/>
-              </button>
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1.5 transition-transform"/>
+              </div>
             </div>
 
             {/* 2. PORTAL DE LÍDER (MODO PROPIETARIO / SIN CAMPAÑA) */}
-            <div className="flex flex-col justify-between p-6 rounded-3xl border border-slate-200 dark:border-[#162345] bg-slate-50/50 dark:bg-[#0b1328]/60 hover:border-emerald-500/50 hover:shadow-xl hover:shadow-emerald-500/5 transition-all group">
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={onSelectOwnerLeader}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onSelectOwnerLeader();
+                }
+              }}
+              className="flex flex-col justify-between p-6 rounded-3xl border border-slate-200 dark:border-[#162345] bg-slate-50/50 dark:bg-[#0b1328]/60 hover:border-emerald-500/60 hover:bg-emerald-50/20 dark:hover:bg-[#071f25]/70 hover:shadow-xl hover:shadow-emerald-500/10 active:scale-[0.98] transition-all duration-200 group cursor-pointer select-none text-left"
+            >
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-600 dark:text-emerald-400 flex items-center justify-center group-hover:scale-105 group-hover:bg-emerald-500/20 transition-all">
                     <Users className="w-6 h-6"/>
                   </div>
                   <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                     LÍDER PROPIETARIO
                   </span>
                 </div>
-                <h3 className="text-base font-bold text-slate-900 dark:text-white mb-2">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white mb-2 group-hover:text-emerald-600 dark:group-hover:text-emerald-300 transition-colors">
                   Portal de Líder en Campo
                 </h3>
                 <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
@@ -130,28 +150,37 @@ export const EnvironmentSelectorModal: React.FC<EnvironmentSelectorProps> = ({
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={onSelectOwnerLeader}
-                className="w-full pt-4 border-t border-slate-200 dark:border-[#162345] flex items-center justify-between text-xs font-bold text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-500 transition-colors cursor-pointer"
+              <div
+                className="w-full pt-4 border-t border-slate-200 dark:border-[#162345] flex items-center justify-between text-xs font-bold text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-500 dark:group-hover:text-emerald-300 transition-colors pointer-events-none"
               >
                 <span>Ingresar como Líder</span>
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform"/>
-              </button>
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1.5 transition-transform"/>
+              </div>
             </div>
 
             {/* 3. ENTORNO DE DEMOSTRACIÓN (SANDBOX) */}
-            <div className="flex flex-col justify-between p-6 rounded-3xl border border-slate-200 dark:border-[#162345] bg-slate-50/50 dark:bg-[#0b1328]/60 hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-500/5 transition-all group">
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={handleDemo}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleDemo();
+                }
+              }}
+              className="flex flex-col justify-between p-6 rounded-3xl border border-slate-200 dark:border-[#162345] bg-slate-50/50 dark:bg-[#0b1328]/60 hover:border-blue-500/60 hover:bg-blue-50/20 dark:hover:bg-[#0a1838]/70 hover:shadow-xl hover:shadow-blue-500/10 active:scale-[0.98] transition-all duration-200 group cursor-pointer select-none text-left"
+            >
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <div className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/25 text-blue-600 dark:text-sky-400 flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/25 text-blue-600 dark:text-sky-400 flex items-center justify-center group-hover:scale-105 group-hover:bg-blue-500/20 transition-all">
                     <Building2 className="w-6 h-6"/>
                   </div>
                   <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
                     SANDBOX DEMO
                   </span>
                 </div>
-                <h3 className="text-base font-bold text-slate-900 dark:text-white mb-2">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-sky-300 transition-colors">
                   Entorno de Demostración
                 </h3>
                 <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
@@ -164,14 +193,12 @@ export const EnvironmentSelectorModal: React.FC<EnvironmentSelectorProps> = ({
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={handleDemo}
-                className="w-full pt-4 border-t border-slate-200 dark:border-[#162345] flex items-center justify-between text-xs font-bold text-blue-600 dark:text-sky-400 group-hover:text-blue-500 transition-colors cursor-pointer"
+              <div
+                className="w-full pt-4 border-t border-slate-200 dark:border-[#162345] flex items-center justify-between text-xs font-bold text-blue-600 dark:text-sky-400 group-hover:text-blue-500 dark:group-hover:text-sky-300 transition-colors pointer-events-none"
               >
                 <span>Ingresar a Inspección</span>
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform"/>
-              </button>
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1.5 transition-transform"/>
+              </div>
             </div>
 
           </div>
