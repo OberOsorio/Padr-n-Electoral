@@ -155,46 +155,39 @@ export const AppLayout = ({
       />
 
       {/* 2. Drawer Lateral Móvil / Tablet (< 1024px lg) con Backdrop-Blur */}
-      <div
-        className={`fixed inset-0 z-[60] lg:hidden transition-opacity duration-200 ${
-          isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-        }`}
-        role="dialog"
-        aria-modal="true"
-        aria-hidden={!isMobileMenuOpen}
-      >
+      {isMobileMenuOpen && (
         <div
-          onClick={() => setIsMobileMenuOpen(false)}
-          className="fixed inset-0 bg-slate-950/75 backdrop-blur-sm z-[60] lg:hidden transition-opacity duration-200 cursor-pointer"
-          aria-hidden="true"
-        />
-
-        <aside
-          className={`fixed inset-y-0 left-0 z-[70] w-[82vw] max-w-xs h-[100dvh] max-h-[100dvh] bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col justify-between overflow-hidden transform transition-transform duration-200 ease-out will-change-transform ${
-            isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-          }`}
-          style={{
-            transform: isMobileMenuOpen ? 'translate3d(0, 0, 0)' : 'translate3d(-100%, 0, 0)',
-            willChange: 'transform',
-          }}
+          className="fixed inset-0 z-[60] lg:hidden transition-opacity duration-200 opacity-100 pointer-events-auto"
+          role="dialog"
+          aria-modal="true"
         >
-          <Sidebar
-            activeTab={activeTab}
-            onSelectTab={(tab) => {
-              setActiveTab(tab);
-              setIsMobileMenuOpen(false);
-            }}
-            userEmail={userEmail}
-            userName={userName}
-            userRole={userRole}
-            onSignOut={onSignOut}
-            onBackToMasterPlatform={onBackToMasterPlatform}
-            onOpenGateway={onOpenGateway}
-            onCloseMobile={() => setIsMobileMenuOpen(false)}
-            className="flex w-full h-full static border-r-0"
+          <div
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="fixed inset-0 bg-slate-950/75 backdrop-blur-sm z-[60] lg:hidden transition-opacity duration-200 cursor-pointer"
+            aria-hidden="true"
           />
-        </aside>
-      </div>
+
+          <aside
+            className="fixed inset-y-0 left-0 z-[70] w-[82vw] max-w-xs h-[100dvh] max-h-[100dvh] bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col justify-between overflow-hidden animate-in slide-in-from-left duration-200"
+          >
+            <Sidebar
+              activeTab={activeTab}
+              onSelectTab={(tab) => {
+                setActiveTab(tab);
+                setIsMobileMenuOpen(false);
+              }}
+              userEmail={userEmail}
+              userName={userName}
+              userRole={userRole}
+              onSignOut={onSignOut}
+              onBackToMasterPlatform={onBackToMasterPlatform}
+              onOpenGateway={onOpenGateway}
+              onCloseMobile={() => setIsMobileMenuOpen(false)}
+              className="flex w-full h-full static border-r-0"
+            />
+          </aside>
+        </div>
+      )}
 
       {/* 3. Área de Contenido Principal */}
       <div
