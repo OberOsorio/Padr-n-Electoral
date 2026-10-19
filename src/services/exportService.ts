@@ -1,6 +1,7 @@
 import * as XLSX from 'xlsx';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { supabaseAdmin } from '../lib/supabaseAdmin';
+import { isValidUUID } from '../utils/uuid';
 import type { ElectorWithRegistrant } from '../types';
 
 export interface ExportFilterParams {
@@ -193,7 +194,7 @@ export async function exportarElectoresExcel({
       `)
       .order('apellidos', { ascending: true });
 
-    if (tenantId) {
+    if (tenantId && isValidUUID(tenantId)) {
       query = (query as any).eq('tenant_id', tenantId);
     }
 

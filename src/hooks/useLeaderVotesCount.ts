@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../services/supabase';
+import { isValidUUID } from '../utils/uuid';
 
 interface UseVotesCountOptions {
   currentUserId?: string;
@@ -23,8 +24,8 @@ export function useLeaderVotesCount({
       let query = (supabase.from('electores') as any)
         .select('*', { count: 'exact', head: true });
 
-      // 1. Filtrar por campaña si existe
-      if (tenantId) {
+      // 1. Filtrar por campaña si existe y es UUID válido
+      if (tenantId && isValidUUID(tenantId)) {
         query = query.eq('tenant_id', tenantId);
       }
 

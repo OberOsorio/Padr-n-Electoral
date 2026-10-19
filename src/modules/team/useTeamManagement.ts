@@ -4,6 +4,7 @@ import { supabaseAdmin } from '../../lib/supabaseAdmin';
 import type { TeamMember, AppRole, UserPermissions } from '../../types';
 import { DEFAULT_ROLE_PERMISSIONS } from '../../types';
 import { useTenant } from '../../context/TenantContext';
+import { isValidUUID } from '../../utils/uuid';
 
 export const useTeamManagement = () => {
   const { currentTenantId } = useTenant();
@@ -52,14 +53,17 @@ export const useTeamManagement = () => {
 
     // Modo Supabase Real con Aislamiento Estricto por Tenant
     try {
-      // Consultar perfiles pertenecientes al tenant activo
-      let profilesQuery = supabase
+      const client = supabaseAdmin || supabase;
+      const hasValidTenantUUID = isValidUUID(currentTenantId);
+
+      // Consultar perfiles pertenecientes al tenant activo o perfiles globales
+      let profilesQuery = client
         .from('profiles')
         .select('id, full_name, email, role, is_active, created_at, tenant_id, permissions, meta_electores')
         .order('created_at', { ascending: true });
 
-      if (currentTenantId) {
-        profilesQuery = (profilesQuery as any).eq('tenant_id', currentTenantId);
+      if (hasValidTenantUUID) {
+        profilesQuery = (profilesQuery as any).or(`tenant_id.eq.${currentTenantId},tenant_id.is.null`);
       }
 
       const { data: profilesData, error: profilesErr } = await profilesQuery;
@@ -67,14 +71,14 @@ export const useTeamManagement = () => {
       if (profilesErr) throw profilesErr;
 
       // Consultar electores para agregar conteo por coordinador/líder en este tenant
-      let electoresQuery = (supabase.from('electores') as any).select('registrado_por, created_at');
-      if (currentTenantId) {
-        electoresQuery = electoresQuery.eq('tenant_id', currentTenantId);
+      let electoresQuery = (client.from('electores') as any).select('registrado_por, created_at');
+      if (hasValidTenantUUID) {
+        electoresQuery = electoresQuery.or(`tenant_id.eq.${currentTenantId},tenant_id.is.null`);
       }
 
       const { data: electoresData, error: electoresErr } = await electoresQuery;
 
-      if (electoresErr) console.error('Error al consultar electores para equipo:', electoresErr);
+      if (electoresErr) console.warn('Aviso al consultar electores para equipo:', electoresErr.message);
 
       // Calcular conteos y última actividad por usuario
       const countsMap: Record<string, number> = {};
@@ -93,9 +97,16 @@ export const useTeamManagement = () => {
       }
 
       // Mapa de correos registrados localmente para enriquecer
-      const stored = localStorage.getItem('electoral_local_team');
-      const localTeamList: TeamMember[] = stored ? JSON.parse(stored) : [];
-      const localMap = new Map(localTeamList.map((m) => [m.id, m]));
+      let localMap = new Map<string, TeamMember>();
+      try {
+        const stored = localStorage.getItem('electoral_local_team');
+        const localTeamList: TeamMember[] = stored ? JSON.parse(stored) : [];
+        if (Array.isArray(localTeamList)) {
+          localMap = new Map(localTeamList.map((m) => [m.id, m]));
+        }
+      } catch (parseErr) {
+        console.warn('Aviso parseando electoral_local_team:', parseErr);
+      }
 
       const formatted: TeamMember[] = (profilesData || []).map((p: any) => {
         const localMatch = localMap.get(p.id);
@@ -113,7 +124,7 @@ export const useTeamManagement = () => {
           role: memberRole,
           permissions: memberPermissions,
           meta_electores: metaElectores,
-          tenant_id: p.tenant_id || currentTenantId,
+          tenant_id: p.tenant_id || (hasValidTenantUUID ? currentTenantId : null),
           is_active: p.is_active,
           created_at: p.created_at,
           totalElectores: countsMap[p.id] || 0,
@@ -126,8 +137,32 @@ export const useTeamManagement = () => {
       }
     } catch (err: unknown) {
       console.error('Error al cargar equipo:', err);
-      if (isMountedRef.current) {
-        setError(err instanceof Error ? err.message : 'Error al cargar miembros del equipo.');
+
+      // Respaldo resiliente desde localStorage si la consulta de base de datos falla
+      let localFallbackLoaded = false;
+      try {
+        const stored = localStorage.getItem('electoral_local_team');
+        if (stored) {
+          const list: TeamMember[] = JSON.parse(stored);
+          if (Array.isArray(list) && list.length > 0) {
+            const scoped = currentTenantId
+              ? list.filter((m) => !m.tenant_id || m.tenant_id === currentTenantId)
+              : list;
+            if (scoped.length > 0) {
+              setTeam(scoped);
+              localFallbackLoaded = true;
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('Error leyendo respaldo local:', e);
+      }
+
+      if (isMountedRef.current && !localFallbackLoaded) {
+        const errorMsg =
+          (err as any)?.message ||
+          (err instanceof Error ? err.message : 'Error al cargar miembros del equipo.');
+        setError(errorMsg);
       }
     } finally {
       if (isMountedRef.current) {
@@ -178,11 +213,12 @@ export const useTeamManagement = () => {
     }
 
     try {
-      let updQuery = (supabase.from('profiles') as any)
+      const client = supabaseAdmin || supabase;
+      let updQuery = (client.from('profiles') as any)
         .update({ is_active: newStatus })
         .eq('id', id);
 
-      if (currentTenantId) {
+      if (isValidUUID(currentTenantId)) {
         updQuery = updQuery.eq('tenant_id', currentTenantId);
       }
 
@@ -231,11 +267,12 @@ export const useTeamManagement = () => {
     }
 
     try {
-      let roleQuery = (supabase.from('profiles') as any)
+      const client = supabaseAdmin || supabase;
+      let roleQuery = (client.from('profiles') as any)
         .update({ role: newRole })
         .eq('id', id);
 
-      if (currentTenantId) {
+      if (isValidUUID(currentTenantId)) {
         roleQuery = roleQuery.eq('tenant_id', currentTenantId);
       }
 
@@ -292,6 +329,7 @@ export const useTeamManagement = () => {
     }
 
     try {
+      const client = supabaseAdmin || supabase;
       const payload: Record<string, any> = {
         updated_at: new Date().toISOString(),
       };
@@ -300,11 +338,11 @@ export const useTeamManagement = () => {
       if (updates.meta_electores !== undefined) payload.meta_electores = updates.meta_electores;
       if (updates.permissions !== undefined) payload.permissions = updates.permissions;
 
-      let updQuery = (supabase.from('profiles') as any)
+      let updQuery = (client.from('profiles') as any)
         .update(payload)
         .eq('id', id);
 
-      if (currentTenantId) {
+      if (isValidUUID(currentTenantId)) {
         updQuery = updQuery.eq('tenant_id', currentTenantId);
       }
 
@@ -338,6 +376,7 @@ export const useTeamManagement = () => {
     const initialPassword = payload.password || 'Electoral2026*';
     const effectivePermissions = payload.permissions || (payload.role === 'lider' || payload.role === 'coordinador' ? DEFAULT_ROLE_PERMISSIONS[payload.role] : undefined);
     const effectiveMeta = payload.meta_electores && payload.meta_electores > 0 ? payload.meta_electores : (payload.role === 'admin' ? 0 : 100);
+    const effectiveTenantId = isValidUUID(currentTenantId) ? currentTenantId : null;
 
     let assignedId = `usr-${Date.now()}`;
 
@@ -356,7 +395,7 @@ export const useTeamManagement = () => {
               user_metadata: {
                 full_name: trimmedName,
                 role: payload.role,
-                tenant_id: currentTenantId,
+                tenant_id: effectiveTenantId,
                 permissions: effectivePermissions,
                 meta_electores: effectiveMeta,
               },
@@ -383,7 +422,7 @@ export const useTeamManagement = () => {
               data: {
                 full_name: trimmedName,
                 role: payload.role,
-                tenant_id: currentTenantId,
+                tenant_id: effectiveTenantId,
                 permissions: effectivePermissions,
                 meta_electores: effectiveMeta,
               },
@@ -416,7 +455,7 @@ export const useTeamManagement = () => {
             role: payload.role,
             permissions: effectivePermissions,
             meta_electores: effectiveMeta,
-            tenant_id: currentTenantId,
+            tenant_id: effectiveTenantId,
             is_active: true,
             updated_at: new Date().toISOString(),
           },
@@ -439,7 +478,7 @@ export const useTeamManagement = () => {
       role: payload.role,
       permissions: effectivePermissions,
       meta_electores: effectiveMeta,
-      tenant_id: currentTenantId,
+      tenant_id: effectiveTenantId || currentTenantId,
       is_active: true,
       created_at: new Date().toISOString(),
       totalElectores: 0,

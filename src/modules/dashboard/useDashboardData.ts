@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { useTenant } from '../../context/TenantContext';
+import { isValidUUID } from '../../utils/uuid';
 import { type DateRangeOption } from './DateRangeSelector';
 import { type CampaignNotification } from './NotificationCenter';
 import { type PuestoMetrica } from './TerritoryDistributionCard';
@@ -152,7 +153,7 @@ export function useDashboardData(tenantIdProp?: string, selectedRange: DateRange
           .from('electores')
           .select('id, cedula, nombres, apellidos, edad, mesa, puesto_votacion, created_at, registrado_por, telefono');
 
-        if (activeTenantId) {
+        if (activeTenantId && isValidUUID(activeTenantId)) {
           query = (query as any).or(`tenant_id.eq.${activeTenantId},tenant_id.is.null`);
         }
 
@@ -224,7 +225,7 @@ export function useDashboardData(tenantIdProp?: string, selectedRange: DateRange
           .from('profiles')
           .select('id, full_name, role, meta_electores, is_active');
 
-        if (activeTenantId) {
+        if (activeTenantId && isValidUUID(activeTenantId)) {
           pQuery = (pQuery as any).or(`tenant_id.eq.${activeTenantId},tenant_id.is.null`);
         }
 
