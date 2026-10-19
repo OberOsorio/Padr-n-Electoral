@@ -39,7 +39,7 @@ export const DEFAULT_METRICS: DashboardMetrics = {
   totalElectores: 0,
   totalHistorico: 0,
   electoresActivos: 0,
-  totalLideres: 1,
+  totalLideres: 0,
   lideresActivos: 0,
   metaGlobal: 100,
   porcentajeAvance: 0,
@@ -53,7 +53,7 @@ export const DEFAULT_METRICS: DashboardMetrics = {
     { dia: 'Sáb', total: 0 },
   ],
   distribucionPuestos: [],
-  estadoEquipo: { activos: 0, sinActividad: 0, pendientes: 0, total: 1 },
+  estadoEquipo: { activos: 0, sinActividad: 0, pendientes: 0, total: 0 },
   rendimientoLideres: [],
   actividadReciente: [],
   notifications: [],
@@ -216,17 +216,17 @@ export function useDashboardData(tenantIdProp?: string, selectedRange: DateRange
       ).length || totalElectores;
 
       // =========================================================================
-      // 3. LÍDERES Y PERFILES DE CAMPAÑA
+      // 3. LÍDERES Y PERFILES DE CAMPAÑA (Únicamente registros reales)
       // =========================================================================
       let perfilesRows: any[] = [];
 
       if (isSupabaseConfigured) {
         let pQuery = supabase
           .from('profiles')
-          .select('id, full_name, role, meta_electores, is_active');
+          .select('id, full_name, role, meta_electores, is_active, tenant_id');
 
         if (activeTenantId && isValidUUID(activeTenantId)) {
-          pQuery = (pQuery as any).or(`tenant_id.eq.${activeTenantId},tenant_id.is.null`);
+          pQuery = (pQuery as any).eq('tenant_id', activeTenantId);
         }
 
         const { data: dbProfiles, error: errProfiles } = await pQuery;
@@ -235,25 +235,28 @@ export function useDashboardData(tenantIdProp?: string, selectedRange: DateRange
         }
       }
 
-      // Respaldo si no hay perfiles en la base de datos
+      // Enriquecer con almacenamiento local si no hay perfiles en DB
       if (perfilesRows.length === 0) {
-        perfilesRows = [
-          {
-            id: 'admin-default',
-            full_name: 'ALEJANDRO DORIA',
-            role: 'admin',
-            meta_electores: 0,
-            is_active: true,
-          },
-          {
-            id: 'lider-default',
-            full_name: 'Ober Osorio Orozco',
-            role: 'lider',
-            meta_electores: 100,
-            is_active: true,
-          },
-        ];
+        try {
+          const stored = typeof window !== 'undefined' ? localStorage.getItem('electoral_local_team') : null;
+          if (stored) {
+            const localTeam: any[] = JSON.parse(stored);
+            if (Array.isArray(localTeam)) {
+              perfilesRows = activeTenantId
+                ? localTeam.filter((m) => !m.tenant_id || m.tenant_id === activeTenantId)
+                : localTeam;
+            }
+          }
+        } catch {
+          // ignore
+        }
       }
+
+      // Filtrar ÚNICAMENTE roles operativos (lider y coordinador)
+      const soloLideres = perfilesRows.filter(
+        (p) => p.role === 'lider' || p.role === 'coordinador'
+      );
+      const totalLideres = soloLideres.length;
 
       // Conteo de electores por cada líder (dentro del período seleccionado)
       const conteoPorLider: Record<string, number> = {};
@@ -264,15 +267,9 @@ export function useDashboardData(tenantIdProp?: string, selectedRange: DateRange
         }
       });
 
-      const totalLideres = perfilesRows.filter(
-        (p) => p.role === 'lider' || p.role === 'coordinador'
-      ).length || (perfilesRows.length > 1 ? perfilesRows.length - 1 : 1);
-
-      // Meta global de la campaña
-      const sumMetas = perfilesRows
-        .filter((p) => p.role !== 'admin' && p.role !== 'candidato')
-        .reduce((acc, p) => acc + (p.meta_electores || 0), 0);
-      const metaGlobal = sumMetas > 0 ? sumMetas : (perfilesRows.reduce((acc, p) => acc + (p.meta_electores || 0), 0) || 100);
+      // Meta global de la campaña calculada de las metas reales de líderes
+      const sumMetas = soloLideres.reduce((acc, p) => acc + (p.meta_electores || 0), 0);
+      const metaGlobal = sumMetas > 0 ? sumMetas : (totalHistorico > 0 ? totalHistorico : 100);
       const porcentajeAvance = metaGlobal > 0 ? Number(((totalHistorico / metaGlobal) * 100).toFixed(1)) : 0;
 
       // =========================================================================
@@ -432,23 +429,20 @@ export function useDashboardData(tenantIdProp?: string, selectedRange: DateRange
         .sort((a, b) => b.totalElectores - a.totalElectores);
 
       // =========================================================================
-      // 6. RENDIMIENTO DEL EQUIPO
+      // 6. RENDIMIENTO DEL EQUIPO (Únicamente líderes y coordinadores)
       // =========================================================================
-      const teamProfiles = perfilesRows.filter((p) => p.role !== 'admin' && p.role !== 'candidato');
-      const profilesToRender = teamProfiles.length > 0 ? teamProfiles : perfilesRows;
-
-      const rendimientoLideres = profilesToRender.map((p) => {
+      const rendimientoLideres = soloLideres.map((p) => {
         const gestionados = conteoPorLider[p.id] || 0;
         const meta = p.meta_electores && p.meta_electores > 0 ? p.meta_electores : 50;
         const avance = meta > 0 ? Math.min(100, Math.round((gestionados / meta) * 100)) : (gestionados > 0 ? 100 : 0);
         return {
           id: p.id,
           nombre: p.full_name || 'Líder Operativo',
-          rol: p.role === 'admin' ? 'Administrador' : p.role === 'coordinador' ? 'Coordinador' : 'Líder',
+          rol: p.role === 'coordinador' ? 'Coordinador' : 'Líder',
           meta,
           gestionados,
           avance,
-          estado: (gestionados > 0 || p.role === 'admin' ? 'ACTIVO' : 'ATENCIÓN') as 'ACTIVO' | 'ATENCIÓN',
+          estado: (gestionados > 0 ? 'ACTIVO' : 'ATENCIÓN') as 'ACTIVO' | 'ATENCIÓN',
         };
       });
 

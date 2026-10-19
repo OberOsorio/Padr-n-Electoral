@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   Users,
   UserCheck,
+  UserPlus,
   Target,
   ArrowRight,
   TrendingUp,
@@ -514,37 +515,61 @@ export const DirectorDashboardView: React.FC<DirectorDashboardViewProps> = React
               </span>
             </div>
 
-            {/* Submétrica / KPI Strip: Nivel de despliegue operativo */}
-            <div className="p-2.5 rounded-xl bg-slate-50/80 dark:bg-[#0d172e]/60 border border-slate-200/60 dark:border-[#162342] space-y-1 mb-3">
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="text-slate-500 dark:text-slate-400 font-medium">Despliegue operativo</span>
-                <span className="font-bold text-emerald-400 font-mono">{pctActivos}% activo</span>
+            {teamTotal === 0 ? (
+              <div className="flex flex-col items-center justify-center py-7 text-center space-y-2">
+                <div className="w-11 h-11 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                  <Users className="w-5 h-5" />
+                </div>
+                <div className="space-y-0.5">
+                  <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                    Sin líderes registrados
+                  </p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 max-w-[240px] leading-relaxed">
+                    El despliegue operativo se actualizará únicamente al registrar coordinadores o líderes en la campaña.
+                  </p>
+                </div>
+                {onNavigateToTeam && (
+                  <button
+                    type="button"
+                    onClick={onNavigateToTeam}
+                    className="mt-1 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                  >
+                    <UserPlus className="w-3.5 h-3.5" />
+                    <span>Asignar líder</span>
+                  </button>
+                )}
               </div>
-              <div className="w-full bg-slate-200/80 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                <div
-                  className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full transition-all duration-700"
-                  style={{ width: `${pctActivos}%` }}
-                />
-              </div>
-            </div>
+            ) : (
+              <>
+                {/* Submétrica / KPI Strip: Nivel de despliegue operativo */}
+                <div className="p-2.5 rounded-xl bg-slate-50/80 dark:bg-[#0d172e]/60 border border-slate-200/60 dark:border-[#162342] space-y-1 mb-3">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-slate-500 dark:text-slate-400 font-medium">Despliegue operativo</span>
+                    <span className="font-bold text-emerald-400 font-mono">{pctActivos}% activo</span>
+                  </div>
+                  <div className="w-full bg-slate-200/80 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                    <div
+                      className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full transition-all duration-700"
+                      style={{ width: `${pctActivos}%` }}
+                    />
+                  </div>
+                </div>
 
-            {/* Núcleo Visual: Donut SVG + Pills list en 2 columnas compactas */}
-            <div className="flex items-center justify-between gap-4">
-              {/* Donut Multi-Segmento SVG */}
-              <div className="relative shrink-0 flex items-center justify-center">
-                <svg className="w-24 h-24 sm:w-[102px] sm:h-[102px] -rotate-90 transform" viewBox="0 0 100 100">
-                  {/* Pista de fondo */}
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r={donutTeamRadius}
-                    fill="none"
-                    className="stroke-slate-100 dark:stroke-slate-800/80"
-                    strokeWidth="8"
-                  />
+                {/* Núcleo Visual: Donut SVG + Pills list en 2 columnas compactas */}
+                <div className="flex items-center justify-between gap-4">
+                  {/* Donut Multi-Segmento SVG */}
+                  <div className="relative shrink-0 flex items-center justify-center">
+                    <svg className="w-24 h-24 sm:w-[102px] sm:h-[102px] -rotate-90 transform" viewBox="0 0 100 100">
+                      {/* Pista de fondo */}
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r={donutTeamRadius}
+                        fill="none"
+                        className="stroke-slate-100 dark:stroke-slate-800/80"
+                        strokeWidth="8"
+                      />
 
-                  {teamTotal > 0 ? (
-                    <>
                       {/* Segmento 1: Activos (Verde) */}
                       {activosLen > 0 && (
                         <circle
@@ -592,76 +617,66 @@ export const DirectorDashboardView: React.FC<DirectorDashboardViewProps> = React
                           className="transition-all duration-700"
                         />
                       )}
-                    </>
-                  ) : (
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r={donutTeamRadius}
-                      fill="none"
-                      stroke="#94a3b8"
-                      strokeWidth="8"
-                      strokeDasharray="4 4"
-                    />
-                  )}
-                </svg>
+                    </svg>
 
-                {/* Centro del Donut */}
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                  <span className="text-xl font-black text-slate-900 dark:text-white leading-none">
-                    {teamTotal}
-                  </span>
-                  <span className="text-[9px] text-slate-400 font-medium uppercase tracking-wider mt-0.5">
-                    {teamTotal === 1 ? 'Líder' : 'Líderes'}
-                  </span>
-                </div>
-              </div>
+                    {/* Centro del Donut */}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                      <span className="text-xl font-black text-slate-900 dark:text-white leading-none">
+                        {teamTotal}
+                      </span>
+                      <span className="text-[9px] text-slate-400 font-medium uppercase tracking-wider mt-0.5">
+                        {teamTotal === 1 ? 'Líder' : 'Líderes'}
+                      </span>
+                    </div>
+                  </div>
 
-              {/* Leyenda con Pastillas Uniformes y Tipografía Fina */}
-              <div className="flex-1 space-y-2 min-w-0">
-                {/* Item 1: Activos */}
-                <div className="flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-[#0d172e] border border-slate-200/80 dark:border-[#162342]">
-                  <div className="flex items-center gap-2 truncate">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.8)] shrink-0" />
-                    <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 truncate">Activos</span>
-                  </div>
-                  <div className="flex items-center gap-1 font-mono shrink-0">
-                    <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                      {teamActivos}
-                    </span>
-                    <span className="text-[10px] text-slate-400">({pctActivos}%)</span>
-                  </div>
-                </div>
+                  {/* Leyenda con Pastillas Uniformes y Tipografía Fina */}
+                  <div className="flex-1 space-y-2 min-w-0">
+                    {/* Item 1: Activos */}
+                    <div className="flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-[#0d172e] border border-slate-200/80 dark:border-[#162342]">
+                      <div className="flex items-center gap-2 truncate">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.8)] shrink-0" />
+                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 truncate">Activos</span>
+                      </div>
+                      <div className="flex items-center gap-1 font-mono shrink-0">
+                        <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                          {teamActivos}
+                        </span>
+                        <span className="text-[10px] text-slate-400">({pctActivos}%)</span>
+                      </div>
+                    </div>
 
-                {/* Item 2: Sin actividad */}
-                <div className="flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-[#0d172e] border border-slate-200/80 dark:border-[#162342]">
-                  <div className="flex items-center gap-2 truncate">
-                    <span className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.8)] shrink-0" />
-                    <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 truncate">Sin actividad</span>
-                  </div>
-                  <div className="flex items-center gap-1 font-mono shrink-0">
-                    <span className="text-xs font-bold text-amber-600 dark:text-amber-400">
-                      {teamSinActividad}
-                    </span>
-                    <span className="text-[10px] text-slate-400">({pctSinActividad}%)</span>
-                  </div>
-                </div>
+                    {/* Item 2: Sin actividad */}
+                    <div className="flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-[#0d172e] border border-slate-200/80 dark:border-[#162342]">
+                      <div className="flex items-center gap-2 truncate">
+                        <span className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.8)] shrink-0" />
+                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 truncate">Sin actividad</span>
+                      </div>
+                      <div className="flex items-center gap-1 font-mono shrink-0">
+                        <span className="text-xs font-bold text-amber-600 dark:text-amber-400">
+                          {teamSinActividad}
+                        </span>
+                        <span className="text-[10px] text-slate-400">({pctSinActividad}%)</span>
+                      </div>
+                    </div>
 
-                {/* Item 3: Pendientes */}
-                <div className="flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-[#0d172e] border border-slate-200/80 dark:border-[#162342]">
-                  <div className="flex items-center gap-2 truncate">
-                    <span className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_6px_rgba(239,68,68,0.8)] shrink-0" />
-                    <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 truncate">Pendientes</span>
-                  </div>
-                  <div className="flex items-center gap-1 font-mono shrink-0">
-                    <span className="text-xs font-bold text-rose-600 dark:text-rose-400">
-                      {teamPendientes}
-                    </span>
-                    <span className="text-[10px] text-slate-400">({pctPendientes}%)</span>
+                    {/* Item 3: Pendientes */}
+                    <div className="flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-[#0d172e] border border-slate-200/80 dark:border-[#162342]">
+                      <div className="flex items-center gap-2 truncate">
+                        <span className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_6px_rgba(239,68,68,0.8)] shrink-0" />
+                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 truncate">Pendientes</span>
+                      </div>
+                      <div className="flex items-center gap-1 font-mono shrink-0">
+                        <span className="text-xs font-bold text-rose-600 dark:text-rose-400">
+                          {teamPendientes}
+                        </span>
+                        <span className="text-[10px] text-slate-400">({pctPendientes}%)</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
+              </>
+            )}
           </div>
 
           {/* Pie de Tarjeta Armonizado */}
