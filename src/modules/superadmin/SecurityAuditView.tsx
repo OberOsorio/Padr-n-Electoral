@@ -12,7 +12,6 @@ import {
   Terminal,
   Check
 } from 'lucide-react';
-import { motion } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 
 interface AuditLog {
@@ -302,36 +301,21 @@ export const SecurityAuditView: React.FC = () => {
             { id: 'INFO', label: 'Accesos Válidos', dot: 'bg-emerald-500 dark:bg-emerald-400' },
             { id: 'CRITICAL', label: 'Bloqueos y Alertas', dot: 'bg-rose-500 dark:bg-rose-400' },
             { id: 'WARNING', label: 'Acciones de Control', dot: 'bg-amber-500 dark:bg-amber-400' },
-          ].map((tab) => {
-            const isActive = filtroSeveridad === tab.id;
-            return (
-              <motion.button
-                key={tab.id}
-                type="button"
-                onClick={() => setFiltroSeveridad(tab.id as any)}
-                whileHover={{ y: -1 }}
-                whileTap={{ scale: 0.96 }}
-                transition={{ duration: 0.15 }}
-                className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
-                  isActive
-                    ? 'text-purple-700 dark:text-purple-300'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#0c152b]'
-                }`}
-              >
-                {isActive && (
-                  <motion.div
-                    layoutId="active-audit-filter-pill"
-                    className="absolute inset-0 rounded-xl bg-purple-50 dark:bg-purple-600/20 border border-purple-200 dark:border-purple-500/40 shadow-xs"
-                    transition={{ type: 'spring', stiffness: 380, damping: 32 }}
-                  />
-                )}
-                <span className="relative z-10 flex items-center gap-1.5">
-                  {tab.dot && <span className={`w-1.5 h-1.5 rounded-full ${tab.dot}`} />}
-                  <span>{tab.label}</span>
-                </span>
-              </motion.button>
-            );
-          })}
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setFiltroSeveridad(tab.id as any)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
+                filtroSeveridad === tab.id
+                  ? 'bg-purple-50 dark:bg-purple-600/20 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-500/40'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#0c152b]'
+              }`}
+            >
+              {tab.dot && <span className={`w-1.5 h-1.5 rounded-full ${tab.dot}`} />}
+              <span>{tab.label}</span>
+            </button>
+          ))}
         </div>
 
         {/* Botón Exportar */}
