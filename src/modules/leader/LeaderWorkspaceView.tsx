@@ -183,17 +183,20 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
             return (
-              <button
+              <motion.button
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.97 }}
+                transition={{ duration: 0.15 }}
                 className="relative py-2.5 px-2 rounded-xl text-xs font-semibold tracking-wide transition-colors flex items-center justify-center gap-1.5 cursor-pointer z-10"
               >
                 {isActive && (
                   <motion.div
                     layoutId="leader-tab"
-                    className="absolute inset-0 bg-blue-600 rounded-xl shadow-sm shadow-blue-600/30 border border-blue-500/40"
-                    transition={{ type: 'spring', bounce: 0.15, duration: 0.4 }}
+                    className="absolute inset-0 bg-blue-600 rounded-xl shadow-md shadow-blue-600/30 border border-blue-500/40"
+                    transition={{ type: 'spring', stiffness: 380, damping: 32 }}
                   />
                 )}
                 <span
@@ -215,7 +218,7 @@ export const LeaderWorkspaceView: React.FC<LeaderWorkspaceViewProps> = ({
                     </span>
                   )}
                 </span>
-              </button>
+              </motion.button>
             );
           })}
         </div>
