@@ -286,17 +286,17 @@ export const Sidebar = ({
                   {isActive && (
                     <motion.div
                       layoutId={`${layoutPrefix}-pill`}
-                      className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500/10 via-cyan-500/10 to-blue-500/5 border border-blue-500/30 dark:from-blue-600/25 dark:via-cyan-600/20 dark:to-blue-600/10 dark:border-cyan-400/40 shadow-sm dark:shadow-[0_0_22px_rgba(6,182,212,0.22)]"
-                      transition={{ type: 'spring', stiffness: 350, damping: 28, mass: 0.8 }}
+                      className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-50/90 to-blue-50/40 border border-blue-200/80 shadow-[0_1px_3px_rgba(37,99,235,0.06),0_1px_2px_rgba(0,0,0,0.02)] dark:from-blue-600/20 dark:via-cyan-600/15 dark:to-blue-600/5 dark:border-cyan-400/30 dark:shadow-[0_0_20px_rgba(6,182,212,0.18)]"
+                      transition={{ type: 'spring', stiffness: 360, damping: 28, mass: 0.8 }}
                     />
                   )}
 
-                  {/* Indicador de barra izquierda compartida con resplandor neón */}
+                  {/* Indicador de barra izquierda compartida con resplandor neón en oscuro y azul rey en claro */}
                   {isActive && !isEffectivelyCollapsed && (
                     <motion.span
                       layoutId={`${layoutPrefix}-bar`}
-                      className="absolute left-0 top-2 bottom-2 w-1 rounded-r bg-gradient-to-b from-cyan-400 to-blue-600 shadow-[0_0_12px_rgba(6,182,212,0.9)] z-10"
-                      transition={{ type: 'spring', stiffness: 350, damping: 28, mass: 0.8 }}
+                      className="absolute left-0 top-2.5 bottom-2.5 w-1 rounded-r bg-blue-600 shadow-[0_0_8px_rgba(37,99,235,0.35)] dark:bg-gradient-to-b dark:from-cyan-400 dark:to-blue-600 dark:shadow-[0_0_12px_rgba(6,182,212,0.9)] z-10"
+                      transition={{ type: 'spring', stiffness: 360, damping: 28, mass: 0.8 }}
                     />
                   )}
 
@@ -304,7 +304,7 @@ export const Sidebar = ({
                     <Icon
                       className={`w-4.5 h-4.5 shrink-0 transition-all duration-200 ${
                         isActive
-                          ? 'text-cyan-600 dark:text-cyan-400 scale-110 drop-shadow-[0_0_8px_rgba(6,182,212,0.5)]'
+                          ? 'text-blue-600 dark:text-cyan-400 scale-105 dark:scale-110 dark:drop-shadow-[0_0_8px_rgba(6,182,212,0.6)]'
                           : 'text-slate-500 dark:text-slate-400 group-hover:text-slate-800 dark:group-hover:text-slate-200 group-hover:scale-105'
                       }`}
                       strokeWidth={isActive ? 2.3 : 1.8}
@@ -312,14 +312,20 @@ export const Sidebar = ({
 
                     {!isEffectivelyCollapsed && (
                       <>
-                        <span className="truncate">{item.label}</span>
+                        <span className={`truncate tracking-tight transition-colors ${
+                          isActive
+                            ? 'text-slate-900 dark:text-white font-bold'
+                            : 'text-slate-600 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white'
+                        }`}>
+                          {item.label}
+                        </span>
 
                         {/* Punto luminoso activo con desplazamiento vertical sincronizado */}
                         {isActive && (
                           <motion.span
                             layoutId={`${layoutPrefix}-dot`}
-                            className="ml-auto w-1.5 h-1.5 rounded-full bg-gradient-to-r from-cyan-400 to-blue-500 shadow-[0_0_8px_rgba(6,182,212,0.9)] ring-2 ring-cyan-400/20 shrink-0"
-                            transition={{ type: 'spring', stiffness: 350, damping: 28, mass: 0.8 }}
+                            className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600 shadow-[0_0_6px_rgba(37,99,235,0.35)] ring-2 ring-blue-100 dark:bg-cyan-400 dark:shadow-[0_0_8px_rgba(6,182,212,0.9)] dark:ring-cyan-400/20 shrink-0"
+                            transition={{ type: 'spring', stiffness: 360, damping: 28, mass: 0.8 }}
                           />
                         )}
                       </>
