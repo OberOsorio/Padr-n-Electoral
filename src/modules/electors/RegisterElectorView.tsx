@@ -32,6 +32,7 @@ import {
 import { ElectorLocationSelector } from './components/ElectorLocationSelector';
 import { useTenant } from '../../context/TenantContext';
 import { useElectorSearch } from './useElectorSearch';
+import { isValidUUID } from '../../utils/uuid';
 
 interface RegisterElectorViewProps {
   onSuccess?: () => void;
@@ -547,7 +548,7 @@ export const RegisterElectorView = ({
             p_puesto: puestoVotacion,
             p_mesa: Number(mesa),
             p_notas: notas.trim() || null,
-            p_tenant_id: currentTenantId || null,
+            p_tenant_id: isValidUUID(currentTenantId) ? currentTenantId : null,
             p_edad: numEdad,
           });
 
@@ -563,11 +564,6 @@ export const RegisterElectorView = ({
         }
 
         if (!savedSuccessfully) {
-          const isValidUUID = (val?: string | null): boolean => {
-            if (!val || typeof val !== 'string') return false;
-            return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
-          };
-
           const resolvedTenantId = isValidUUID(currentTenantId) ? currentTenantId : null;
 
           const insertPayload: any = {

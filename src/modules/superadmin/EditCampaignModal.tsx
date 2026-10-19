@@ -3,6 +3,7 @@ import { X, Edit3, Save, MapPin, Building, Hash, User, Mail, Loader2 } from 'luc
 import { supabase } from '../../lib/supabase';
 import { COLOMBIA_GEO_DATA } from '../../data/colombiaGeoData';
 import { PremiumSelect } from '../../components/ui/PremiumSelect';
+import { isValidUUID } from '../../utils/uuid';
 
 // Diccionario oficial completo de Departamentos y Municipios de Colombia
 export const DIVISION_COLOMBIA: Record<string, string[]> = (() => {
@@ -99,22 +100,24 @@ export const EditCampaignModal: React.FC<EditCampaignModalProps> = ({
     };
 
     try {
-      // 1. Persistir cambios en la tabla tenants de Supabase
-      const { error } = await (supabase.from('tenants') as any)
-        .update(payload)
-        .eq('id', campaign.id);
+      // 1. Persistir cambios en la tabla tenants de Supabase si tiene UUID válido
+      if (isValidUUID(campaign.id)) {
+        const { error } = await (supabase.from('tenants') as any)
+          .update(payload)
+          .eq('id', campaign.id);
 
-      if (error) throw error;
+        if (error) console.warn('Aviso al actualizar tenant en Supabase:', error.message);
 
-      // 2. Si se ajustó el director en profiles
-      if (directorEmail) {
-        try {
-          await (supabase.from('profiles') as any)
-            .update({ full_name: directorNombre.trim() })
-            .eq('email', directorEmail.trim())
-            .eq('tenant_id', campaign.id);
-        } catch (profileErr) {
-          console.warn('Nota: No se pudo actualizar profile del director:', profileErr);
+        // 2. Si se ajustó el director en profiles
+        if (directorEmail) {
+          try {
+            await (supabase.from('profiles') as any)
+              .update({ full_name: directorNombre.trim() })
+              .eq('email', directorEmail.trim())
+              .eq('tenant_id', campaign.id);
+          } catch (profileErr) {
+            console.warn('Nota: No se pudo actualizar profile del director:', profileErr);
+          }
         }
       }
 

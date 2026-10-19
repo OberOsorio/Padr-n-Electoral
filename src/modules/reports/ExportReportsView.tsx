@@ -14,6 +14,7 @@ import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { supabaseAdmin } from '../../lib/supabaseAdmin';
 import { exportarElectoresExcel } from '../../services/exportService';
 import { useOnlineStatus } from '../../hooks/useOnlineStatus';
+import { isValidUUID } from '../../utils/uuid';
 
 export interface ExportReportsViewProps {
   onNavigateToDashboard?: () => void;
@@ -92,12 +93,34 @@ export const ExportReportsView: React.FC<ExportReportsViewProps> = ({
         .from('electores')
         .select('id, registrado_por', { count: 'exact' });
 
-      if (currentTenantId) {
-        electoresQuery = (electoresQuery as any).eq('tenant_id', currentTenantId);
+      const hasValidTenant = isValidUUID(currentTenantId);
+      if (hasValidTenant) {
+        electoresQuery = (electoresQuery as any).or(`tenant_id.eq.${currentTenantId},tenant_id.is.null`);
+      } else {
+        electoresQuery = (electoresQuery as any).is('tenant_id', null);
       }
 
       const { data: electoresData, count: totalCount, error: electoresErr } = await (electoresQuery as any);
-      if (electoresErr) throw electoresErr;
+      if (electoresErr) {
+        console.warn('Alerta al consultar electores para exportación:', electoresErr.message);
+        const stored = typeof window !== 'undefined' ? localStorage.getItem('electoral_local_electors') : null;
+        if (stored) {
+          try {
+            const localElectors: any[] = JSON.parse(stored);
+            const scopedElectors = hasValidTenant
+              ? localElectors.filter((e) => !e.tenant_id || e.tenant_id === currentTenantId)
+              : localElectors;
+            setTotalElectores(scopedElectors.length);
+            setLeaders([]);
+            return;
+          } catch {
+            // ignore
+          }
+        }
+        if (!electoresErr.message?.includes('uuid')) {
+          throw electoresErr;
+        }
+      }
 
       // Calcular conteo exacto de electores reales por cada líder/registrador
       const countsMap: Record<string, number> = {};
@@ -117,16 +140,21 @@ export const ExportReportsView: React.FC<ExportReportsViewProps> = ({
       }
 
       // Consulta de perfiles exclusivamente de los líderes que tienen electores en la base de datos
-      const { data: profilesData, error: profilesErr } = await clientToUse
-        .from('profiles')
-        .select('id, full_name, role')
-        .in('id', realLeaderIds);
+      const validLeaderUUIDs = realLeaderIds.filter((id) => isValidUUID(id));
+      let profilesData: any[] = [];
+      if (validLeaderUUIDs.length > 0) {
+        const { data: pData, error: profilesErr } = await clientToUse
+          .from('profiles')
+          .select('id, full_name, role')
+          .in('id', validLeaderUUIDs);
 
-      if (profilesErr) console.warn('Error al consultar perfiles de líderes reales:', profilesErr);
+        if (profilesErr) console.warn('Error al consultar perfiles de líderes reales:', profilesErr);
+        profilesData = pData || [];
+      }
 
       const profilesMap = new Map<string, { id: string; name: string; role: string }>();
 
-      ((profilesData as any[]) || []).forEach((p: any) => {
+      (profilesData || []).forEach((p: any) => {
         profilesMap.set(p.id, {
           id: p.id,
           name: p.full_name || 'Líder Registrado',
@@ -158,8 +186,10 @@ export const ExportReportsView: React.FC<ExportReportsViewProps> = ({
         msg.toLowerCase().includes('fetch') ||
         (typeof navigator !== 'undefined' && !navigator.onLine);
 
-      // No mostrar errores técnicos de red cuando no hay internet
-      if (!isNetworkErr) {
+      // Suprimir errores de UUID o de red offline
+      if (msg.includes('uuid')) {
+        setErrorMsg(null);
+      } else if (!isNetworkErr) {
         setErrorMsg(msg || 'Error al conectar con la base de datos.');
       }
     } finally {
@@ -185,7 +215,7 @@ export const ExportReportsView: React.FC<ExportReportsViewProps> = ({
     setSuccessMsg(null);
     try {
       const res = await exportarElectoresExcel({
-        tenantId: currentTenantId,
+        tenantId: isValidUUID(currentTenantId) ? currentTenantId : undefined,
       });
       setSuccessMsg(`Padrón consolidado descargado exitosamente (${res.count.toLocaleString('es-CO')} electores en ${res.fileName}).`);
     } catch (err: any) {
@@ -216,8 +246,8 @@ export const ExportReportsView: React.FC<ExportReportsViewProps> = ({
     setSuccessMsg(null);
     try {
       const res = await exportarElectoresExcel({
-        tenantId: currentTenantId,
-        registradoPorId: leader.id,
+        tenantId: isValidUUID(currentTenantId) ? currentTenantId : undefined,
+        registradoPorId: isValidUUID(leader.id) ? leader.id : undefined,
         liderNombre: leader.name,
         nombreCampana: currentTenant?.name || 'TODO POR COTORRA',
       });

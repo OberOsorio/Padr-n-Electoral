@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import type { ExportLog } from '../../types';
 import { useTenant } from '../../context/TenantContext';
+import { isValidUUID } from '../../utils/uuid';
 
 const LOCAL_STORAGE_KEY = 'electoral_audit_export_logs';
 
@@ -43,8 +44,11 @@ export const useExportLogs = () => {
         .order('created_at', { ascending: false })
         .limit(25);
 
-      if (currentTenantId) {
-        query = query.eq('tenant_id', currentTenantId);
+      const hasValidTenant = isValidUUID(currentTenantId);
+      if (hasValidTenant) {
+        query = query.or(`tenant_id.eq.${currentTenantId},tenant_id.is.null`);
+      } else {
+        query = query.is('tenant_id', null);
       }
 
       const { data, error: queryError } = await query;
@@ -70,7 +74,9 @@ export const useExportLogs = () => {
         // Ignorar fallback
       }
       if (isMountedRef.current) {
-        setError(err?.message || 'Error al conectar con el registro de auditoría');
+        if (!err?.message?.includes('uuid')) {
+          setError(err?.message || 'Error al conectar con el registro de auditoría');
+        }
       }
     } finally {
       if (isMountedRef.current) {
@@ -98,7 +104,7 @@ export const useExportLogs = () => {
       record_count: payload.recordCount,
       export_format: payload.exportFormat,
       filters_summary: payload.filtersSummary,
-      tenant_id: currentTenantId,
+      tenant_id: isValidUUID(currentTenantId) ? currentTenantId : null,
       created_at: new Date().toISOString(),
     };
 
@@ -129,7 +135,7 @@ export const useExportLogs = () => {
           record_count: payload.recordCount,
           export_format: payload.exportFormat,
           filters_summary: payload.filtersSummary,
-          ...(currentTenantId ? { tenant_id: currentTenantId } : {}),
+          ...(isValidUUID(currentTenantId) ? { tenant_id: currentTenantId } : {}),
         });
 
         if (insertError) {

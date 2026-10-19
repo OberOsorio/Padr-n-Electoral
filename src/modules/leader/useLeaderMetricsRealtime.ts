@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../services/supabase';
+import { isValidUUID } from '../../utils/uuid';
 
 export interface LeaderMetricsRealtime {
   totalRegistrados: number;
@@ -30,7 +31,7 @@ export function useLeaderMetricsRealtime(
     try {
       // 1. Consultar meta actualizada del perfil o configuración
       let metaActual = 50;
-      if (userId) {
+      if (userId && isValidUUID(userId)) {
         const { data: profile } = await (supabase.from('profiles') as any)
           .select('meta_electores')
           .eq('id', userId)
@@ -45,12 +46,12 @@ export function useLeaderMetricsRealtime(
       let query = (supabase.from('electores') as any)
         .select('id, telefono, puesto_votacion');
 
-      if (!isOwnerMode && userId) {
+      if (!isOwnerMode && userId && isValidUUID(userId)) {
         query = query.eq('registrado_por', userId);
       }
 
-      if (tenantId) {
-        query = query.eq('tenant_id', tenantId);
+      if (tenantId && isValidUUID(tenantId)) {
+        query = query.or(`tenant_id.eq.${tenantId},tenant_id.is.null`);
       }
 
       const { data: electores, error } = await query;
@@ -117,7 +118,7 @@ export function useLeaderMetricsRealtime(
           event: 'UPDATE',
           schema: 'public',
           table: 'profiles',
-          filter: userId ? `id=eq.${userId}` : undefined,
+          filter: userId && isValidUUID(userId) ? `id=eq.${userId}` : undefined,
         },
         () => {
           // Si el administrador cambia la meta del líder, se actualiza en vivo

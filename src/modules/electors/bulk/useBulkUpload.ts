@@ -17,6 +17,7 @@ import { validateAndNormalizeRows } from './validator';
 import { useBulkBackgroundEnrichment } from './useBulkBackgroundEnrichment';
 import type { ElectorWithRegistrant } from '../../../types';
 import { useTenant } from '../../../context/TenantContext';
+import { isValidUUID } from '../../../utils/uuid';
 
 const CHUNK_SIZE = 1000;
 
@@ -262,7 +263,7 @@ export const useBulkUpload = () => {
         // 3. Si aún no tenemos currentUserId, buscar cualquier perfil válido para no romper la FK
         if (!currentUserId) {
           let profQuery = (supabase.from('profiles') as any).select('id, full_name');
-          if (activeTenantId) {
+          if (activeTenantId && isValidUUID(activeTenantId)) {
             profQuery = profQuery.eq('tenant_id', activeTenantId);
           }
           const { data: fallbackProfiles } = await profQuery.limit(1);
@@ -384,7 +385,7 @@ export const useBulkUpload = () => {
               puesto_votacion: r.puesto_votacion,
               mesa: r.mesa,
               notas: r.notas,
-              tenant_id: activeTenantId,
+              tenant_id: isValidUUID(activeTenantId) ? activeTenantId : null,
             };
             if (currentUserId) {
               rowItem.registrado_por = currentUserId;
@@ -397,7 +398,7 @@ export const useBulkUpload = () => {
             // Estrategia 1: Función RPC importar_electores_lote (Security Definer con edad y sincronización)
             const { data: rpcRes, error: rpcErr } = await (supabase.rpc as any)('importar_electores_lote', {
               p_electores: payload,
-              p_tenant_id: activeTenantId,
+              p_tenant_id: isValidUUID(activeTenantId) ? activeTenantId : null,
               p_registrado_por: currentUserId || null,
               p_collision_mode: collisionMode,
             });

@@ -10,6 +10,7 @@ import {
   exportToExcel,
   exportToCSV,
 } from './reportGenerator';
+import { isValidUUID } from '../../utils/uuid';
 
 interface UseReportDataOptions {
   onExportSuccess?: (info: {
@@ -134,7 +135,7 @@ export const useReportData = (options?: UseReportDataOptions) => {
       if (filters.mesa !== 'all') {
         query = query.eq('mesa', Number(filters.mesa));
       }
-      if (filters.coordinador !== 'all') {
+      if (filters.coordinador !== 'all' && isValidUUID(filters.coordinador)) {
         query = query.eq('registrado_por', filters.coordinador);
       }
       if (filters.startDate) {
@@ -240,7 +241,7 @@ export const useReportData = (options?: UseReportDataOptions) => {
         if (filters.mesa !== 'all') {
           query = query.eq('mesa', Number(filters.mesa));
         }
-        if (filters.coordinador !== 'all') {
+        if (filters.coordinador !== 'all' && isValidUUID(filters.coordinador)) {
           query = query.eq('registrado_por', filters.coordinador);
         }
         if (filters.startDate) {

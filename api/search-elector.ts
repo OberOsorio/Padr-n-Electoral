@@ -51,8 +51,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       auth: { persistSession: false },
     });
 
-    // 1. Verificación de duplicados en la campaña activa si se proporciona tenantId
-    if (tenantId) {
+    // 1. Verificación de duplicados en la campaña activa si se proporciona tenantId válido
+    const isCanonicalUUID = (val?: string | null): boolean =>
+      typeof val === 'string' &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(val.trim());
+
+    if (tenantId && isCanonicalUUID(tenantId)) {
       const { data: existente, error: dupErr } = await supabase
         .from('electores')
         .select('id, nombres, apellidos, puesto_votacion')

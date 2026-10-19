@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import type { Elector, CollisionCheckResult } from '../../types';
+import { isValidUUID } from '../../utils/uuid';
 
 export interface LeaderElector extends Elector {
   whatsapp_sent?: boolean;
@@ -148,17 +149,22 @@ export const useLeaderWorkspace = (
         'id, cedula, nombres, apellidos, telefono, puesto_votacion, mesa, edad, notas, registrado_por, tenant_id, created_at'
       );
 
+      const hasValidTenant = isValidUUID(tenantId);
+      const hasValidUser = isValidUUID(userId);
+
       // Regla de consulta inteligente:
       if (!isOwnerMode) {
-        if (tenantId) {
-          query = query.eq('tenant_id', tenantId).eq('registrado_por', userId);
-        } else {
+        if (hasValidTenant && hasValidUser) {
+          query = query.or(`tenant_id.eq.${tenantId},tenant_id.is.null`).eq('registrado_por', userId);
+        } else if (hasValidUser) {
           query = query.eq('registrado_por', userId);
+        } else if (hasValidTenant) {
+          query = query.or(`tenant_id.eq.${tenantId},tenant_id.is.null`);
         }
-      } else if (tenantId) {
-        query = query.eq('tenant_id', tenantId);
+      } else if (hasValidTenant) {
+        query = query.or(`tenant_id.eq.${tenantId},tenant_id.is.null`);
       }
-      // Si es isOwnerMode y tenantId es null: no filtra por tenant ni por usuario, muestra los reales de la BD
+      // Si es isOwnerMode y tenantId no es UUID: no filtra por tenant, muestra los reales de la BD
 
       const { data, error } = await query.order('created_at', { ascending: false });
 
@@ -225,7 +231,7 @@ export const useLeaderWorkspace = (
     try {
       const { data: rpcData, error: rpcError } = await (supabase.rpc as any)('check_existing_elector', {
         p_cedula: cleanCedula,
-        p_tenant_id: tenantId,
+        p_tenant_id: isValidUUID(tenantId) ? tenantId : null,
       });
 
       if (!rpcError && rpcData) {

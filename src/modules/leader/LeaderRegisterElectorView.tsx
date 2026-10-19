@@ -15,6 +15,7 @@ import { supabase } from '../../services/supabase';
 import { getPollingPlacesForTenant, formatearPuestoSimple } from '../electors/constants';
 import type { PollingPlace } from '../../types';
 import { PremiumAlertModal, type AlertType } from '../../components/common/PremiumAlertModal';
+import { isValidUUID } from '../../utils/uuid';
 
 export interface LeaderRegisterProps {
   currentUserId: string;
@@ -128,7 +129,7 @@ export const LeaderRegisterElectorView: React.FC<LeaderRegisterProps> = ({
       if (!respuesta || (!respuesta.encontrado && !respuesta.duplicado)) {
         try {
           // Anti-duplicado en la campaña activa
-          if (activeTenant?.id) {
+          if (activeTenant?.id && isValidUUID(activeTenant.id)) {
             const { data: existente } = await (supabase as any)
               .from('electores')
               .select('id, nombres, apellidos, puesto_votacion')

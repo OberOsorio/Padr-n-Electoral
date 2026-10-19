@@ -195,20 +195,42 @@ export async function exportarElectoresExcel({
       .order('apellidos', { ascending: true });
 
     if (tenantId && isValidUUID(tenantId)) {
-      query = (query as any).eq('tenant_id', tenantId);
+      query = (query as any).or(`tenant_id.eq.${tenantId},tenant_id.is.null`);
+    } else {
+      query = (query as any).is('tenant_id', null);
     }
 
-    if (registradoPorId) {
+    if (registradoPorId && isValidUUID(registradoPorId)) {
       query = query.eq('registrado_por', registradoPorId);
     }
 
     const { data, error } = await query;
 
     if (error || !data || data.length === 0) {
-      throw new Error(error?.message || 'No hay electores para exportar con los criterios seleccionados.');
+      const stored = typeof window !== 'undefined' ? localStorage.getItem('electoral_local_electors') : null;
+      if (stored) {
+        try {
+          const localList: any[] = JSON.parse(stored);
+          let filtered = localList;
+          if (tenantId && isValidUUID(tenantId)) {
+            filtered = filtered.filter((e) => !e.tenant_id || e.tenant_id === tenantId);
+          }
+          if (registradoPorId) {
+            filtered = filtered.filter((e) => e.registrado_por === registradoPorId);
+          }
+          if (filtered.length > 0) {
+            rowsToExport = filtered;
+          }
+        } catch {
+          // ignore
+        }
+      }
+      if (rowsToExport.length === 0) {
+        throw new Error(error?.message || 'No hay electores para exportar con los criterios seleccionados.');
+      }
+    } else {
+      rowsToExport = data;
     }
-
-    rowsToExport = data;
   }
 
   if (rowsToExport.length === 0) {

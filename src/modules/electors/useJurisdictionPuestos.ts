@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { getPollingPlacesForTenant } from '../../services/divipoleService';
 import type { Tenant } from '../../types';
+import { isValidUUID } from '../../utils/uuid';
 
 export function useJurisdictionPuestos(activeTenant?: Tenant | null) {
   const [puestosCampana, setPuestosCampana] = useState<string[]>([]);
@@ -19,10 +20,17 @@ export function useJurisdictionPuestos(activeTenant?: Tenant | null) {
 
       // 1. Consultar los puestos únicos que realmente tienen electores registrados en esta campaña
       if (isSupabaseConfigured) {
-        const { data, error } = await (supabase.from('electores') as any)
+        let query = (supabase.from('electores') as any)
           .select('puesto_votacion')
-          .eq('tenant_id', activeTenant.id)
           .not('puesto_votacion', 'is', null);
+
+        if (isValidUUID(activeTenant.id)) {
+          query = query.or(`tenant_id.eq.${activeTenant.id},tenant_id.is.null`);
+        } else {
+          query = query.is('tenant_id', null);
+        }
+
+        const { data, error } = await query;
 
         if (!error && Array.isArray(data)) {
           data.forEach((d: any) => {

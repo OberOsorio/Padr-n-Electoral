@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import { supabase } from '../../services/supabase';
+import { isValidUUID } from '../../utils/uuid';
 
 export interface ElectorLookupResult {
   nombres: string;
@@ -71,7 +72,7 @@ export function useElectorSearch() {
         if (!res || (!res.encontrado && !res.duplicado)) {
           try {
             // Anti-duplicado en campaña activa
-            if (tenantId) {
+            if (tenantId && isValidUUID(tenantId)) {
               const { data: existente } = await (supabase as any)
                 .from('electores')
                 .select('id, nombres, apellidos, puesto_votacion')
