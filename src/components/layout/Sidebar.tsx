@@ -115,7 +115,7 @@ export const Sidebar = ({
     <motion.aside
       initial={false}
       animate={{
-        width: onCloseMobile ? '100%' : isEffectivelyCollapsed ? 80 : 280,
+        width: onCloseMobile ? '100%' : isEffectivelyCollapsed ? 80 : 292,
       }}
       transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
       className={`shrink-0 ${
@@ -125,12 +125,12 @@ export const Sidebar = ({
       }`}
     >
       {/* 1. Header del Sidebar */}
-      <div className={`shrink-0 border-b border-slate-200 dark:border-slate-700/60 transition-all ${
+      <div className={`shrink-0 border-b border-slate-200/80 dark:border-slate-800/80 transition-all ${
         onCloseMobile
           ? 'p-4 pt-[max(1rem,env(safe-area-inset-top))]'
           : isEffectivelyCollapsed
           ? 'p-3 flex flex-col items-center gap-3'
-          : 'p-4.5'
+          : 'p-3.5 sm:p-4'
       }`}>
         {isEffectivelyCollapsed ? (
           /* Header en Modo Colapsado / Mini Rail */
@@ -149,26 +149,30 @@ export const Sidebar = ({
               tabIndex={0}
               title="Recargar plataforma"
               aria-label="Recargar plataforma"
-              className="h-10 w-10 rounded-xl bg-blue-50 dark:bg-blue-600/15 border border-blue-200 dark:border-blue-500/25 hover:border-blue-400 dark:hover:border-sky-400 flex items-center justify-center text-blue-600 dark:text-sky-400 dark:hover:text-white shadow-md shadow-blue-500/10 relative shrink-0 cursor-pointer select-none active:scale-95 transition-all"
+              className="relative w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-blue-700 to-cyan-500 flex items-center justify-center text-white shadow-md shadow-blue-500/25 ring-1 ring-cyan-400/30 hover:ring-cyan-300 hover:shadow-blue-500/40 shrink-0 cursor-pointer select-none active:scale-95 transition-all"
             >
-              <Shield className="w-5 h-5" strokeWidth={2} />
+              <Shield className="w-5 h-5 text-white" strokeWidth={2.2} />
+              <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500 border-2 border-white dark:border-[#161F30]"></span>
+              </span>
             </div>
 
             {/* Botón para expandir el panel */}
             <button
               type="button"
               onClick={toggleSidebar}
-              className="p-2 rounded-xl text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:text-slate-400 dark:hover:text-blue-400 dark:hover:bg-blue-950/40 hover:shadow-[0_0_12px_rgba(37,99,235,0.25)] transition-all cursor-pointer"
+              className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:text-slate-400 dark:hover:text-blue-400 dark:hover:bg-blue-950/40 border border-slate-200/60 dark:border-slate-700/60 transition-all cursor-pointer shadow-2xs"
               title="Expandir panel lateral (Ctrl+B)"
               aria-label="Expandir panel lateral"
             >
-              <PanelLeftOpen className="w-4.5 h-4.5" />
+              <PanelLeftOpen className="w-4 h-4" />
             </button>
           </>
         ) : (
           /* Header en Modo Expandido */
           <>
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center justify-between gap-2.5">
               <div
                 onClick={(e) => {
                   e.preventDefault();
@@ -183,23 +187,31 @@ export const Sidebar = ({
                 tabIndex={0}
                 title="Recargar plataforma"
                 aria-label="Recargar plataforma"
-                className="flex items-center gap-2.5 min-w-0 cursor-pointer select-none group active:scale-95 transition-transform"
+                className="flex items-center gap-3 min-w-0 cursor-pointer select-none group active:scale-[0.98] transition-all"
               >
-                <div className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-blue-600/15 border border-blue-200 dark:border-blue-500/25 flex items-center justify-center text-blue-600 dark:text-sky-400 group-hover:border-blue-400 dark:group-hover:border-sky-400 dark:group-hover:text-white transition-all shadow-md shadow-blue-500/10 shrink-0">
-                  <Shield className="w-5 h-5" strokeWidth={2} />
+                <div className="relative w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-blue-700 to-cyan-500 flex items-center justify-center text-white shadow-md shadow-blue-500/25 ring-1 ring-cyan-400/30 group-hover:ring-cyan-300 group-hover:shadow-blue-500/40 group-hover:scale-[1.02] transition-all shrink-0">
+                  <Shield className="w-5 h-5 text-white" strokeWidth={2.2} />
+                  <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500 border-2 border-white dark:border-[#161F30]"></span>
+                  </span>
                 </div>
 
-                <div className="min-w-0">
-                  <span className="text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400 font-bold block leading-none">
-                    Plataforma Oficial
-                  </span>
-                  <span className="text-sm sm:text-base font-black text-slate-900 dark:text-white tracking-tight leading-tight block truncate">
-                    Control<span className="text-blue-600 dark:text-sky-400">Electoral</span>
-                  </span>
+                <div className="min-w-0 flex flex-col justify-center">
+                  <div className="flex items-center gap-1.5 leading-none mb-1">
+                    <span className="text-[9.5px] font-mono tracking-[0.2em] text-slate-400 dark:text-slate-400 uppercase font-bold">
+                      Plataforma Oficial
+                    </span>
+                  </div>
+                  <div className="flex items-center leading-none">
+                    <span className="text-[15.5px] font-black tracking-tight text-slate-900 dark:text-white whitespace-nowrap">
+                      Control<span className="text-cyan-600 dark:text-cyan-400 font-black">Electoral</span>
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-1 shrink-0">
+              <div className="flex items-center gap-1.5 shrink-0">
                 {/* Selector de Tema Claro / Oscuro */}
                 <ThemeToggle size="sm" />
 
@@ -208,11 +220,11 @@ export const Sidebar = ({
                   <button
                     type="button"
                     onClick={toggleSidebar}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:text-slate-400 dark:hover:text-blue-400 dark:hover:bg-blue-950/40 hover:shadow-[0_0_12px_rgba(37,99,235,0.25)] transition-all cursor-pointer"
+                    className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60 transition-all cursor-pointer shadow-2xs active:scale-95"
                     title="Colapsar panel lateral (Ctrl+B)"
                     aria-label="Colapsar panel lateral"
                   >
-                    <PanelLeftClose className="w-4.5 h-4.5" />
+                    <PanelLeftClose className="w-4 h-4" />
                   </button>
                 )}
 
@@ -221,11 +233,11 @@ export const Sidebar = ({
                   <button
                     type="button"
                     onClick={onCloseMobile}
-                    className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 transition-colors cursor-pointer touch-manipulation active:scale-95"
+                    className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 transition-colors cursor-pointer touch-manipulation active:scale-95"
                     title="Cerrar Menú"
                     aria-label="Cerrar Menú"
                   >
-                    <X className="w-4.5 h-4.5" />
+                    <X className="w-4 h-4" />
                   </button>
                 )}
               </div>

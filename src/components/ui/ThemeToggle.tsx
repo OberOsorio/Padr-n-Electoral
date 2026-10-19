@@ -17,8 +17,8 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
 
   const sizeClasses =
     size === 'md'
-      ? 'w-11 h-11 rounded-2xl'
-      : 'p-2 rounded-xl';
+      ? 'w-10 h-10 rounded-2xl'
+      : 'w-8 h-8 rounded-xl';
 
   return (
     <button
@@ -26,8 +26,8 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
       onClick={toggleTheme}
       className={`relative inline-flex items-center justify-center shrink-0 transition-all active:scale-95 cursor-pointer select-none ${sizeClasses} ${
         isDark
-          ? 'bg-[#0c162d] hover:bg-[#132245] border border-[#1d2f59] text-slate-300 hover:text-white shadow-sm'
-          : 'bg-slate-100 hover:bg-slate-200/80 border border-slate-200 text-slate-600 hover:text-slate-900 shadow-xs'
+          ? 'bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 text-slate-300 hover:text-white shadow-2xs'
+          : 'bg-slate-100 hover:bg-slate-200/80 border border-slate-200/80 text-slate-600 hover:text-slate-900 shadow-2xs'
       } ${className}`}
       title={isDark ? 'Cambiar a modo Claro' : 'Cambiar a modo Oscuro'}
       aria-label="Alternar tema de la interfaz"
