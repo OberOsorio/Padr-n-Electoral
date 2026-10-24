@@ -184,19 +184,35 @@ function ModalOverlay({ className = '', ...props }: ModalOverlayProps) {
 export interface ModalContentProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode;
   className?: string;
+  maxWidth?: string;
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | 'full';
   ref?: React.Ref<HTMLDivElement>;
 }
 
-function ModalContent({ children, className = '', ref, ...props }: ModalContentProps) {
+function ModalContent({ children, className = '', maxWidth, size, ref, ...props }: ModalContentProps) {
   const { state, meta } = useModalContext();
+
+  const sizeClasses: Record<string, string> = {
+    sm: 'max-w-sm',
+    md: 'max-w-md',
+    lg: 'max-w-lg',
+    xl: 'max-w-xl',
+    '2xl': 'max-w-2xl',
+    '3xl': 'max-w-3xl',
+    '4xl': 'max-w-4xl',
+    '5xl': 'max-w-5xl',
+    full: 'max-w-full',
+  };
+
+  const resolvedMaxWidth = maxWidth || (size ? sizeClasses[size] : 'max-w-md');
 
   // Halo ambiental sutil según el tono de la acción
   const glowMap: Record<ModalVariant, string> = {
-    danger: 'bg-rose-500/15',
-    warning: 'bg-amber-500/15',
-    success: 'bg-emerald-500/15',
-    info: 'bg-sky-500/15',
-    default: 'bg-blue-500/10',
+    danger: 'bg-rose-500/10',
+    warning: 'bg-amber-500/10',
+    success: 'bg-emerald-500/10',
+    info: 'bg-sky-500/10',
+    default: 'bg-blue-500/05',
   };
 
   return (
@@ -204,13 +220,13 @@ function ModalContent({ children, className = '', ref, ...props }: ModalContentP
       {...contentMotion}
       ref={ref || meta.contentRef}
       style={{ transformOrigin: 'center' }}
-      className={`relative w-full max-w-md rounded-[28px] bg-white dark:bg-[#0c1220] border border-slate-200/90 dark:border-slate-800/80 p-6 sm:p-7 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.45)] backdrop-blur-xl overflow-hidden z-10 text-slate-800 dark:text-slate-100 ${className}`}
+      className={`relative w-full ${resolvedMaxWidth} rounded-[24px] bg-white dark:bg-[#121215] border border-slate-200/90 dark:border-white/[0.08] p-5 sm:p-6 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.55)] backdrop-blur-xl overflow-hidden z-10 text-slate-800 dark:text-zinc-100 ${className}`}
       onClick={(e) => e.stopPropagation()}
       aria-labelledby={meta.titleId}
       aria-describedby={meta.descriptionId}
       {...(props as any)}
     >
-      {/* Halo de iluminación ambiental decorativa */}
+      {/* Halo de iluminación ambiental decorativa ultra-sutil */}
       <div
         className={`absolute -top-16 left-1/2 -translate-x-1/2 w-48 h-32 rounded-full ${glowMap[state.variant]} blur-3xl pointer-events-none`}
         aria-hidden="true"

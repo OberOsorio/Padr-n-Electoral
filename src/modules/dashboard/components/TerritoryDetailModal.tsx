@@ -1,16 +1,17 @@
 import React, { useState, useMemo } from 'react';
 import {
   MapPin,
-  X,
   Users,
   Search,
   ExternalLink,
   FileSpreadsheet,
   ShieldCheck,
   UserCheck,
+  X,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import type { PuestoMetrica, PuestoElectorItem } from '../TerritoryDistributionCard';
+import { Modal } from '../../../components/ui/Modal';
 
 interface TerritoryDetailModalProps {
   isOpen: boolean;
@@ -99,14 +100,12 @@ export const TerritoryDetailModal: React.FC<TerritoryDetailModalProps> = ({
       const worksheet = XLSX.utils.json_to_sheet(dataToExport);
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Electores');
-
-      // Nombre amigable para el archivo
-      const cleanName = puesto.nombrePuesto.toLowerCase().replace(/[^a-z0-9]/g, '_');
-      const filename = `territorio_${cleanName}_${new Date().toISOString().slice(0, 10)}.xlsx`;
-      XLSX.writeFile(workbook, filename);
+      XLSX.writeFile(
+        workbook,
+        `Electores_${puesto.nombrePuesto.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.xlsx`
+      );
     } catch (err) {
-      console.error('Error al exportar territorio a Excel:', err);
-      alert('Hubo un problema al generar el archivo Excel.');
+      console.error('Error al exportar electores de puesto a Excel:', err);
     } finally {
       setIsExporting(false);
     }
@@ -120,9 +119,12 @@ export const TerritoryDetailModal: React.FC<TerritoryDetailModalProps> = ({
     }
   };
 
-  if (!isOpen || !puesto) return null;
+  if (!puesto) return null;
 
-  const totalMesasActivas = puesto.totalMesas || puesto.mesas?.length || (availableMesas.length > 0 ? availableMesas.length : 1);
+  const totalMesasActivas =
+    puesto.totalMesas ||
+    puesto.mesas?.length ||
+    (availableMesas.length > 0 ? availableMesas.length : 1);
   const promedioElectores =
     puesto.promedioElectoresPorMesa ??
     (puesto.totalElectores > 0
@@ -130,129 +132,112 @@ export const TerritoryDetailModal: React.FC<TerritoryDetailModalProps> = ({
       : 0);
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/70 backdrop-blur-xs animate-in fade-in duration-200"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div className="bg-white dark:bg-[#0a1224] rounded-2xl sm:rounded-3xl border border-slate-200/90 dark:border-[#15223e] shadow-2xl w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-        
+    <Modal.Root open={isOpen} onClose={onClose} variant="default">
+      <Modal.Content maxWidth="max-w-4xl" className="dark:bg-[#121215] dark:border-white/[0.08]">
         {/* 1. CABECERA EJECUTIVA */}
-        <div className="p-4 sm:p-6 border-b border-slate-100 dark:border-[#15223e] flex items-center justify-between bg-slate-50/70 dark:bg-[#070D1F]/50 shrink-0">
-          <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-            <div className="p-2.5 sm:p-3 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 text-white shadow-md shadow-blue-500/20 shrink-0">
-              <MapPin className="w-5 h-5 sm:w-6 sm:h-6" />
+        <Modal.Header className="dark:bg-[#18181b]/50 border-b border-slate-100 dark:border-white/[0.06] pb-4">
+          <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
+            <div className="p-2 sm:p-2.5 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 text-blue-600 dark:text-blue-400 shrink-0">
+              <MapPin className="w-5 h-5" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-base sm:text-xl font-bold text-slate-900 dark:text-white tracking-tight truncate">
+                <Modal.Title className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight truncate">
                   {puesto.nombrePuesto}
-                </h2>
+                </Modal.Title>
                 <span
-                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase ${
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-medium tracking-wide uppercase ${
                     puesto.zona === 'RURAL'
-                      ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40'
-                      : 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/40'
+                      ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20'
+                      : 'bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20'
                   }`}
                 >
                   {puesto.zona === 'RURAL' ? 'Zona Rural' : 'Cabecera Urbana'}
                 </span>
-                <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[10px] font-semibold">
-                  Activo
-                </span>
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">
-                Circunscripción: <strong className="text-slate-700 dark:text-slate-200">{nombreCircunscripcion}</strong>
+              <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5 truncate">
+                Circunscripción: <strong className="text-slate-700 dark:text-zinc-200">{nombreCircunscripcion}</strong>
               </p>
             </div>
           </div>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors shrink-0 cursor-pointer"
-            aria-label="Cerrar modal"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+          <Modal.CloseButton />
+        </Modal.Header>
 
         {/* 2. MÉTRICAS CLAVE DEL PUESTO */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3.5 p-3.5 sm:p-5 bg-slate-50/30 dark:bg-[#0a1224] border-b border-slate-100 dark:border-[#15223e] shrink-0">
-          <div className="p-3 rounded-2xl bg-white dark:bg-[#070D1F] border border-slate-200/80 dark:border-[#15223e] shadow-2xs">
-            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 p-3.5 sm:p-5 bg-slate-50/40 dark:bg-[#18181b]/30 border-b border-slate-100 dark:border-white/[0.06] shrink-0">
+          <div className="p-3 rounded-xl bg-white dark:bg-[#18181b] border border-slate-200/80 dark:border-white/[0.06]">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 dark:text-zinc-500 block">
               Total Electores
             </span>
             <div className="flex items-baseline gap-1.5 mt-0.5">
-              <span className="text-xl sm:text-2xl font-bold font-mono text-slate-900 dark:text-white">
+              <span className="text-xl sm:text-2xl font-bold font-mono tabular-nums text-slate-900 dark:text-white">
                 {puesto.totalElectores}
               </span>
-              <span className="text-[11px] text-blue-600 dark:text-cyan-400 font-semibold">
+              <span className="text-[11px] font-mono text-blue-600 dark:text-blue-400 font-semibold">
                 ({puesto.porcentaje}%)
               </span>
             </div>
           </div>
 
-          <div className="p-3 rounded-2xl bg-white dark:bg-[#070D1F] border border-slate-200/80 dark:border-[#15223e] shadow-2xs">
-            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
+          <div className="p-3 rounded-xl bg-white dark:bg-[#18181b] border border-slate-200/80 dark:border-white/[0.06]">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 dark:text-zinc-500 block">
               Mesas con Votantes
             </span>
             <div className="flex items-baseline gap-1.5 mt-0.5">
-              <span className="text-xl sm:text-2xl font-bold font-mono text-slate-900 dark:text-white">
+              <span className="text-xl sm:text-2xl font-bold font-mono tabular-nums text-slate-900 dark:text-white">
                 {totalMesasActivas}
               </span>
-              <span className="text-[10px] text-slate-500 dark:text-slate-400">
+              <span className="text-[10px] text-slate-500 dark:text-zinc-400">
                 {totalMesasActivas === 1 ? 'mesa activa' : 'mesas activas'}
               </span>
             </div>
           </div>
 
-          <div className="p-3 rounded-2xl bg-white dark:bg-[#070D1F] border border-slate-200/80 dark:border-[#15223e] shadow-2xs">
-            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
+          <div className="p-3 rounded-xl bg-white dark:bg-[#18181b] border border-slate-200/80 dark:border-white/[0.06]">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 dark:text-zinc-500 block">
               Promedio x Mesa
             </span>
             <div className="flex items-baseline gap-1.5 mt-0.5">
-              <span className="text-xl sm:text-2xl font-bold font-mono text-slate-900 dark:text-white">
+              <span className="text-xl sm:text-2xl font-bold font-mono tabular-nums text-slate-900 dark:text-white">
                 {promedioElectores}
               </span>
-              <span className="text-[10px] text-slate-400 dark:text-slate-500">
+              <span className="text-[10px] text-slate-400 dark:text-zinc-500">
                 electores/m
               </span>
             </div>
           </div>
 
-          <div className="p-3 rounded-2xl bg-white dark:bg-[#070D1F] border border-slate-200/80 dark:border-[#15223e] shadow-2xs">
-            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
+          <div className="p-3 rounded-xl bg-white dark:bg-[#18181b] border border-slate-200/80 dark:border-white/[0.06]">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 dark:text-zinc-500 block">
               Líderes Activos
             </span>
             <div className="flex items-baseline gap-1.5 mt-0.5">
-              <span className="text-xl sm:text-2xl font-bold font-mono text-slate-900 dark:text-white">
+              <span className="text-xl sm:text-2xl font-bold font-mono tabular-nums text-slate-900 dark:text-white">
                 {puesto.lideresNombres?.length || 1}
               </span>
-              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold truncate">
+              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium truncate">
                 {puesto.lideresNombres?.[0] || 'En territorio'}
               </span>
             </div>
           </div>
         </div>
 
-        {/* 3. BARRA DE BÚSQUEDA Y FILTRO INTERNO */}
-        <div className="p-3.5 sm:p-5 border-b border-slate-100 dark:border-[#15223e] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-[#0a1224] shrink-0">
+        {/* 3. BARRA DE BÚSQUEDA Y FILTRO */}
+        <div className="p-3.5 sm:p-4 border-b border-slate-100 dark:border-white/[0.06] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-[#121215] shrink-0">
           <div className="relative flex-1">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <Search className="w-3.5 h-3.5 text-slate-400 dark:text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Buscar por cédula, nombre o líder..."
-              className="w-full pl-9 pr-8 py-2 text-xs rounded-xl bg-slate-50 dark:bg-[#070D1F] border border-slate-200 dark:border-slate-700/60 text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:border-blue-500"
+              className="w-full pl-9 pr-8 py-1.5 text-xs rounded-xl bg-slate-50 dark:bg-[#18181b] border border-slate-200/80 dark:border-white/[0.07] text-slate-800 dark:text-zinc-200 placeholder:text-slate-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-blue-500"
             />
             {searchTerm && (
               <button
                 type="button"
                 onClick={() => setSearchTerm('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-zinc-300 p-0.5"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -263,7 +248,7 @@ export const TerritoryDetailModal: React.FC<TerritoryDetailModalProps> = ({
             <select
               value={mesaFilter}
               onChange={(e) => setMesaFilter(e.target.value)}
-              className="py-2 px-3 text-xs rounded-xl bg-slate-50 dark:bg-[#070D1F] border border-slate-200 dark:border-slate-700/60 text-slate-700 dark:text-slate-200 focus:outline-none focus:border-blue-500 cursor-pointer"
+              className="py-1.5 px-3 text-xs rounded-xl bg-slate-50 dark:bg-[#18181b] border border-slate-200/80 dark:border-white/[0.07] text-slate-700 dark:text-zinc-300 focus:outline-none focus:border-blue-500 cursor-pointer"
             >
               <option value="all">Todas las mesas ({puesto.totalElectores})</option>
               {availableMesas.map((m) => (
@@ -273,31 +258,31 @@ export const TerritoryDetailModal: React.FC<TerritoryDetailModalProps> = ({
               ))}
             </select>
 
-            <span className="text-[11px] font-mono text-slate-400 dark:text-slate-500 whitespace-nowrap hidden sm:inline">
+            <span className="text-[11px] font-mono tabular-nums text-slate-400 dark:text-zinc-500 whitespace-nowrap hidden sm:inline">
               {filteredElectors.length} de {puesto.totalElectores}
             </span>
           </div>
         </div>
 
-        {/* 4. TABLA DE ELECTORES (SCROLLABLE) */}
-        <div className="flex-1 overflow-y-auto min-h-[220px] max-h-[460px] p-3.5 sm:p-5">
+        {/* 4. TABLA DE ELECTORES */}
+        <Modal.Body className="p-3.5 sm:p-4 max-h-[420px] overflow-y-auto">
           {filteredElectors.length === 0 ? (
             <div className="py-12 text-center space-y-2">
-              <Users className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto" />
-              <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+              <Users className="w-8 h-8 text-slate-300 dark:text-zinc-600 mx-auto" />
+              <p className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
                 No se encontraron electores en este puesto
               </p>
-              <p className="text-[11px] text-slate-400 dark:text-slate-500 max-w-sm mx-auto">
+              <p className="text-[11px] text-slate-400 dark:text-zinc-500 max-w-sm mx-auto">
                 {searchTerm || mesaFilter !== 'all'
                   ? 'Ningún elector coincide con los criterios de búsqueda o mesa seleccionada.'
                   : 'Aún no se han vinculado votantes a este puesto de votación.'}
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto rounded-xl border border-slate-200/80 dark:border-[#15223e]">
+            <div className="overflow-x-auto rounded-xl border border-slate-200/80 dark:border-white/[0.06]">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="bg-slate-50 dark:bg-[#070D1F] border-b border-slate-200 dark:border-[#15223e] text-slate-500 dark:text-slate-400 font-semibold">
+                  <tr className="bg-slate-50 dark:bg-[#18181b] border-b border-slate-200/80 dark:border-white/[0.06] text-slate-500 dark:text-zinc-400 font-medium">
                     <th className="py-2.5 px-3 font-mono text-[11px]">#</th>
                     <th className="py-2.5 px-3">Cédula</th>
                     <th className="py-2.5 px-3">Nombre Completo</th>
@@ -306,30 +291,30 @@ export const TerritoryDetailModal: React.FC<TerritoryDetailModalProps> = ({
                     <th className="py-2.5 px-3">Líder que Registró</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-[#15223e]">
+                <tbody className="divide-y divide-slate-100 dark:divide-white/[0.04]">
                   {filteredElectors.map((elector, idx) => (
                     <tr
                       key={elector.id || idx}
-                      className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors"
+                      className="hover:bg-slate-50/80 dark:hover:bg-white/[0.02] transition-colors"
                     >
-                      <td className="py-2.5 px-3 font-mono text-slate-400 text-[11px]">
+                      <td className="py-2 px-3 font-mono text-slate-400 text-[11px]">
                         {idx + 1}
                       </td>
-                      <td className="py-2.5 px-3 font-mono font-medium text-slate-800 dark:text-slate-200 whitespace-nowrap">
+                      <td className="py-2 px-3 font-mono tabular-nums font-medium text-slate-800 dark:text-zinc-200 whitespace-nowrap">
                         {formatCedula(elector.cedula)}
                       </td>
-                      <td className="py-2.5 px-3 font-semibold text-slate-900 dark:text-white">
+                      <td className="py-2 px-3 font-medium text-slate-900 dark:text-white">
                         {elector.nombres} {elector.apellidos}
                       </td>
-                      <td className="py-2.5 px-3 text-center font-mono text-slate-600 dark:text-slate-400">
+                      <td className="py-2 px-3 text-center font-mono tabular-nums text-slate-600 dark:text-zinc-400">
                         {elector.edad ? `${elector.edad} años` : '-'}
                       </td>
-                      <td className="py-2.5 px-3 text-center">
-                        <span className="inline-block px-2 py-0.5 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-cyan-300 font-bold font-mono text-[10px] border border-blue-200 dark:border-blue-800/40">
+                      <td className="py-2 px-3 text-center">
+                        <span className="inline-block px-2 py-0.5 rounded-lg bg-blue-50 dark:bg-white/[0.06] text-blue-700 dark:text-zinc-200 font-mono font-medium text-[10px] border border-blue-200/60 dark:border-white/[0.08]">
                           {elector.mesa ? `M-${elector.mesa}` : 'Pendiente'}
                         </span>
                       </td>
-                      <td className="py-2.5 px-3 text-slate-700 dark:text-slate-300">
+                      <td className="py-2 px-3 text-slate-700 dark:text-zinc-300">
                         <span className="flex items-center gap-1.5 truncate max-w-[190px]">
                           <UserCheck className="w-3.5 h-3.5 text-blue-500 shrink-0" />
                           <span className="truncate">{elector.liderNombre || 'Líder Operativo'}</span>
@@ -341,14 +326,14 @@ export const TerritoryDetailModal: React.FC<TerritoryDetailModalProps> = ({
               </table>
             </div>
           )}
-        </div>
+        </Modal.Body>
 
         {/* 5. PIE DE ACCIONES DIRECTAS */}
-        <div className="p-3.5 sm:p-5 border-t border-slate-100 dark:border-[#15223e] bg-slate-50/50 dark:bg-[#070D1F]/50 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
-          <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5 self-start sm:self-center">
+        <Modal.Footer className="border-t border-slate-100 dark:border-white/[0.06] bg-slate-50/50 dark:bg-[#18181b]/30 p-3.5 sm:p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="text-xs text-slate-500 dark:text-zinc-400 flex items-center gap-1.5 self-start sm:self-center font-mono">
             <ShieldCheck className="w-4 h-4 text-emerald-500" />
             <span>
-              Padrón auditado: <strong>{puesto.totalElectores}</strong> electores en <strong>{puesto.nombrePuesto}</strong>
+              Padrón auditado: <strong className="tabular-nums text-slate-900 dark:text-white">{puesto.totalElectores}</strong> en {puesto.nombrePuesto}
             </span>
           </div>
 
@@ -357,7 +342,7 @@ export const TerritoryDetailModal: React.FC<TerritoryDetailModalProps> = ({
               type="button"
               onClick={handleExportExcel}
               disabled={isExporting || (puesto.electores?.length || 0) === 0}
-              className="flex-1 sm:flex-initial px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#0a1224] hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-200 flex items-center justify-center gap-1.5 shadow-2xs transition-all cursor-pointer disabled:opacity-50"
+              className="flex-1 sm:flex-initial px-3.5 py-2 rounded-xl border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-[#18181b] hover:bg-slate-50 dark:hover:bg-white/[0.04] text-xs font-medium text-slate-700 dark:text-zinc-200 flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 active:scale-[0.98]"
             >
               <FileSpreadsheet className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
               <span>Exportar Excel</span>
@@ -366,15 +351,14 @@ export const TerritoryDetailModal: React.FC<TerritoryDetailModalProps> = ({
             <button
               type="button"
               onClick={handleGoToPadron}
-              className="flex-1 sm:flex-initial px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold flex items-center justify-center gap-1.5 shadow-md shadow-blue-600/20 transition-all cursor-pointer touch-manipulation active:scale-95"
+              className="flex-1 sm:flex-initial px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer touch-manipulation active:scale-[0.98]"
             >
               <span>Ver en Padrón</span>
               <ExternalLink className="w-3.5 h-3.5" />
             </button>
           </div>
-        </div>
-
-      </div>
-    </div>
+        </Modal.Footer>
+      </Modal.Content>
+    </Modal.Root>
   );
 };
