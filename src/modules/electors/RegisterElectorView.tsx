@@ -88,7 +88,7 @@ export const RegisterElectorView = ({
     description: string;
   } | null>(null);
 
-  // Cargar memoria de sesión de puesto y mesa al montar (solo si el usuario tenía activa la memoria)
+  // Cargar memoria de sesión de puesto y mesa al montar
   useEffect(() => {
     const isRemember = localStorage.getItem('electoral_remember_location') === 'true';
     if (isRemember) {
@@ -103,7 +103,6 @@ export const RegisterElectorView = ({
       }
     }
 
-    // Auto-foco inicial en Cédula
     cedulaInputRef.current?.focus();
   }, []);
 
@@ -121,17 +120,14 @@ export const RegisterElectorView = ({
     setSelectedMunicipio(defaultMuni);
   }, [currentTenant]);
 
-  // Lista de municipios oficiales disponibles para la circunscripción departamental
   const availableMunicipios = useMemo(() => {
     return getMunicipiosPorDepartamento(departamentoCampana);
   }, [departamentoCampana]);
 
-  // Puestos oficiales de votación correspondientes a la circunscripción/municipio seleccionado (Divipole 2026)
   const [pollingPlaces, setPollingPlaces] = useState<PollingPlace[]>(() => {
     return getPollingPlacesPorMunicipio(municipioCampanaDefault, departamentoCampana);
   });
 
-  // Carga reactiva de puestos en tiempo real: sincronía local inmediata + consulta asíncrona de respaldo
   useEffect(() => {
     let isMounted = true;
     const local = getPollingPlacesPorMunicipio(selectedMunicipio, departamentoCampana);
@@ -157,12 +153,8 @@ export const RegisterElectorView = ({
     setAlertaJurisdiccion({ mostrar: false });
   }, []);
 
-  // Función estricta de validación territorial:
-  // SOLO alerta cuando explícitamente se conoce el municipio del censo y es distinto al municipio de la campaña activa.
-  // NUNCA compara el nombre del puesto de votación (ej. corregimientos como "LOS GOMEZ") contra el nombre del municipio.
   const validarJurisdiccionElector = useCallback(
     (datosCenso?: { municipio?: string | null; departamento?: string | null; puesto?: string | null }) => {
-      // 1. Si aún no hay datos de censo o no se ha verificado el municipio externo, NO mostrar alerta
       if (!datosCenso || !datosCenso.municipio || !datosCenso.municipio.trim()) {
         setAlertaJurisdiccion({ mostrar: false });
         return false;
@@ -179,7 +171,6 @@ export const RegisterElectorView = ({
       const municipioCampana = normalizar(municipioCampanaRaw);
       const municipioElector = normalizar(datosCenso.municipio);
 
-      // 2. Solo activar si el MUNICIPIO del censo es conocido y NO coincide con el de la campaña
       const esForaneo = Boolean(municipioElector) && municipioElector !== municipioCampana;
 
       if (esForaneo) {
@@ -190,7 +181,6 @@ export const RegisterElectorView = ({
         });
         return true;
       } else {
-        // Si es del mismo municipio (incluyendo corregimientos como Los Gómez), no alertar
         setAlertaJurisdiccion({ mostrar: false });
         return false;
       }
@@ -198,7 +188,6 @@ export const RegisterElectorView = ({
     [currentTenant]
   );
 
-  // Si cambia la circunscripción y el puesto actual seleccionado no pertenece a la nueva lista, limpiarlo
   useEffect(() => {
     if (puestoVotacion && pollingPlaces.length > 0 && !pollingPlaces.some((p) => p.name === puestoVotacion)) {
       setPuestoVotacion('');
@@ -207,7 +196,6 @@ export const RegisterElectorView = ({
     setAlertaJurisdiccion({ mostrar: false });
   }, [pollingPlaces, puestoVotacion]);
 
-  // Formato legible de fecha y hora exacta de registro
   const formatRegistrationDate = (isoString?: string) => {
     if (!isoString) return 'Fecha no disponible';
     try {
@@ -225,31 +213,30 @@ export const RegisterElectorView = ({
     }
   };
 
-  // Badge de rol del operador
   const getRoleBadge = (role?: string) => {
     const r = (role || 'admin').toLowerCase();
     if (r === 'lider') {
       return (
-        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20 font-mono">
+        <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium uppercase tracking-wider bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20">
           Líder
         </span>
       );
     }
     if (r === 'coordinador') {
       return (
-        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 font-mono">
+        <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium uppercase tracking-wider bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
           Coordinador
         </span>
       );
     }
     return (
-      <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-mono">
+      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium uppercase tracking-wider bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
         Admin
       </span>
     );
   };
 
-  // Validación anti-colisión y autocompletado en tiempo real sin caché fantasma
+  // Validación anti-colisión y autocompletado en tiempo real
   const checkCedulaCollision = useCallback(async (cedulaValue: string) => {
     const cleanCedula = cedulaValue.trim().replace(/\D/g, '');
     if (cleanCedula.length < 5) {
@@ -263,12 +250,10 @@ export const RegisterElectorView = ({
     try {
       const res = await buscarDocumento(cleanCedula, currentTenantId);
 
-      // Si el usuario ya cambió la cédula mientras respondía la red, descartar
       if (currentCedulaRef.current !== cleanCedula) {
         return;
       }
 
-      // Caso A: Duplicado en la campaña activa
       if (res && res.duplicado) {
         setCollisionResult({
           exists: true,
@@ -291,7 +276,6 @@ export const RegisterElectorView = ({
         return;
       }
 
-      // Caso B: Ciudadano encontrado en censo oficial o DNP
       if (res && (res.nombres || res.apellidos)) {
         setCollisionResult({ exists: false });
         setNombres(res.nombres);
@@ -303,7 +287,6 @@ export const RegisterElectorView = ({
             : '';
         setEdad(edadFinal);
 
-        // Validar puesto y jurisdicción si viene sugerido
         const esForaneo = validarJurisdiccionElector({
           municipio: res.municipio || null,
           departamento: res.departamento || null,
@@ -327,7 +310,6 @@ export const RegisterElectorView = ({
         return;
       }
 
-      // Caso C: No registrado o eliminado de la BD (Limpiar campos inmediatamente sin datos fantasma)
       setCollisionResult({ exists: false });
       if (autofilledCedulaRef.current || isAutofilledFromCenso) {
         setNombres('');
@@ -349,9 +331,8 @@ export const RegisterElectorView = ({
     }
   }, [currentTenantId, pollingPlaces, rememberLocation, buscarDocumento, validarJurisdiccionElector]);
 
-  // Manejador del cambio en cédula con debounce estricto de 250ms
   const handleCedulaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value.replace(/\D/g, ''); // Numpad: solo dígitos
+    const val = e.target.value.replace(/\D/g, '');
     const prevCedula = currentCedulaRef.current;
     setCedula(val);
     currentCedulaRef.current = val;
@@ -363,8 +344,6 @@ export const RegisterElectorView = ({
 
     const seEliminoNumero = val.length < prevCedula.length;
 
-    // Si la cédula fue alterada o se eliminó un dígito y teníamos datos autocompletados
-    // de una consulta previa, limpiamos inmediatamente los datos para no dejar información obsoleta
     if (seEliminoNumero || (autofilledCedulaRef.current && autofilledCedulaRef.current !== val)) {
       setNombres('');
       setApellidos('');
@@ -408,20 +387,17 @@ export const RegisterElectorView = ({
     }, 250);
   };
 
-  // Manejar cambio de puesto en cascada (resetea mesa al cambiar de puesto)
   const handlePuestoChange = (newPuesto: string) => {
     setPuestoVotacion(newPuesto);
     setMesa('');
   };
 
-  // Función integral de limpieza total del formulario (incluyendo Puesto, Mesa y Modo Lote)
   const handleLimpiarFormulario = () => {
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
     }
     currentCedulaRef.current = '';
 
-    // A. Resetear todos los campos principales del formulario y ubicación electoral
     setCedula('');
     setNombres('');
     setApellidos('');
@@ -431,13 +407,11 @@ export const RegisterElectorView = ({
     setMesa('');
     setNotas('');
 
-    // B. Resetear la bandera de 'Recordar puesto y mesa (Modo Lote)' y su caché local al presionar Limpiar explícitamente
     setRememberLocation(false);
     localStorage.setItem('electoral_remember_location', 'false');
     localStorage.removeItem('electoral_saved_puesto');
     localStorage.removeItem('electoral_saved_mesa');
 
-    // C. Limpiar estados de validación anti-colisión, jurisdicción y autocompletado del censo
     setIsCheckingCedula(false);
     setCollisionResult(null);
     setIsAutofilledFromCenso(false);
@@ -445,11 +419,9 @@ export const RegisterElectorView = ({
     setAlertaJurisdiccion({ mostrar: false });
     setServerError(null);
 
-    console.log('[Formulario Elector] Todos los campos, incluyendo puesto y mesa, han sido restablecidos.');
     cedulaInputRef.current?.focus();
   };
 
-  // Envío del formulario
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setServerError(null);
@@ -499,7 +471,6 @@ export const RegisterElectorView = ({
       return;
     }
 
-    // Validación de Cuota Multi-Tenant (Límite por Plan de Campaña)
     if (planUsage.isLimitReached) {
       setServerError(
         `Límite de registros alcanzado para esta campaña (${planUsage.totalElectors.toLocaleString()} de ${planUsage.maxElectors.toLocaleString()}). Comuníquese con el SuperAdmin para ampliar la capacidad.`
@@ -511,7 +482,6 @@ export const RegisterElectorView = ({
 
     try {
       if (!isSupabaseConfigured) {
-        // Guardado local de demostración
         const newElector: ElectorWithRegistrant = {
           id: `local-${Date.now()}`,
           cedula: cleanCedula,
@@ -533,11 +503,9 @@ export const RegisterElectorView = ({
         list.unshift(newElector);
         localStorage.setItem('electoral_local_electors', JSON.stringify(list));
 
-        // Disparar evento para actualizar Dashboard y contexto de Tenant
         window.dispatchEvent(new Event('elector_registered'));
         refetchTenants();
       } else {
-        // Inserción en Supabase vía RPC registrar_elector_directo (Security Definer)
         let savedSuccessfully = false;
         try {
           const { data: rpcRes, error: rpcErr } = await (supabase.rpc as any)('registrar_elector_directo', {
@@ -597,7 +565,6 @@ export const RegisterElectorView = ({
         refetchTenants();
       }
 
-      // Guardar memoria de sesión si el checkbox está activo
       if (rememberLocation) {
         localStorage.setItem('electoral_remember_location', 'true');
         localStorage.setItem('electoral_saved_puesto', puestoVotacion);
@@ -608,13 +575,11 @@ export const RegisterElectorView = ({
         localStorage.removeItem('electoral_saved_mesa');
       }
 
-      // Toast de confirmación con datos del elector
       setToastMessage({
         title: 'Elector Registrado con Éxito',
         description: `${cleanNombres} ${cleanApellidos}${numEdad ? ` (${numEdad} años)` : ''} · ${puestoVotacion} (Mesa ${mesa})`,
       });
 
-      // Limpiar campos personales preservando puesto y mesa si aplica
       setCedula('');
       setNombres('');
       setApellidos('');
@@ -630,7 +595,6 @@ export const RegisterElectorView = ({
         setMesa('');
       }
 
-      // Foco automático en el campo cédula para continuar digitando a alta velocidad
       setTimeout(() => {
         cedulaInputRef.current?.focus();
       }, 50);
@@ -646,11 +610,9 @@ export const RegisterElectorView = ({
     }
   };
 
-  // Manejo de atajo por teclado (Enter en inputs para saltar al siguiente)
   const handleKeyDown = (e: React.KeyboardEvent, nextRef?: React.RefObject<any>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       if ((e.ctrlKey || e.metaKey)) {
-        // Ctrl+Enter o Cmd+Enter: guardar directamente
         return;
       }
       if (nextRef && nextRef.current) {
@@ -660,7 +622,6 @@ export const RegisterElectorView = ({
     }
   };
 
-  // Auto-cierre del Toast flotante tras 5 segundos (5000 ms)
   useEffect(() => {
     if (toastMessage) {
       const timer = setTimeout(() => {
@@ -671,26 +632,30 @@ export const RegisterElectorView = ({
   }, [toastMessage]);
 
   return (
-    <div className="relative min-h-[calc(100vh-2rem)] p-4 sm:p-6 lg:p-10 max-w-[1100px] mx-auto pb-24 md:pb-10 animate-in fade-in duration-300 w-full max-w-full overflow-x-hidden">
-      
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.2 }}
+      className="relative min-h-[calc(100vh-2rem)] p-3 sm:p-6 lg:p-8 max-w-[1100px] mx-auto pb-24 md:pb-10 w-full overflow-x-hidden transition-colors duration-200"
+    >
       {/* Toast Flotante Glassmorphic de Éxito Animado */}
       <AnimatePresence>
         {toastMessage && (
           <motion.div
-            initial={{ opacity: 0, y: -24, x: 24, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, x: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -12, scale: 0.95 }}
-            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed top-4 sm:top-6 inset-x-4 sm:inset-x-auto sm:right-6 z-50 sm:max-w-md p-4 rounded-2xl bg-[#0F172A]/95 backdrop-blur-2xl border border-emerald-500/40 shadow-[0_20px_50px_rgba(0,0,0,0.85),0_0_20px_rgba(16,185,129,0.2)] flex items-start gap-3.5 pointer-events-auto"
+            initial={{ opacity: 0, y: -20, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -12, scale: 0.96 }}
+            transition={{ type: 'spring', stiffness: 380, damping: 30, mass: 0.8 }}
+            className="fixed top-4 sm:top-6 inset-x-4 sm:inset-x-auto sm:right-6 z-50 sm:max-w-md p-3.5 sm:p-4 rounded-2xl bg-white/95 dark:bg-[#18181b]/95 backdrop-blur-xl border border-slate-200/90 dark:border-white/[0.1] shadow-2xl flex items-start gap-3 pointer-events-auto"
           >
-            <div className="h-9 w-9 rounded-xl bg-emerald-950/60 border border-emerald-500/30 flex items-center justify-center shrink-0">
-              <AnimatedCheck size={22} className="text-emerald-400" />
+            <div className="h-8 w-8 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200/60 dark:border-emerald-500/20 flex items-center justify-center shrink-0">
+              <AnimatedCheck size={20} className="text-emerald-500" />
             </div>
             <div className="min-w-0 pr-2">
-              <p className="text-xs font-semibold text-slate-100 font-mono">
+              <p className="text-xs font-semibold text-slate-900 dark:text-white font-mono">
                 {toastMessage.title}
               </p>
-              <p className="text-[11px] text-slate-300 mt-0.5 truncate">
+              <p className="text-[11px] text-slate-600 dark:text-zinc-400 mt-0.5 truncate">
                 {toastMessage.description}
               </p>
             </div>
@@ -699,18 +664,21 @@ export const RegisterElectorView = ({
       </AnimatePresence>
 
       {/* Encabezado del Formulario */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200 dark:border-slate-700/60 mb-6 sm:mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200/80 dark:border-white/[0.07] mb-6">
         <div>
-          <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 dark:text-white tracking-tight">
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
             Registrar Elector
           </h1>
+          <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
+            Inscripción individual y verificación en tiempo real del censo
+          </p>
         </div>
 
         {onNavigateToDashboard && (
           <button
             type="button"
             onClick={onNavigateToDashboard}
-            className="text-xs font-mono text-slate-500 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white transition-colors self-start sm:self-auto cursor-pointer font-medium"
+            className="text-xs font-mono text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white transition-colors self-start sm:self-auto cursor-pointer font-medium active:scale-[0.98]"
           >
             ← Volver al Dashboard
           </button>
@@ -718,20 +686,15 @@ export const RegisterElectorView = ({
       </div>
 
       {/* Tarjeta Principal del Formulario */}
-      <div className="rounded-2xl bg-white dark:bg-slate-800/80 dark:backdrop-blur-md border border-slate-200 dark:border-slate-700/60 p-4 sm:p-6 md:p-8 shadow-xs dark:shadow-xl relative overflow-hidden transition-colors">
-        {/* Línea de realce superior sutil */}
-        <div 
-          className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-500/40 to-transparent" 
-          aria-hidden="true" 
-        />
-
+      <div className="rounded-2xl bg-white dark:bg-[#121215] border border-slate-200/80 dark:border-white/[0.07] p-4 sm:p-6 md:p-8 shadow-xs relative overflow-hidden transition-colors duration-200">
+        
         {/* Alerta de Cuota y Límite de Campaña */}
         {planUsage.isNearLimit && (
           <div
             className={`mb-6 rounded-xl p-4 text-xs flex items-start gap-3 border ${
               planUsage.isLimitReached
-                ? 'bg-rose-50 dark:bg-rose-950/40 border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-200'
-                : 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-200'
+                ? 'bg-rose-50 dark:bg-rose-500/10 border-rose-200 dark:border-rose-500/20 text-rose-800 dark:text-rose-300'
+                : 'bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20 text-amber-800 dark:text-amber-300'
             }`}
           >
             <AlertTriangle
@@ -747,10 +710,10 @@ export const RegisterElectorView = ({
                   ? 'Límite de Campaña Alcanzado (100%)'
                   : `Alerta de Capacidad de Campaña (${planUsage.percentage}%)`}
               </p>
-              <p className="mt-0.5 leading-relaxed">
+              <p className="mt-0.5 leading-relaxed font-mono tabular-nums">
                 {planUsage.isLimitReached
-                  ? `Esta campaña ha ocupado sus ${planUsage.totalElectors.toLocaleString()} de ${planUsage.maxElectors.toLocaleString()} registros asignados en su plan ${currentTenant?.plan?.toUpperCase() || 'ILIMITADO'}. Las nuevas inscripciones están bloqueadas hasta ampliar el plan.`
-                  : `Esta campaña ha consumido ${planUsage.totalElectors.toLocaleString()} de ${planUsage.maxElectors.toLocaleString()} registros (${planUsage.percentage}% de capacidad). Considere ampliar el cupo pronto.`}
+                  ? `Esta campaña ha ocupado sus ${planUsage.totalElectors.toLocaleString()} de ${planUsage.maxElectors.toLocaleString()} registros asignados en su plan ${currentTenant?.plan?.toUpperCase() || 'ILIMITADO'}.`
+                  : `Esta campaña ha consumido ${planUsage.totalElectors.toLocaleString()} de ${planUsage.maxElectors.toLocaleString()} registros (${planUsage.percentage}% de capacidad).`}
               </p>
             </div>
           </div>
@@ -758,7 +721,7 @@ export const RegisterElectorView = ({
 
         {/* Alerta de Error de Servidor */}
         {serverError && (
-          <div className="mb-6 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/50 p-4 text-xs text-rose-700 dark:text-rose-300 flex items-start gap-3">
+          <div className="mb-6 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 p-4 text-xs text-rose-700 dark:text-rose-300 flex items-start gap-3">
             <AlertTriangle className="w-4 h-4 shrink-0 text-rose-500 dark:text-rose-400 mt-0.5" />
             <div className="leading-relaxed">
               <p className="font-semibold text-rose-800 dark:text-rose-200">Atención al registrar</p>
@@ -770,11 +733,11 @@ export const RegisterElectorView = ({
         <form onSubmit={handleSubmit} className="space-y-6">
           
           {/* SECCIÓN 1: IDENTIFICACIÓN ANTI-COLISIÓN */}
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             <div className="flex items-center justify-between">
               <label
                 htmlFor="cedula"
-                className="text-[11px] font-medium uppercase tracking-wider text-slate-700 dark:text-slate-300 font-mono flex items-center gap-1.5"
+                className="text-[11px] font-mono uppercase tracking-wider text-slate-700 dark:text-zinc-300 font-medium flex items-center gap-1.5"
               >
                 <CreditCard className="w-3.5 h-3.5 text-blue-500 dark:text-blue-400" />
                 <span>Cédula de Ciudadanía / Documento</span>
@@ -784,9 +747,9 @@ export const RegisterElectorView = ({
               {/* Indicador de verificación anti-colisión */}
               <div className="text-[10px] font-mono flex items-center gap-1.5">
                 {isCheckingCedula && (
-                  <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                  <span className="text-slate-500 dark:text-zinc-400 flex items-center gap-1">
                     <Loader2 className="w-3 h-3 animate-spin text-blue-500 dark:text-blue-400" />
-                    Verificando colisión...
+                    Verificando...
                   </span>
                 )}
                 {!isCheckingCedula && collisionResult && !collisionResult.exists && cedula.length >= 5 && (
@@ -828,12 +791,12 @@ export const RegisterElectorView = ({
                     handleKeyDown(e, nombresInputRef);
                   }
                 }}
-                placeholder="Ej. 1047892341 (solo números)"
+                placeholder="Ej. 1047892341 (solo dígitos)"
                 disabled={saving}
-                className={`w-full h-11 pl-4 pr-11 bg-slate-50 dark:bg-slate-900/90 border rounded-xl text-base sm:text-sm font-mono text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:outline-none transition-all ${
+                className={`w-full h-10.5 pl-4 pr-11 bg-slate-50 dark:bg-[#18181b] border rounded-xl text-base sm:text-sm font-mono tabular-nums text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-500 focus:outline-none transition-all ${
                   collisionResult?.exists
-                    ? 'border-amber-500 focus:ring-1 focus:ring-amber-500/50'
-                    : 'border-slate-200 dark:border-slate-700/60 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/40'
+                    ? 'border-amber-500 dark:border-amber-500/60 focus:border-amber-500'
+                    : 'border-slate-200/80 dark:border-white/[0.08] focus:border-blue-500'
                 }`}
               />
 
@@ -845,7 +808,7 @@ export const RegisterElectorView = ({
                 ) : collisionResult && !collisionResult.exists && cedula.length >= 5 ? (
                   <CheckCircle2 className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
                 ) : (
-                  <CreditCard className="w-4 h-4 text-slate-400 dark:text-slate-600" />
+                  <CreditCard className="w-4 h-4 text-slate-400 dark:text-zinc-600" />
                 )}
               </div>
             </div>
@@ -854,47 +817,44 @@ export const RegisterElectorView = ({
             <AnimatePresence>
               {collisionResult?.exists && collisionResult.elector && (
                 <motion.div
-                  initial={{ opacity: 0, scale: 0.98, y: -6 }}
+                  initial={{ opacity: 0, scale: 0.98, y: -4 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.98, y: -6 }}
-                  transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-                  className="rounded-2xl bg-gradient-to-br from-rose-50 via-rose-50/60 to-amber-50 dark:from-rose-950/40 dark:via-slate-900 dark:to-slate-900 border border-rose-300 dark:border-rose-500/50 p-4 sm:p-5 shadow-lg overflow-hidden relative"
+                  exit={{ opacity: 0, scale: 0.98, y: -4 }}
+                  transition={{ type: 'spring', stiffness: 380, damping: 30, mass: 0.8 }}
+                  className="rounded-2xl bg-rose-50/70 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-500/30 p-4 sm:p-5 shadow-xs relative overflow-hidden"
                 >
-                  {/* Watermark / Background glow */}
-                  <div className="absolute top-0 right-0 w-36 h-36 bg-rose-500/10 rounded-full blur-2xl pointer-events-none" />
-
                   {/* Header de la Ficha */}
-                  <div className="flex items-center justify-between pb-3 border-b border-rose-200 dark:border-rose-900/60">
+                  <div className="flex items-center justify-between pb-3 border-b border-rose-200/80 dark:border-rose-500/20">
                     <div className="flex items-center gap-2">
-                      <div className="h-7 w-7 rounded-lg bg-rose-100 dark:bg-rose-900/50 border border-rose-300 dark:border-rose-700/60 flex items-center justify-center text-rose-600 dark:text-rose-400">
-                        <Lock className="w-4 h-4" />
+                      <div className="h-7 w-7 rounded-lg bg-rose-100 dark:bg-rose-500/20 border border-rose-300 dark:border-rose-500/30 flex items-center justify-center text-rose-600 dark:text-rose-400">
+                        <Lock className="w-3.5 h-3.5" />
                       </div>
                       <div>
-                        <h4 className="text-xs font-bold uppercase tracking-wider text-rose-800 dark:text-rose-300 font-mono">
-                          Ficha de Elector Ya Vinculado
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-rose-900 dark:text-rose-300 font-mono">
+                          Elector Previamente Registrado
                         </h4>
-                        <p className="text-[10px] text-slate-500 dark:text-slate-400">
-                          Registro previo detectado en esta campaña
+                        <p className="text-[10px] text-slate-500 dark:text-zinc-400 font-mono">
+                          Ya vinculado a esta campaña
                         </p>
                       </div>
                     </div>
 
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800/80 font-mono">
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium uppercase tracking-wider bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-500/30">
                       Duplicado Bloqueado
                     </span>
                   </div>
 
                   {/* Detalle del Elector y Trazabilidad */}
-                  <div className="mt-3.5 space-y-3">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 bg-white/80 dark:bg-slate-900/90 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
+                  <div className="mt-3 space-y-2.5">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 bg-white dark:bg-[#18181b] p-3 rounded-xl border border-slate-200/80 dark:border-white/[0.06]">
                       <div>
-                        <p className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
+                        <p className="text-sm font-semibold text-slate-900 dark:text-white leading-tight">
                           {collisionResult.elector.nombres} {collisionResult.elector.apellidos}
                         </p>
-                        <p className="text-xs font-mono text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
-                          <span>Documento: <strong className="text-slate-800 dark:text-slate-200">C.C. {collisionResult.elector.cedula}</strong></span>
+                        <p className="text-xs font-mono tabular-nums text-slate-500 dark:text-zinc-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                          <span>Documento: <strong className="text-slate-800 dark:text-zinc-200">C.C. {collisionResult.elector.cedula}</strong></span>
                           {collisionResult.elector.edad && (
-                            <span className="px-1.5 py-0.5 rounded text-[10px] bg-slate-100 dark:bg-slate-800 font-bold text-slate-700 dark:text-slate-300 font-mono">
+                            <span className="px-1.5 py-0.5 rounded text-[10px] bg-slate-100 dark:bg-white/[0.06] font-medium text-slate-700 dark:text-zinc-300">
                               {collisionResult.elector.edad} años
                             </span>
                           )}
@@ -902,15 +862,15 @@ export const RegisterElectorView = ({
                       </div>
 
                       {collisionResult.elector.telefono && (
-                        <div className="flex items-center gap-2 self-start sm:self-auto">
-                          <span className="text-xs font-mono text-slate-700 dark:text-slate-300 font-medium">
+                        <div className="flex items-center gap-2 self-start sm:self-auto font-mono tabular-nums">
+                          <span className="text-xs text-slate-700 dark:text-zinc-300">
                             {collisionResult.elector.telefono}
                           </span>
                           <a
                             href={`https://wa.me/57${collisionResult.elector.telefono.replace(/\D/g, '')}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="p-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 transition-colors inline-flex items-center gap-1 text-[11px] font-semibold"
+                            className="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30 transition-colors inline-flex items-center gap-1 text-[11px] font-medium"
                             title="Contactar por WhatsApp"
                           >
                             <MessageCircle className="w-3.5 h-3.5" />
@@ -923,17 +883,17 @@ export const RegisterElectorView = ({
                     {/* Datos de Asignación y Operador Registrador */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                       {/* Puesto y Mesa */}
-                      <div className="p-3 rounded-xl bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
-                        <span className="text-[10px] font-mono uppercase text-slate-400 block mb-1">
-                          Lugar de Votación Asignado
+                      <div className="p-3 rounded-xl bg-white dark:bg-[#18181b] border border-slate-200/80 dark:border-white/[0.06]">
+                        <span className="text-[10px] font-mono uppercase text-slate-400 dark:text-zinc-500 block mb-1">
+                          Puesto de Votación
                         </span>
                         <div className="flex items-start gap-1.5">
                           <MapPin className="w-3.5 h-3.5 text-blue-500 shrink-0 mt-0.5" />
                           <div>
-                            <p className="font-semibold text-slate-800 dark:text-slate-200 leading-tight">
+                            <p className="font-medium text-slate-800 dark:text-zinc-200 leading-tight">
                               {collisionResult.elector.puesto_votacion}
                             </p>
-                            <p className="text-[11px] font-mono text-slate-500 dark:text-slate-400 mt-0.5">
+                            <p className="text-[11px] font-mono tabular-nums text-slate-500 dark:text-zinc-400 mt-0.5">
                               Mesa: <strong className="text-blue-600 dark:text-blue-400">{collisionResult.elector.mesa}</strong>
                             </p>
                           </div>
@@ -941,24 +901,24 @@ export const RegisterElectorView = ({
                       </div>
 
                       {/* Operador y Fecha */}
-                      <div className="p-3 rounded-xl bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
-                        <span className="text-[10px] font-mono uppercase text-slate-400 block mb-1">
+                      <div className="p-3 rounded-xl bg-white dark:bg-[#18181b] border border-slate-200/80 dark:border-white/[0.06]">
+                        <span className="text-[10px] font-mono uppercase text-slate-400 dark:text-zinc-500 block mb-1">
                           Operador Responsable
                         </span>
                         <div className="flex items-center justify-between gap-1">
-                          <p className="font-semibold text-slate-800 dark:text-slate-200 truncate">
+                          <p className="font-medium text-slate-800 dark:text-zinc-200 truncate">
                             {collisionResult.elector.registrado_por_nombre || 'Personal Autorizado'}
                           </p>
                           {getRoleBadge(collisionResult.elector.registrado_por_rol)}
                         </div>
-                        <div className="flex items-center gap-1.5 mt-1.5 text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-                          <Clock className="w-3 h-3 text-slate-400" />
+                        <div className="flex items-center gap-1.5 mt-1.5 text-[11px] text-slate-500 dark:text-zinc-400 font-mono tabular-nums">
+                          <Clock className="w-3 h-3 text-slate-400 dark:text-zinc-500" />
                           <span>{formatRegistrationDate(collisionResult.elector.created_at)}</span>
                         </div>
                       </div>
                     </div>
 
-                    <p className="text-[11px] text-rose-700 dark:text-rose-300/90 italic flex items-center gap-1.5">
+                    <p className="text-[11px] text-rose-700 dark:text-rose-300 italic flex items-center gap-1.5 pt-1">
                       <AlertTriangle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
                       <span>Para mantener la integridad del censo, los campos y el botón de guardado han sido inhabilitados.</span>
                     </p>
@@ -969,16 +929,16 @@ export const RegisterElectorView = ({
 
             {/* Banner de Advertencia de Jurisdicción Electoral */}
             {alertaJurisdiccion.mostrar && !collisionResult?.exists && (
-              <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-800/40 text-amber-900 dark:text-amber-300 text-xs space-y-3 animate-in fade-in duration-150">
+              <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-amber-900 dark:text-amber-300 text-xs space-y-3 animate-in fade-in duration-150">
                 <div className="flex items-start gap-3">
-                  <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                  <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                   <div>
-                    <p className="font-bold text-amber-900 dark:text-amber-200">
-                      Advertencia de Jurisdicción: Este ciudadano vota en {alertaJurisdiccion.municipioElector}
-                      {alertaJurisdiccion.puestoElector ? ` (${alertaJurisdiccion.puestoElector})` : ''}, fuera de la circunscripción oficial ({currentTenant?.municipio || resolverMunicipioCampana(currentTenant) || 'Cotorra'}).
+                    <p className="font-semibold text-amber-900 dark:text-amber-200">
+                      Aviso de Jurisdicción: Este elector vota en {alertaJurisdiccion.municipioElector}
+                      {alertaJurisdiccion.puestoElector ? ` (${alertaJurisdiccion.puestoElector})` : ''}, fuera de la circunscripción ({currentTenant?.municipio || resolverMunicipioCampana(currentTenant) || 'Cotorra'}).
                     </p>
-                    <p className="text-[11px] text-amber-700 dark:text-amber-400/80 mt-1">
-                      Puedes bloquear el registro o guardarlo como elector foráneo.
+                    <p className="text-[11px] text-amber-700 dark:text-amber-400 mt-1">
+                      Puede cancelar la operación o autorizar el registro foráneo.
                     </p>
                   </div>
                 </div>
@@ -987,7 +947,7 @@ export const RegisterElectorView = ({
                   <button
                     type="button"
                     onClick={handleLimpiarFormulario}
-                    className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition-colors cursor-pointer"
+                    className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-medium text-xs transition-colors cursor-pointer active:scale-[0.98]"
                   >
                     Bloquear y Limpiar
                   </button>
@@ -998,7 +958,7 @@ export const RegisterElectorView = ({
                       setNotas((prev) => (prev.includes(tag) ? prev : prev ? `${tag} ${prev}` : tag));
                       setAlertaJurisdiccion({ mostrar: false });
                     }}
-                    className="px-3 py-1.5 rounded-xl bg-amber-500/15 dark:bg-amber-900/40 border border-amber-400/50 dark:border-amber-700/50 text-amber-900 dark:text-amber-200 text-xs font-semibold hover:bg-amber-500/25 dark:hover:bg-amber-800/40 transition-colors cursor-pointer"
+                    className="px-3 py-1.5 rounded-xl bg-amber-500/15 dark:bg-amber-500/20 border border-amber-300 dark:border-amber-500/30 text-amber-900 dark:text-amber-200 text-xs font-medium hover:bg-amber-500/25 transition-colors cursor-pointer active:scale-[0.98]"
                   >
                     Autorizar Registro
                   </button>
@@ -1010,21 +970,21 @@ export const RegisterElectorView = ({
           {/* SECCIÓN 2: DATOS PERSONALES */}
           <div className="space-y-3">
             <div>
-              <span className="text-[11px] font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400 font-mono">
+              <span className="text-[11px] font-mono uppercase tracking-wider text-slate-500 dark:text-zinc-400">
                 Datos Personales del Elector
               </span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
               <div className="space-y-1.5">
                 <label
                   htmlFor="nombres"
-                  className="block text-[11px] font-medium uppercase tracking-wider text-slate-700 dark:text-slate-300 font-mono"
+                  className="block text-[11px] font-mono uppercase tracking-wider text-slate-700 dark:text-zinc-300"
                 >
                   Nombres <span className="text-blue-500 dark:text-blue-400">*</span>
                 </label>
                 <div className="relative">
-                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500 pointer-events-none" />
+                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-zinc-500 pointer-events-none" />
                   <input
                     ref={nombresInputRef}
                     id="nombres"
@@ -1035,7 +995,7 @@ export const RegisterElectorView = ({
                     onKeyDown={(e) => handleKeyDown(e, apellidosInputRef)}
                     placeholder="Ej. Juan Carlos"
                     disabled={saving || collisionResult?.exists}
-                    className="w-full h-10.5 pl-10 pr-3.5 bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/60 rounded-xl text-base sm:text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/40 transition-all disabled:opacity-50"
+                    className="w-full h-10 pl-10 pr-3.5 bg-slate-50 dark:bg-[#18181b] border border-slate-200/80 dark:border-white/[0.08] rounded-xl text-base sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-blue-500 transition-colors disabled:opacity-50"
                   />
                 </div>
               </div>
@@ -1043,12 +1003,12 @@ export const RegisterElectorView = ({
               <div className="space-y-1.5">
                 <label
                   htmlFor="apellidos"
-                  className="block text-[11px] font-medium uppercase tracking-wider text-slate-700 dark:text-slate-300 font-mono"
+                  className="block text-[11px] font-mono uppercase tracking-wider text-slate-700 dark:text-zinc-300"
                 >
                   Apellidos <span className="text-blue-500 dark:text-blue-400">*</span>
                 </label>
                 <div className="relative">
-                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500 pointer-events-none" />
+                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-zinc-500 pointer-events-none" />
                   <input
                     ref={apellidosInputRef}
                     id="apellidos"
@@ -1059,23 +1019,23 @@ export const RegisterElectorView = ({
                     onKeyDown={(e) => handleKeyDown(e, telefonoInputRef)}
                     placeholder="Ej. Rodríguez Martínez"
                     disabled={saving || collisionResult?.exists}
-                    className="w-full h-10.5 pl-10 pr-3.5 bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/60 rounded-xl text-base sm:text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/40 transition-all disabled:opacity-50"
+                    className="w-full h-10 pl-10 pr-3.5 bg-slate-50 dark:bg-[#18181b] border border-slate-200/80 dark:border-white/[0.08] rounded-xl text-base sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-blue-500 transition-colors disabled:opacity-50"
                   />
                 </div>
               </div>
             </div>
 
             {/* Fila: Teléfono de Contacto y Edad */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
               <div className="sm:col-span-2 space-y-1.5">
                 <label
                   htmlFor="telefono"
-                  className="block text-[11px] font-medium uppercase tracking-wider text-slate-700 dark:text-slate-300 font-mono"
+                  className="block text-[11px] font-mono uppercase tracking-wider text-slate-700 dark:text-zinc-300"
                 >
                   Teléfono de Contacto (Opcional)
                 </label>
                 <div className="relative">
-                  <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500 pointer-events-none" />
+                  <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-zinc-500 pointer-events-none" />
                   <input
                     ref={telefonoInputRef}
                     id="telefono"
@@ -1086,7 +1046,7 @@ export const RegisterElectorView = ({
                     onKeyDown={(e) => handleKeyDown(e, edadInputRef)}
                     placeholder="Ej. 3124567890"
                     disabled={saving || collisionResult?.exists}
-                    className="w-full h-10.5 pl-10 pr-3.5 bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/60 rounded-xl text-base sm:text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/40 transition-all disabled:opacity-50 font-mono"
+                    className="w-full h-10 pl-10 pr-3.5 bg-slate-50 dark:bg-[#18181b] border border-slate-200/80 dark:border-white/[0.08] rounded-xl text-base sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-blue-500 transition-colors disabled:opacity-50 font-mono tabular-nums"
                   />
                 </div>
               </div>
@@ -1094,9 +1054,9 @@ export const RegisterElectorView = ({
               <div className="sm:col-span-1 space-y-1.5">
                 <label
                   htmlFor="edad"
-                  className="block text-[11px] font-medium uppercase tracking-wider text-slate-700 dark:text-slate-300 font-mono"
+                  className="block text-[11px] font-mono uppercase tracking-wider text-slate-700 dark:text-zinc-300"
                 >
-                  Edad {edad !== '' && <span className="text-blue-600 dark:text-blue-400 font-bold font-mono">({edad}a)</span>}
+                  Edad {edad !== '' && <span className="text-blue-600 dark:text-blue-400 font-mono tabular-nums">({edad}a)</span>}
                 </label>
                 <div className="relative">
                   <input
@@ -1114,7 +1074,7 @@ export const RegisterElectorView = ({
                     onKeyDown={(e) => handleKeyDown(e, mesaInputRef)}
                     placeholder="Ej. 28"
                     disabled={saving || collisionResult?.exists}
-                    className="w-full h-10.5 px-3 bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/60 rounded-xl text-base sm:text-sm font-mono text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/40 transition-all disabled:opacity-50"
+                    className="w-full h-10 px-3 bg-slate-50 dark:bg-[#18181b] border border-slate-200/80 dark:border-white/[0.08] rounded-xl text-base sm:text-sm font-mono tabular-nums text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-blue-500 transition-colors disabled:opacity-50 text-center"
                   />
                 </div>
               </div>
@@ -1140,37 +1100,36 @@ export const RegisterElectorView = ({
             showRememberCheckbox={true}
           />
 
-
           {/* Notas adicionales opcionales */}
           <div className="space-y-1.5">
             <label
               htmlFor="notas"
-              className="block text-[11px] font-medium uppercase tracking-wider text-slate-700 dark:text-slate-300 font-mono"
+              className="block text-[11px] font-mono uppercase tracking-wider text-slate-700 dark:text-zinc-300"
             >
               Observaciones / Referencia (Opcional)
             </label>
             <div className="relative">
-              <FileText className="absolute left-3.5 top-3 w-4 h-4 text-slate-400 dark:text-slate-500 pointer-events-none" />
+              <FileText className="absolute left-3.5 top-3 w-4 h-4 text-slate-400 dark:text-zinc-500 pointer-events-none" />
               <input
                 id="notas"
                 type="text"
                 value={notas}
                 onChange={(e) => setNotas(e.target.value)}
-                placeholder="Ej. Requiere transporte / Contacto vecinal"
+                placeholder="Ej. Requiere transporte / Referencia del líder"
                 disabled={saving || collisionResult?.exists}
-                className="w-full h-10.5 pl-10 pr-3.5 bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/60 rounded-xl text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/40 transition-all disabled:opacity-50"
+                className="w-full h-10 pl-10 pr-3.5 bg-slate-50 dark:bg-[#18181b] border border-slate-200/80 dark:border-white/[0.08] rounded-xl text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-blue-500 transition-colors disabled:opacity-50"
               />
             </div>
           </div>
 
           {/* Botones de Acción */}
-          <div className="pt-4 border-t border-slate-200 dark:border-slate-700/60 flex flex-col sm:flex-row items-center justify-end gap-3">
-            <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="pt-4 border-t border-slate-100 dark:border-white/[0.06] flex flex-col sm:flex-row items-center justify-end gap-3">
+            <div className="flex items-center gap-2.5 w-full sm:w-auto">
               <button
                 type="button"
                 onClick={handleLimpiarFormulario}
                 disabled={saving}
-                className="flex-1 sm:flex-none px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700/60 text-xs font-mono text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2 font-bold"
+                className="flex-1 sm:flex-none px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/[0.06] dark:hover:bg-white/[0.1] text-xs font-mono text-slate-700 dark:text-zinc-200 transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center gap-1.5 font-medium"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
                 <span>Limpiar</span>
@@ -1179,32 +1138,32 @@ export const RegisterElectorView = ({
               <button
                 type="submit"
                 disabled={saving || collisionResult?.exists || cedula.length < 5 || planUsage.isLimitReached}
-                className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-white text-xs font-semibold uppercase tracking-wider transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+                className={`flex-1 sm:flex-none px-5 py-2 rounded-xl text-white text-xs font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] ${
                   collisionResult?.exists
                     ? 'bg-rose-700/80 dark:bg-rose-900/80 border border-rose-500/50 text-rose-200'
                     : planUsage.isLimitReached
-                    ? 'bg-slate-400 dark:bg-slate-700'
-                    : 'bg-blue-600 hover:bg-blue-500 active:bg-blue-700 hover:shadow-[0_0_20px_rgba(37,99,235,0.3)]'
+                    ? 'bg-slate-400 dark:bg-zinc-700'
+                    : 'bg-blue-600 hover:bg-blue-500'
                 }`}
               >
                 {saving ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
                     <span>Guardando...</span>
                   </>
                 ) : collisionResult?.exists ? (
                   <>
-                    <Lock className="w-4 h-4" />
+                    <Lock className="w-3.5 h-3.5" />
                     <span>Registro Bloqueado (Ya Existe)</span>
                   </>
                 ) : planUsage.isLimitReached ? (
                   <>
-                    <AlertTriangle className="w-4 h-4 text-amber-300" />
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-300" />
                     <span>Límite de Plan Alcanzado</span>
                   </>
                 ) : (
                   <>
-                    <UserPlus className="w-4 h-4" />
+                    <UserPlus className="w-3.5 h-3.5" />
                     <span>Guardar Elector</span>
                   </>
                 )}
@@ -1213,6 +1172,6 @@ export const RegisterElectorView = ({
           </div>
         </form>
       </div>
-    </div>
+    </motion.div>
   );
 };
