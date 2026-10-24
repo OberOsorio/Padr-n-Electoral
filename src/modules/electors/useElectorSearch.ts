@@ -18,13 +18,20 @@ export function useElectorSearch() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const buscarDocumento = useCallback(
     async (documento: string, tenantId?: string | null): Promise<ElectorLookupResult | null> => {
       const docLimpio = String(documento || '').replace(/\D/g, '').trim();
       if (docLimpio.length < 5) return null;
 
-      // 1. Cancelar cualquier petición en vuelo para evitar condiciones de carrera (Race Conditions)
+      // 1. Limpiar cualquier temporizador previo para evitar fugas y abortos accidentales
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+
+      // 2. Cancelar cualquier petición en vuelo para evitar condiciones de carrera (Race Conditions)
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
@@ -33,12 +40,12 @@ export function useElectorSearch() {
       setLoading(true);
       setError(null);
 
-      // 2. Timeout estricto de 4 segundos para evitar que la UI se congele
-      const timeoutId = setTimeout(() => {
+      // 3. Timeout tolerante de 10 segundos para dar margen al servicio externo DNP / Sisbén
+      timeoutRef.current = setTimeout(() => {
         if (abortControllerRef.current) {
           abortControllerRef.current.abort();
         }
-      }, 4000);
+      }, 10000);
 
       try {
         // 3. Petición estándar compatible con todos los navegadores (Firefox, Safari, Chrome, Edge)
@@ -151,7 +158,10 @@ export function useElectorSearch() {
           }
         }
 
-        clearTimeout(timeoutId);
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = null;
+        }
 
         // Caso A: Duplicado en la campaña activa
         if (res && res.duplicado) {
@@ -204,7 +214,10 @@ export function useElectorSearch() {
         }
         return null;
       } finally {
-        clearTimeout(timeoutId);
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = null;
+        }
         setLoading(false);
       }
     },

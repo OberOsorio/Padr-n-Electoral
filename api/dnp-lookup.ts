@@ -224,7 +224,7 @@ export interface DnpCitizenResult {
 export async function fetchDnpCitizen(
   cedula: string,
   tipoDoc = '3',
-  timeoutMs = 2500
+  timeoutMs = 6000
 ): Promise<DnpCitizenResult> {
   try {
     let session = await getCachedOrFreshSession();

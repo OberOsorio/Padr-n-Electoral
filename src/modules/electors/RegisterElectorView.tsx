@@ -79,6 +79,8 @@ export const RegisterElectorView = ({
   }>({ mostrar: false });
   const currentCedulaRef = useRef<string>('');
   const autofilledCedulaRef = useRef<string>('');
+  const lastSearchedCedulaRef = useRef<string>('');
+  const isSearchingCedulaRef = useRef<boolean>(false);
 
   // Estados de envío y feedback
   const [saving, setSaving] = useState(false);
@@ -237,7 +239,7 @@ export const RegisterElectorView = ({
   };
 
   // Validación anti-colisión y autocompletado en tiempo real
-  const checkCedulaCollision = useCallback(async (cedulaValue: string) => {
+  const checkCedulaCollision = useCallback(async (cedulaValue: string, force = false) => {
     const cleanCedula = cedulaValue.trim().replace(/\D/g, '');
     if (cleanCedula.length < 5) {
       setCollisionResult(null);
@@ -245,14 +247,23 @@ export const RegisterElectorView = ({
       return;
     }
 
+    // Evitar llamadas duplicadas o carreras si ya está resuelto para este documento exacto
+    if (!force && cleanCedula === lastSearchedCedulaRef.current && (collisionResult !== null || isAutofilledFromCenso)) {
+      return;
+    }
+
     setIsCheckingCedula(true);
+    isSearchingCedulaRef.current = true;
 
     try {
       const res = await buscarDocumento(cleanCedula, currentTenantId);
 
+      // Si el usuario continuó modificando el valor mientras se consultaba, descartar
       if (currentCedulaRef.current !== cleanCedula) {
         return;
       }
+
+      lastSearchedCedulaRef.current = cleanCedula;
 
       if (res && res.duplicado) {
         setCollisionResult({
@@ -328,8 +339,9 @@ export const RegisterElectorView = ({
       setCollisionResult({ exists: false });
     } finally {
       setIsCheckingCedula(false);
+      isSearchingCedulaRef.current = false;
     }
-  }, [currentTenantId, pollingPlaces, rememberLocation, buscarDocumento, validarJurisdiccionElector]);
+  }, [currentTenantId, pollingPlaces, rememberLocation, buscarDocumento, validarJurisdiccionElector, collisionResult, isAutofilledFromCenso]);
 
   const handleCedulaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value.replace(/\D/g, '');
@@ -340,6 +352,7 @@ export const RegisterElectorView = ({
 
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
     }
 
     const seEliminoNumero = val.length < prevCedula.length;
@@ -354,6 +367,7 @@ export const RegisterElectorView = ({
       }
       setIsAutofilledFromCenso(false);
       autofilledCedulaRef.current = '';
+      lastSearchedCedulaRef.current = '';
       setAlertaJurisdiccion({ mostrar: false });
       setCollisionResult(null);
     }
@@ -370,21 +384,23 @@ export const RegisterElectorView = ({
       setIsCheckingCedula(false);
       setIsAutofilledFromCenso(false);
       autofilledCedulaRef.current = '';
+      lastSearchedCedulaRef.current = '';
       setAlertaJurisdiccion({ mostrar: false });
       return;
     }
 
-    if (val.length < 5) {
+    if (val.length < 6) {
       setCollisionResult(null);
       setIsCheckingCedula(false);
       setAlertaJurisdiccion({ mostrar: false });
       return;
     }
 
+    // Debounce calibrado a 400ms para evitar interrupciones de escritura
     setIsCheckingCedula(true);
     debounceTimerRef.current = setTimeout(() => {
       checkCedulaCollision(val);
-    }, 250);
+    }, 400);
   };
 
   const handlePuestoChange = (newPuesto: string) => {
@@ -395,8 +411,11 @@ export const RegisterElectorView = ({
   const handleLimpiarFormulario = () => {
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
     }
     currentCedulaRef.current = '';
+    lastSearchedCedulaRef.current = '';
+    isSearchingCedulaRef.current = false;
 
     setCedula('');
     setNombres('');
@@ -773,8 +792,15 @@ export const RegisterElectorView = ({
                 onChange={handleCedulaChange}
                 onBlur={() => {
                   const clean = cedula.replace(/\D/g, '');
-                  if (clean.length >= 5) {
-                    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+                  if (
+                    clean.length >= 6 &&
+                    clean !== lastSearchedCedulaRef.current &&
+                    !isSearchingCedulaRef.current
+                  ) {
+                    if (debounceTimerRef.current) {
+                      clearTimeout(debounceTimerRef.current);
+                      debounceTimerRef.current = null;
+                    }
                     checkCedulaCollision(clean);
                   }
                 }}
@@ -783,8 +809,13 @@ export const RegisterElectorView = ({
                     e.preventDefault();
                     const clean = cedula.replace(/\D/g, '');
                     if (clean.length >= 5) {
-                      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
-                      checkCedulaCollision(clean);
+                      if (debounceTimerRef.current) {
+                        clearTimeout(debounceTimerRef.current);
+                        debounceTimerRef.current = null;
+                      }
+                      if (clean !== lastSearchedCedulaRef.current && !isSearchingCedulaRef.current) {
+                        checkCedulaCollision(clean, true);
+                      }
                     }
                     nombresInputRef.current?.focus();
                   } else {
@@ -793,22 +824,43 @@ export const RegisterElectorView = ({
                 }}
                 placeholder="Ej. 1047892341 (solo dígitos)"
                 disabled={saving}
-                className={`w-full h-10.5 pl-4 pr-11 bg-slate-50 dark:bg-[#18181b] border rounded-xl text-base sm:text-sm font-mono tabular-nums text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-500 focus:outline-none transition-all ${
+                className={`w-full h-10.5 pl-4 pr-24 bg-slate-50 dark:bg-[#18181b] border rounded-xl text-base sm:text-sm font-mono tabular-nums text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-500 focus:outline-none transition-all ${
                   collisionResult?.exists
                     ? 'border-amber-500 dark:border-amber-500/60 focus:border-amber-500'
                     : 'border-slate-200/80 dark:border-white/[0.08] focus:border-blue-500'
                 }`}
               />
 
-              <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none">
+              <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
                 {isCheckingCedula ? (
-                  <Loader2 className="w-4 h-4 animate-spin text-blue-500 dark:text-blue-400" />
+                  <span className="flex items-center gap-1 px-2 py-1 text-[11px] font-mono font-medium text-blue-500 dark:text-blue-400">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Buscando</span>
+                  </span>
                 ) : collisionResult?.exists ? (
-                  <AlertTriangle className="w-4 h-4 text-amber-500 dark:text-amber-400" />
+                  <span className="flex items-center gap-1 px-2 py-1 text-[11px] font-mono text-amber-500 dark:text-amber-400">
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                  </span>
                 ) : collisionResult && !collisionResult.exists && cedula.length >= 5 ? (
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
+                  <button
+                    type="button"
+                    onClick={() => checkCedulaCollision(cedula, true)}
+                    title="Volver a consultar"
+                    className="flex items-center gap-1 px-2 py-1 text-[11px] font-mono text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 rounded-md transition-colors cursor-pointer"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline font-semibold">Listo</span>
+                  </button>
+                ) : cedula.length >= 5 ? (
+                  <button
+                    type="button"
+                    onClick={() => checkCedulaCollision(cedula, true)}
+                    className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-mono font-medium text-slate-700 dark:text-zinc-200 bg-slate-200/70 hover:bg-slate-300/80 dark:bg-white/[0.08] dark:hover:bg-white/[0.14] rounded-lg transition-all cursor-pointer active:scale-95"
+                  >
+                    <span>Consultar</span>
+                  </button>
                 ) : (
-                  <CreditCard className="w-4 h-4 text-slate-400 dark:text-zinc-600" />
+                  <CreditCard className="w-4 h-4 text-slate-400 dark:text-zinc-600 mr-1" />
                 )}
               </div>
             </div>

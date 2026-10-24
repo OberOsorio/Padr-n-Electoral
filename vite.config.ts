@@ -55,7 +55,7 @@ async function queryDevEndpoint(
   url: string,
   payload: string,
   session: { cookie: string; nonce: string },
-  timeoutMs = 2500
+  timeoutMs = 6000
 ): Promise<{ ok: boolean; status: number; data?: any }> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -119,7 +119,11 @@ function dnpLookupDevPlugin(): Plugin {
               const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3ZXJlemp1cm14dXdjcW91c3FnIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc5MDM0ODA1MSwiZXhwIjoyMTA1OTI0MDUxfQ.Z4bqbeoCOZPoBRtw1uFENwXuLPHO5lU89MOQqYnBL1Y';
 
               // 1. Anti-colisión en campaña activa (Supabase electores)
-              if (tenantId) {
+              const isValidUuid = (val: any) =>
+                typeof val === 'string' &&
+                /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(val.trim());
+
+              if (tenantId && isValidUuid(tenantId)) {
                 try {
                   const dupRes = await fetch(
                     `${SUPABASE_URL}/rest/v1/electores?tenant_id=eq.${tenantId}&cedula=eq.${cedula}&select=id,nombres,apellidos,puesto_votacion`,

@@ -164,7 +164,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // 4. Fallback externo en vivo (Ventanilla Social DNP)
     console.log(`[Lookup] Intentando consulta externa DNP para cédula: ${docLimpio}...`);
     try {
-      const dnpResult = await fetchDnpCitizen(docLimpio, '3', 2500);
+      const dnpResult = await fetchDnpCitizen(docLimpio, '3', 6000);
       if (dnpResult && dnpResult.encontrado && dnpResult.nombres) {
         console.log(`[Lookup] Encontrado en servicio externo DNP: ${dnpResult.nombres} ${dnpResult.apellidos}`);
 

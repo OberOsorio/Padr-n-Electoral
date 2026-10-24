@@ -107,7 +107,7 @@ export const LeaderRegisterElectorView: React.FC<LeaderRegisterProps> = ({
       // 1. Intentar endpoint /api/search-elector (Vercel Serverless Function)
       try {
         const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 3500);
+        const timer = setTimeout(() => controller.abort(), 10000);
         const res = await fetch('/api/search-elector', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
