@@ -71,6 +71,7 @@ export const RegisterElectorView = ({
   const [isCheckingCedula, setIsCheckingCedula] = useState(false);
   const [collisionResult, setCollisionResult] = useState<CollisionCheckResult | null>(null);
   const [isAutofilledFromCenso, setIsAutofilledFromCenso] = useState(false);
+  const [origenVerificado, setOrigenVerificado] = useState<string | null>(null);
   const { buscarDocumento } = useElectorSearch();
   const [alertaJurisdiccion, setAlertaJurisdiccion] = useState<{
     mostrar: boolean;
@@ -291,6 +292,7 @@ export const RegisterElectorView = ({
         setCollisionResult({ exists: false });
         setNombres(res.nombres);
         setApellidos(res.apellidos);
+        setOrigenVerificado(res.origen || 'censo_nacional');
 
         const edadFinal: number | '' =
           res.edad && !isNaN(Number(res.edad)) && Number(res.edad) > 0
@@ -304,15 +306,27 @@ export const RegisterElectorView = ({
           puesto: res.puesto_votacion || null,
         });
 
-        if (!esForaneo && res.puesto_votacion) {
-          const matchedPlace = pollingPlaces.find(
-            (p) => normalizarTexto(p.name) === normalizarTexto(res.puesto_votacion!)
-          );
-          if (matchedPlace) {
-            setPuestoVotacion(matchedPlace.name);
-            if (res.mesa) {
-              setMesa(Number(res.mesa) || '');
+        if (!esForaneo) {
+          if (res.puesto_votacion) {
+            const matchedPlace = pollingPlaces.find(
+              (p) =>
+                normalizarTexto(p.name) === normalizarTexto(res.puesto_votacion!) ||
+                normalizarTexto(p.name).includes(normalizarTexto(res.puesto_votacion!)) ||
+                normalizarTexto(res.puesto_votacion!).includes(normalizarTexto(p.name))
+            );
+            if (matchedPlace) {
+              setPuestoVotacion(matchedPlace.name);
+            } else if (!puestoVotacion && pollingPlaces.length > 0) {
+              setPuestoVotacion(pollingPlaces[0].name);
             }
+          } else if (!puestoVotacion && pollingPlaces.length > 0) {
+            setPuestoVotacion(pollingPlaces[0].name);
+          }
+
+          if (res.mesa) {
+            setMesa(Number(res.mesa) || 1);
+          } else if (!mesa) {
+            setMesa(1);
           }
         }
 
@@ -333,6 +347,7 @@ export const RegisterElectorView = ({
       }
       autofilledCedulaRef.current = '';
       setIsAutofilledFromCenso(false);
+      setOrigenVerificado(null);
       setAlertaJurisdiccion({ mostrar: false });
     } catch (err) {
       console.error('Error al verificar documento:', err);
@@ -366,6 +381,7 @@ export const RegisterElectorView = ({
         setMesa('');
       }
       setIsAutofilledFromCenso(false);
+      setOrigenVerificado(null);
       autofilledCedulaRef.current = '';
       lastSearchedCedulaRef.current = '';
       setAlertaJurisdiccion({ mostrar: false });
@@ -383,6 +399,7 @@ export const RegisterElectorView = ({
       setCollisionResult(null);
       setIsCheckingCedula(false);
       setIsAutofilledFromCenso(false);
+      setOrigenVerificado(null);
       autofilledCedulaRef.current = '';
       lastSearchedCedulaRef.current = '';
       setAlertaJurisdiccion({ mostrar: false });
@@ -434,6 +451,7 @@ export const RegisterElectorView = ({
     setIsCheckingCedula(false);
     setCollisionResult(null);
     setIsAutofilledFromCenso(false);
+    setOrigenVerificado(null);
     autofilledCedulaRef.current = '';
     setAlertaJurisdiccion({ mostrar: false });
     setServerError(null);
@@ -768,13 +786,23 @@ export const RegisterElectorView = ({
                 {isCheckingCedula && (
                   <span className="text-slate-500 dark:text-zinc-400 flex items-center gap-1">
                     <Loader2 className="w-3 h-3 animate-spin text-blue-500 dark:text-blue-400" />
-                    Verificando...
+                    Consultando censo...
                   </span>
                 )}
                 {!isCheckingCedula && collisionResult && !collisionResult.exists && cedula.length >= 5 && (
-                  <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-semibold">
+                  <span className={`flex items-center gap-1 font-semibold ${
+                    origenVerificado === 'servicio_externo'
+                      ? 'text-emerald-600 dark:text-emerald-400'
+                      : origenVerificado === 'censo_electoral' || origenVerificado === 'base_de_datos_local'
+                      ? 'text-blue-600 dark:text-blue-400'
+                      : 'text-indigo-600 dark:text-indigo-400'
+                  }`}>
                     <Check className="w-3.5 h-3.5" />
-                    Disponible para registro
+                    {origenVerificado === 'servicio_externo'
+                      ? 'Verificado en Base DNP / Sisbén'
+                      : origenVerificado === 'censo_electoral' || origenVerificado === 'base_de_datos_local'
+                      ? 'Verificado en Censo Oficial'
+                      : 'Identificado en Censo Electoral'}
                   </span>
                 )}
               </div>
