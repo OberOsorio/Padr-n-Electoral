@@ -1,1 +1,6 @@
-export { ConfirmActionModal, type ConfirmActionModalProps } from '../../components/ui/ConfirmActionModal';
+export {
+  ConfirmActionModal,
+  type ConfirmActionModalProps,
+  Modal,
+  type ModalVariant,
+} from '../../components/ui/ConfirmActionModal';

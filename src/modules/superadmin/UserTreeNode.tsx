@@ -127,29 +127,47 @@ export const UserStatusToggle: React.FC<UserStatusToggleProps> = ({
         <Power className="w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity ml-0.5" />
       </button>
 
-      <ConfirmActionModal
-        isOpen={isConfirmOpen}
+      <ConfirmActionModal.Root
+        open={isConfirmOpen}
         onClose={() => !loading && setIsConfirmOpen(false)}
-        onConfirm={handleConfirmToggle}
         loading={loading}
-        isDestructive={isActive}
-        title={
-          isActive
-            ? '¿Suspender acceso de usuario?'
-            : '¿Reactivar acceso de usuario?'
-        }
-        description={
-          isActive
-            ? 'El usuario perderá de inmediato el acceso a la plataforma y sus sesiones activas serán invalidadas.'
-            : 'Se restablecerán de inmediato los privilegios de acceso para este usuario.'
-        }
-        userName={user.full_name}
-        userEmail={user.email}
-        confirmText={
-          isActive ? 'Sí, Suspender Cuenta' : 'Sí, Reactivar Acceso'
-        }
-        cancelText="Cancelar"
-      />
+        variant={isActive ? 'danger' : 'success'}
+      >
+        <ConfirmActionModal.Overlay />
+        <ConfirmActionModal.Content>
+          <ConfirmActionModal.CloseButton />
+          <ConfirmActionModal.Header>
+            <ConfirmActionModal.Icon variant={isActive ? 'danger' : 'success'} />
+            <ConfirmActionModal.Title>
+              {isActive ? '¿Suspender acceso de usuario?' : '¿Reactivar acceso de usuario?'}
+            </ConfirmActionModal.Title>
+            <ConfirmActionModal.Description>
+              {isActive
+                ? 'El usuario perderá de inmediato el acceso a la plataforma y sus sesiones activas serán invalidadas.'
+                : 'Se restablecerán de inmediato los privilegios de acceso para este usuario.'}
+            </ConfirmActionModal.Description>
+          </ConfirmActionModal.Header>
+
+          <ConfirmActionModal.Body>
+            <ConfirmActionModal.UserPreview
+              name={user.full_name}
+              email={user.email}
+              badge={isActive ? 'Activo' : 'Suspendido'}
+            />
+          </ConfirmActionModal.Body>
+
+          <ConfirmActionModal.Footer>
+            <ConfirmActionModal.Close>Cancelar</ConfirmActionModal.Close>
+            <ConfirmActionModal.Action
+              variant={isActive ? 'danger' : 'success'}
+              loading={loading}
+              onClick={handleConfirmToggle}
+            >
+              {isActive ? 'Sí, Suspender Cuenta' : 'Sí, Reactivar Acceso'}
+            </ConfirmActionModal.Action>
+          </ConfirmActionModal.Footer>
+        </ConfirmActionModal.Content>
+      </ConfirmActionModal.Root>
     </>
   );
 };
@@ -221,20 +239,44 @@ export const UserTreeNodeActions: React.FC<{
         </span>
       </button>
 
-      <ConfirmActionModal
-        isOpen={isConfirmOpen}
+      <ConfirmActionModal.Root
+        open={isConfirmOpen}
         onClose={() => !enviando && setIsConfirmOpen(false)}
-        onConfirm={handleConfirmRecuperacion}
         loading={enviando}
-        isDestructive={false}
         variant="info"
-        title="¿Enviar enlace de recuperación?"
-        description="Se enviará un correo oficial con un enlace único y seguro para que el usuario restablezca su propia contraseña."
-        userName={node.full_name}
-        userEmail={node.email}
-        confirmText="Enviar Instrucciones"
-        cancelText="Cancelar"
-      />
+      >
+        <ConfirmActionModal.Overlay />
+        <ConfirmActionModal.Content>
+          <ConfirmActionModal.CloseButton />
+          <ConfirmActionModal.Header>
+            <ConfirmActionModal.Icon variant="info" icon={KeyRound} />
+            <ConfirmActionModal.Title>
+              ¿Enviar enlace de recuperación?
+            </ConfirmActionModal.Title>
+            <ConfirmActionModal.Description>
+              Se enviará un correo oficial con un enlace único y seguro para que el usuario restablezca su propia contraseña.
+            </ConfirmActionModal.Description>
+          </ConfirmActionModal.Header>
+
+          <ConfirmActionModal.Body>
+            <ConfirmActionModal.UserPreview
+              name={node.full_name}
+              email={node.email}
+            />
+          </ConfirmActionModal.Body>
+
+          <ConfirmActionModal.Footer>
+            <ConfirmActionModal.Close>Cancelar</ConfirmActionModal.Close>
+            <ConfirmActionModal.Action
+              variant="info"
+              loading={enviando}
+              onClick={handleConfirmRecuperacion}
+            >
+              Enviar Instrucciones
+            </ConfirmActionModal.Action>
+          </ConfirmActionModal.Footer>
+        </ConfirmActionModal.Content>
+      </ConfirmActionModal.Root>
     </div>
   );
 };
