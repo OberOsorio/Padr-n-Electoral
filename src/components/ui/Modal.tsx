@@ -505,5 +505,6 @@ export const Modal = {
   Footer: ModalFooter,
   CloseButton: ModalCloseButton,
   Close: ModalClose,
+  Cancel: ModalClose,
   Action: ModalAction,
 };
