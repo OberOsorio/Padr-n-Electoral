@@ -140,7 +140,7 @@ export const AppLayout = ({
   const isAdmin = userRole?.toLowerCase().includes('admin') ?? true;
 
   return (
-    <div className="h-[100dvh] w-full max-w-full bg-slate-50 dark:bg-[#0F172A] text-slate-900 dark:text-slate-100 flex overflow-hidden transition-colors duration-200 relative">
+    <div className="h-[100dvh] w-full max-w-full bg-[#fafafa] dark:bg-[#09090b] text-slate-900 dark:text-zinc-100 flex overflow-hidden transition-colors duration-200 relative">
       {/* 1. Sidebar de Escritorio (Visible en lg+) */}
       <Sidebar
         activeTab={activeTab}
@@ -163,12 +163,12 @@ export const AppLayout = ({
         >
           <div
             onClick={() => setIsMobileMenuOpen(false)}
-            className="fixed inset-0 bg-slate-950/75 backdrop-blur-sm z-[60] lg:hidden transition-opacity duration-200 cursor-pointer"
+            className="fixed inset-0 bg-black/70 backdrop-blur-md z-[60] lg:hidden transition-opacity duration-200 cursor-pointer"
             aria-hidden="true"
           />
 
           <aside
-            className="fixed inset-y-0 left-0 z-[70] w-[82vw] max-w-xs h-[100dvh] max-h-[100dvh] bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col justify-between overflow-hidden animate-in slide-in-from-left duration-200"
+            className="fixed inset-y-0 left-0 z-[70] w-[84vw] max-w-xs h-[100dvh] max-h-[100dvh] bg-white dark:bg-[#0c0c0e] border-r border-slate-200/90 dark:border-white/[0.07] shadow-2xl flex flex-col justify-between overflow-hidden animate-in slide-in-from-left duration-200"
           >
             <Sidebar
               activeTab={activeTab}
@@ -193,16 +193,12 @@ export const AppLayout = ({
       <div
         className={`flex-1 h-full ${
           isMobileMenuOpen ? 'overflow-hidden' : 'overflow-y-auto'
-        } overflow-x-hidden w-full max-w-full bg-slate-50 dark:bg-[#0F172A] transition-colors duration-200 flex flex-col`}
+        } overflow-x-hidden w-full max-w-full bg-[#fafafa] dark:bg-[#09090b] transition-colors duration-200 flex flex-col`}
       >
-        {/* Header Móvil / Tablet Superior Fijo (< 1024px lg) con Desvanecimiento Suave (Fade-Out Blur) sin borde rígido */}
-        <header className="lg:hidden sticky top-0 z-50 w-full shrink-0 pt-[env(safe-area-inset-top,0px)] pointer-events-none transition-all">
-          {/* Capa de fondo con degradado de desvanecimiento hacia transparente (SIN borde inferior) */}
-          <div className="absolute inset-0 bg-gradient-to-b from-slate-50 via-slate-50/95 via-80% to-transparent dark:from-[#070b14] dark:via-[#070b14]/95 dark:via-80% dark:to-transparent backdrop-blur-md pointer-events-none" />
-
-          {/* Contenedor interactivo de controles */}
-          <div className="relative max-w-7xl mx-auto px-3.5 sm:px-6 h-18 sm:h-20 flex items-center justify-between gap-3 pointer-events-auto pb-2">
-            {/* Izquierda: Escudo de Seguridad (Recargar Plataforma) + Selector de Campaña Ampliado */}
+        {/* Header Móvil / Tablet Superior Fijo (< 1024px lg) */}
+        <header className="lg:hidden sticky top-0 z-50 w-full shrink-0 pt-[env(safe-area-inset-top,0px)] bg-white/80 dark:bg-[#09090b]/80 backdrop-blur-xl border-b border-slate-200/80 dark:border-white/[0.07] transition-all">
+          <div className="relative max-w-7xl mx-auto px-3.5 sm:px-6 h-16 sm:h-18 flex items-center justify-between gap-3">
+            {/* Izquierda: Escudo de Seguridad + Selector de Campaña */}
             <div className="flex items-center gap-2.5 min-w-0">
               <button
                 type="button"
@@ -212,38 +208,38 @@ export const AppLayout = ({
                 }}
                 title="Recargar plataforma"
                 aria-label="Recargar plataforma"
-                className="w-11 h-11 flex items-center justify-center rounded-2xl bg-white/95 dark:bg-[#0b1427]/90 border border-slate-200 dark:border-[#1b2b50]/80 text-blue-600 dark:text-sky-400 hover:text-blue-700 dark:hover:text-white hover:border-blue-400 dark:hover:border-sky-500/50 transition-all shadow-lg shadow-slate-900/5 dark:shadow-black/20 active:scale-95 touch-manipulation cursor-pointer shrink-0 select-none"
+                className="w-10 h-10 flex items-center justify-center rounded-xl bg-white dark:bg-white/[0.05] border border-slate-200 dark:border-white/[0.08] text-slate-700 dark:text-zinc-200 hover:text-blue-600 dark:hover:text-white transition-colors active:scale-95 touch-manipulation cursor-pointer shrink-0 select-none shadow-xs"
               >
-                <Shield className="w-5 h-5" strokeWidth={2.2} />
+                <Shield className="w-4.5 h-4.5" strokeWidth={2} />
               </button>
 
               <TenantSwitcher userRole={userRole} />
             </div>
 
-            {/* Derecha: Selector de Tema y Menú Hamburguesa (44x44px Touch Targets) */}
+            {/* Derecha: Selector de Tema y Menú Hamburguesa */}
             <div className="flex items-center gap-2 shrink-0">
               <ThemeToggle size="md" />
 
               <button
                 type="button"
                 onClick={() => setIsMobileMenuOpen((prev) => !prev)}
-                className="w-11 h-11 flex items-center justify-center rounded-2xl bg-white/95 dark:bg-[#0b1427]/90 border border-slate-200 dark:border-[#1b2b50]/80 text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:border-slate-300 dark:hover:border-slate-600 transition-colors shadow-lg shadow-slate-900/5 dark:shadow-black/20 active:scale-95 touch-manipulation cursor-pointer"
+                className="w-10 h-10 flex items-center justify-center rounded-xl bg-white dark:bg-white/[0.05] border border-slate-200 dark:border-white/[0.08] text-slate-700 dark:text-zinc-200 hover:text-slate-900 dark:hover:text-white transition-colors active:scale-95 touch-manipulation cursor-pointer shadow-xs"
                 title={isMobileMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
                 aria-label={isMobileMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
               >
                 <div className="w-5 h-4 flex flex-col justify-between items-center relative" aria-hidden="true">
                   <span
-                    className={`w-5 h-0.5 bg-current rounded-full transition-transform duration-200 ease-out origin-center ${
+                    className={`w-4.5 h-0.5 bg-current rounded-full transition-transform duration-200 ease-out origin-center ${
                       isMobileMenuOpen ? 'rotate-45 translate-y-[7px]' : ''
                     }`}
                   />
                   <span
-                    className={`w-5 h-0.5 bg-current rounded-full transition-opacity duration-150 ${
+                    className={`w-4.5 h-0.5 bg-current rounded-full transition-opacity duration-150 ${
                       isMobileMenuOpen ? 'opacity-0' : 'opacity-100'
                     }`}
                   />
                   <span
-                    className={`w-5 h-0.5 bg-current rounded-full transition-transform duration-200 ease-out origin-center ${
+                    className={`w-4.5 h-0.5 bg-current rounded-full transition-transform duration-200 ease-out origin-center ${
                       isMobileMenuOpen ? '-rotate-45 -translate-y-[7px]' : ''
                     }`}
                   />
@@ -251,9 +247,6 @@ export const AppLayout = ({
               </button>
             </div>
           </div>
-
-          {/* Franja difusora extra para transición suave del scroll */}
-          <div className="h-4 w-full bg-gradient-to-b from-slate-50/40 dark:from-[#070b14]/40 to-transparent pointer-events-none -mt-1" />
         </header>
 
         {/* Contenido Dinámico con Ancho Centrado para Pantallas Ultra-Wide */}

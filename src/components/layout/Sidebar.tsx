@@ -115,17 +115,19 @@ export const Sidebar = ({
     <motion.aside
       initial={false}
       animate={{
-        width: onCloseMobile ? '100%' : isEffectivelyCollapsed ? 80 : 292,
+        width: onCloseMobile ? '100%' : isEffectivelyCollapsed ? 80 : 280,
       }}
-      transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+      transition={{ type: 'spring', stiffness: 380, damping: 30, mass: 0.8 }}
       className={`shrink-0 ${
-        onCloseMobile ? 'h-full bg-white dark:bg-slate-950' : 'h-screen sticky top-0 bg-white dark:bg-[#161F30]/95 md:backdrop-blur-xl'
-      } border-r border-slate-200 dark:border-slate-700/60 flex flex-col justify-between select-none z-30 transition-colors duration-200 overflow-hidden ${
+        onCloseMobile
+          ? 'h-full bg-white dark:bg-[#09090b]'
+          : 'h-screen sticky top-0 bg-white/95 dark:bg-[#121215]/95 md:backdrop-blur-xl'
+      } border-r border-slate-200/80 dark:border-white/[0.07] flex flex-col justify-between select-none z-30 transition-colors duration-200 overflow-hidden ${
         className ?? 'hidden md:flex'
       }`}
     >
       {/* 1. Header del Sidebar */}
-      <div className={`shrink-0 border-b border-slate-200/80 dark:border-slate-800/80 transition-all ${
+      <div className={`shrink-0 border-b border-slate-200/80 dark:border-white/[0.07] transition-all ${
         onCloseMobile
           ? 'p-4 pt-[max(1rem,env(safe-area-inset-top))]'
           : isEffectivelyCollapsed
@@ -286,17 +288,8 @@ export const Sidebar = ({
                   {isActive && (
                     <motion.div
                       layoutId={`${layoutPrefix}-pill`}
-                      className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-50/90 to-blue-50/40 border border-blue-200/80 shadow-[0_1px_3px_rgba(37,99,235,0.06),0_1px_2px_rgba(0,0,0,0.02)] dark:from-blue-600/20 dark:via-cyan-600/15 dark:to-blue-600/5 dark:border-cyan-400/30 dark:shadow-[0_0_20px_rgba(6,182,212,0.18)]"
-                      transition={{ type: 'spring', stiffness: 360, damping: 28, mass: 0.8 }}
-                    />
-                  )}
-
-                  {/* Indicador de barra izquierda compartida con resplandor neón en oscuro y azul rey en claro */}
-                  {isActive && !isEffectivelyCollapsed && (
-                    <motion.span
-                      layoutId={`${layoutPrefix}-bar`}
-                      className="absolute left-0 top-2.5 bottom-2.5 w-1 rounded-r bg-blue-600 shadow-[0_0_8px_rgba(37,99,235,0.35)] dark:bg-gradient-to-b dark:from-cyan-400 dark:to-blue-600 dark:shadow-[0_0_12px_rgba(6,182,212,0.9)] z-10"
-                      transition={{ type: 'spring', stiffness: 360, damping: 28, mass: 0.8 }}
+                      className="absolute inset-0 rounded-xl bg-slate-100 border border-slate-200/80 dark:bg-white/[0.06] dark:border-white/[0.08]"
+                      transition={{ type: 'spring', stiffness: 380, damping: 30, mass: 0.8 }}
                     />
                   )}
 
@@ -304,28 +297,28 @@ export const Sidebar = ({
                     <Icon
                       className={`w-4.5 h-4.5 shrink-0 transition-all duration-200 ${
                         isActive
-                          ? 'text-blue-600 dark:text-cyan-400 scale-105 dark:scale-110 dark:drop-shadow-[0_0_8px_rgba(6,182,212,0.6)]'
-                          : 'text-slate-500 dark:text-slate-400 group-hover:text-slate-800 dark:group-hover:text-slate-200 group-hover:scale-105'
+                          ? 'text-blue-600 dark:text-white'
+                          : 'text-slate-500 dark:text-zinc-400 group-hover:text-slate-800 dark:group-hover:text-zinc-200'
                       }`}
-                      strokeWidth={isActive ? 2.3 : 1.8}
+                      strokeWidth={isActive ? 2.2 : 1.75}
                     />
 
                     {!isEffectivelyCollapsed && (
                       <>
                         <span className={`truncate tracking-tight transition-colors ${
                           isActive
-                            ? 'text-slate-900 dark:text-white font-bold'
-                            : 'text-slate-600 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white'
+                            ? 'text-slate-900 dark:text-white font-semibold'
+                            : 'text-slate-600 dark:text-zinc-300 group-hover:text-slate-900 dark:group-hover:text-white'
                         }`}>
                           {item.label}
                         </span>
 
-                        {/* Punto luminoso activo con desplazamiento vertical sincronizado */}
+                        {/* Punto sutil activo */}
                         {isActive && (
                           <motion.span
                             layoutId={`${layoutPrefix}-dot`}
-                            className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600 shadow-[0_0_6px_rgba(37,99,235,0.35)] ring-2 ring-blue-100 dark:bg-cyan-400 dark:shadow-[0_0_8px_rgba(6,182,212,0.9)] dark:ring-cyan-400/20 shrink-0"
-                            transition={{ type: 'spring', stiffness: 360, damping: 28, mass: 0.8 }}
+                            className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0"
+                            transition={{ type: 'spring', stiffness: 380, damping: 30, mass: 0.8 }}
                           />
                         )}
                       </>
@@ -335,9 +328,9 @@ export const Sidebar = ({
 
                 {/* Tooltip Flotante para modo colapsado (Mini Rail) */}
                 {isEffectivelyCollapsed && (
-                  <div className="absolute left-full ml-3.5 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-xl bg-slate-900 text-white dark:bg-slate-800 dark:text-slate-100 border border-slate-700/80 text-xs font-medium shadow-2xl whitespace-nowrap z-50 pointer-events-none opacity-0 group-hover:opacity-100 transition-all duration-150 transform -translate-x-1 group-hover:translate-x-0 flex items-center gap-1.5">
+                  <div className="absolute left-full ml-3.5 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-xl bg-slate-900 text-white dark:bg-[#18181b] dark:text-zinc-100 border border-slate-800 dark:border-white/[0.08] text-xs font-medium shadow-2xl whitespace-nowrap z-50 pointer-events-none opacity-0 group-hover:opacity-100 transition-all duration-150 transform -translate-x-1 group-hover:translate-x-0 flex items-center gap-1.5">
                     <span>{item.label}</span>
-                    <span className="absolute -left-1 top-1/2 -translate-y-1/2 border-4 border-transparent border-r-slate-900 dark:border-r-slate-800" />
+                    <span className="absolute -left-1 top-1/2 -translate-y-1/2 border-4 border-transparent border-r-slate-900 dark:border-r-[#18181b]" />
                   </div>
                 )}
               </div>
@@ -347,7 +340,7 @@ export const Sidebar = ({
       </div>
 
       {/* 3. Footer del Sidebar: Selector de Módulos y Executive User Profile Card */}
-      <div className={`shrink-0 border-t border-slate-200 dark:border-slate-800/80 bg-slate-50/70 dark:bg-slate-900/90 transition-colors ${
+      <div className={`shrink-0 border-t border-slate-200/80 dark:border-white/[0.07] bg-slate-50/70 dark:bg-[#0e0e11]/80 transition-colors ${
         onCloseMobile
           ? 'p-4 pb-8 md:pb-4'
           : isEffectivelyCollapsed

@@ -185,32 +185,32 @@ export const UserProfileCard: React.FC<UserProfileCardProps> = ({
   }
 
   // --------------------------------------------------------------------------
-  // MODO EXPANDIDO (Premium User Profile Card)
+  // MODO EXPANDIDO (Executive User Profile Card)
   // --------------------------------------------------------------------------
   return (
     <div
-      className={`w-full max-w-[280px] p-3.5 rounded-2xl bg-white/90 dark:bg-[#0C152B]/90 border border-slate-200 dark:border-blue-500/20 backdrop-blur-xl shadow-sm dark:shadow-[0_10px_25px_rgba(0,0,0,0.45)] flex flex-col gap-3 transition-all select-none ${className}`}
+      className={`w-full max-w-[280px] p-3 rounded-2xl bg-white dark:bg-[#18181b]/90 border border-slate-200/80 dark:border-white/[0.07] backdrop-blur-xl shadow-xs dark:shadow-none flex flex-col gap-2.5 transition-all select-none ${className}`}
     >
       {/* 1. Información del Usuario */}
-      <div className="flex items-center gap-3 min-w-0">
-        {/* Avatar con gradiente y LED pulsante */}
+      <div className="flex items-center gap-2.5 min-w-0">
+        {/* Avatar */}
         <div className="relative shrink-0">
-          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 border border-blue-400/40 text-white font-black text-sm flex items-center justify-center shadow-[0_0_15px_rgba(37,99,235,0.4)]">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 border border-blue-400/30 text-white font-bold text-xs flex items-center justify-center shadow-xs">
             {initials}
           </div>
-          <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white dark:border-[#0C152B] flex items-center justify-center shadow-xs">
-            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+          <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white dark:border-[#18181b] flex items-center justify-center shadow-xs">
+            <span className="w-1 h-1 rounded-full bg-white" />
           </span>
         </div>
 
         {/* Nombre y Rol */}
         <div className="min-w-0 flex-1">
-          <div className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white tracking-tight truncate">
+          <div className="text-xs font-bold text-slate-900 dark:text-zinc-100 tracking-tight truncate">
             {effectiveName}
           </div>
-          <div className="mt-1">
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/30 text-[10px] font-bold text-amber-700 dark:text-amber-400">
-              <Shield className="w-2.5 h-2.5" />
+          <div className="mt-0.5">
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-md bg-slate-100 dark:bg-white/[0.05] border border-slate-200 dark:border-white/[0.08] text-[9.5px] font-mono font-medium text-slate-600 dark:text-zinc-300">
+              <Shield className="w-2.5 h-2.5 text-blue-500" />
               {effectiveRole}
             </span>
           </div>
@@ -221,7 +221,7 @@ export const UserProfileCard: React.FC<UserProfileCardProps> = ({
       <button
         type="button"
         onClick={() => setShowSignOutModal(true)}
-        className="w-full py-2 px-3 rounded-xl bg-slate-100/80 hover:bg-rose-50 dark:bg-white/[0.03] dark:hover:bg-rose-500/10 border border-slate-200 hover:border-rose-300 dark:border-white/5 dark:hover:border-rose-500/30 text-slate-600 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 text-xs font-semibold flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98] group cursor-pointer"
+        className="w-full py-1.5 px-3 rounded-xl bg-slate-100/80 hover:bg-rose-50 dark:bg-white/[0.03] dark:hover:bg-rose-500/10 border border-slate-200/80 hover:border-rose-200 dark:border-white/[0.05] dark:hover:border-rose-500/20 text-slate-600 hover:text-rose-600 dark:text-zinc-400 dark:hover:text-rose-400 text-xs font-semibold flex items-center justify-center gap-2 transition-all duration-150 active:scale-[0.98] group cursor-pointer"
       >
         <LogOut className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
         <span>Cerrar sesión</span>
