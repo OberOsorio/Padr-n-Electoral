@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  ShieldCheck, 
   ShieldAlert, 
   Key, 
   Search, 
@@ -196,101 +195,102 @@ export const SecurityAuditView: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto p-1 sm:p-2 md:p-4 animate-in fade-in duration-150">
+    <div className="space-y-6 sm:space-y-8 p-4 sm:p-6 lg:p-8 xl:p-10 max-w-[1600px] mx-auto pb-24 md:pb-12 text-slate-800 dark:text-zinc-100">
       
-      {/* 1. HEADER */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-[#141e36]">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-2xl bg-purple-600/15 border border-purple-500/25 text-purple-600 dark:text-purple-400 shadow-lg shadow-purple-600/10">
-            <ShieldCheck className="w-6 h-6"/>
+      {/* 1. HEADER EJECUTIVO */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-200 dark:border-white/[0.07]">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+            <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500 dark:text-zinc-400 font-semibold">
+              Trazabilidad Criptográfica & Auditoría
+            </span>
           </div>
-          <div>
-            <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-              Auditoría de Accesos y Seguridad
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Registro inmutable de trazabilidad, intentos de inicio de sesión, bloqueos y control de campañas.
-            </p>
-          </div>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-3">
+            <span>Auditoría de Accesos y Seguridad</span>
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-zinc-400 mt-1">
+            Registro inmutable de trazabilidad, intentos de inicio de sesión, bloqueos WAF y control multi-inquilino.
+          </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <button
             type="button"
             onClick={fetchLogs}
-            className="p-2.5 rounded-xl bg-white dark:bg-[#080e1e] border border-slate-200 dark:border-[#182647] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer shadow-xs"
+            className="p-2.5 rounded-xl bg-white hover:bg-slate-50 dark:bg-[#121215] dark:hover:bg-[#18181b] border border-slate-200 dark:border-white/[0.08] text-slate-600 hover:text-slate-900 dark:text-zinc-300 dark:hover:text-white transition-colors cursor-pointer shadow-xs active:scale-[0.98]"
             title="Refrescar logs"
           >
-            <RefreshCw className={`w-4 h-4 text-purple-600 dark:text-purple-400 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
           
-          <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800/40 text-purple-700 dark:text-purple-300 text-xs font-semibold">
-            <Hash className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400"/>
-            <span>Logs Inmutables (SHA-256)</span>
+          <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-[#18181b] border border-slate-200 dark:border-white/[0.08] text-slate-700 dark:text-zinc-300 text-xs font-mono font-medium">
+            <Hash className="w-3.5 h-3.5 text-blue-500 dark:text-blue-400"/>
+            <span>Inmutabilidad SHA-256</span>
           </div>
         </div>
       </div>
 
-      {/* 2. TARJETAS KPI */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* 2. BENTO GRID DE TARJETAS KPI */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-5">
         
-        <div className="bg-white dark:bg-[#070c18] border border-slate-200 dark:border-[#152342] rounded-2xl p-4 sm:p-5 shadow-sm dark:shadow-lg">
+        <div className="bg-white dark:bg-[#121215] border border-slate-200 dark:border-white/[0.07] rounded-2xl p-5 shadow-xs dark:shadow-[0_1px_0_0_rgba(255,255,255,0.03)_inset] transition-colors">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Eventos Auditados</span>
-            <div className="p-2 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
+            <span className="text-[10px] font-bold font-mono text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Total Eventos Auditados</span>
+            <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/40">
               <Terminal className="w-4 h-4"/>
             </div>
           </div>
-          <span className="text-3xl font-black text-slate-900 dark:text-white font-mono">{kpis.total}</span>
-          <p className="text-[11px] text-slate-500 mt-2">Registro secuencial inmutable</p>
+          <span className="text-3xl font-bold text-slate-900 dark:text-white font-mono tabular-nums">{kpis.total}</span>
+          <p className="text-[11px] font-mono text-slate-500 dark:text-zinc-500 mt-2">Registro secuencial inmutable</p>
         </div>
 
-        <div className="bg-white dark:bg-[#070c18] border border-slate-200 dark:border-[#152342] rounded-2xl p-4 sm:p-5 shadow-sm dark:shadow-lg">
+        <div className="bg-white dark:bg-[#121215] border border-slate-200 dark:border-white/[0.07] rounded-2xl p-5 shadow-xs dark:shadow-[0_1px_0_0_rgba(255,255,255,0.03)_inset] transition-colors">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Inicios de Sesión Válidos</span>
-            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+            <span className="text-[10px] font-bold font-mono text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Inicios de Sesión Válidos</span>
+            <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/40">
               <CheckCircle2 className="w-4 h-4"/>
             </div>
           </div>
-          <span className="text-3xl font-black text-slate-900 dark:text-white font-mono">{kpis.validos}</span>
-          <p className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-2">Autenticación 100% verificada</p>
+          <span className="text-3xl font-bold text-emerald-600 dark:text-emerald-400 font-mono tabular-nums">{kpis.validos}</span>
+          <p className="text-[11px] font-mono text-emerald-600 dark:text-emerald-400/90 mt-2">Autenticación 100% verificada</p>
         </div>
 
-        <div className="bg-white dark:bg-[#070c18] border border-slate-200 dark:border-[#152342] rounded-2xl p-4 sm:p-5 shadow-sm dark:shadow-lg">
+        <div className="bg-white dark:bg-[#121215] border border-slate-200 dark:border-white/[0.07] rounded-2xl p-5 shadow-xs dark:shadow-[0_1px_0_0_rgba(255,255,255,0.03)_inset] transition-colors">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Intentos Bloqueados / Alertas</span>
-            <div className="p-2 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+            <span className="text-[10px] font-bold font-mono text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Intentos Bloqueados / Alertas</span>
+            <div className="p-2 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800/40">
               <ShieldAlert className="w-4 h-4"/>
             </div>
           </div>
-          <span className="text-3xl font-black text-rose-600 dark:text-rose-400 font-mono">{kpis.bloqueos}</span>
-          <p className="text-[11px] text-slate-500 mt-2">Protección perimetral WAF & Auth</p>
+          <span className="text-3xl font-bold text-rose-600 dark:text-rose-400 font-mono tabular-nums">{kpis.bloqueos}</span>
+          <p className="text-[11px] font-mono text-slate-500 dark:text-zinc-500 mt-2">Protección perimetral WAF & Auth</p>
         </div>
 
-        <div className="bg-white dark:bg-[#070c18] border border-slate-200 dark:border-[#152342] rounded-2xl p-4 sm:p-5 shadow-sm dark:shadow-lg">
+        <div className="bg-white dark:bg-[#121215] border border-slate-200 dark:border-white/[0.07] rounded-2xl p-5 shadow-xs dark:shadow-[0_1px_0_0_rgba(255,255,255,0.03)_inset] transition-colors">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Acciones de Gobierno</span>
-            <div className="p-2 rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20">
+            <span className="text-[10px] font-bold font-mono text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Acciones de Gobierno</span>
+            <div className="p-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40">
               <Key className="w-4 h-4"/>
             </div>
           </div>
-          <span className="text-3xl font-black text-slate-900 dark:text-white font-mono">{kpis.gobierno}</span>
-          <p className="text-[11px] text-slate-500 mt-2">Suspensiones, claves y reportes</p>
+          <span className="text-3xl font-bold text-slate-900 dark:text-white font-mono tabular-nums">{kpis.gobierno}</span>
+          <p className="text-[11px] font-mono text-slate-500 dark:text-zinc-500 mt-2">Suspensiones, claves y reportes</p>
         </div>
 
       </div>
 
       {/* 3. BARRA DE HERRAMIENTAS Y FILTRADO */}
-      <div className="bg-white dark:bg-[#070c18] border border-slate-200 dark:border-[#152342] rounded-2xl p-3.5 flex flex-col md:flex-row items-center justify-between gap-3 shadow-xs">
+      <div className="bg-white dark:bg-[#121215] border border-slate-200 dark:border-white/[0.07] rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-3 shadow-xs">
         {/* Buscador */}
         <div className="relative w-full md:w-80">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"/>
+          <Search className="w-4 h-4 text-slate-400 dark:text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"/>
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Buscar por IP, usuario, correo o detalle..."
-            className="w-full bg-slate-50 dark:bg-[#050914] border border-slate-200 dark:border-[#182647] rounded-xl pl-9 pr-3.5 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-purple-500"
+            className="w-full bg-slate-50 dark:bg-[#18181b] border border-slate-200 dark:border-white/[0.08] rounded-xl pl-10 pr-3.5 py-2 text-xs text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:outline-none focus:border-blue-500 transition-colors"
           />
         </div>
 
@@ -306,10 +306,10 @@ export const SecurityAuditView: React.FC = () => {
               key={tab.id}
               type="button"
               onClick={() => setFiltroSeveridad(tab.id as any)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer active:scale-[0.98] ${
                 filtroSeveridad === tab.id
-                  ? 'bg-purple-50 dark:bg-purple-600/20 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-500/40'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#0c152b]'
+                  ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-500/30'
+                  : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.04]'
               }`}
             >
               {tab.dot && <span className={`w-1.5 h-1.5 rounded-full ${tab.dot}`} />}
@@ -322,7 +322,7 @@ export const SecurityAuditView: React.FC = () => {
         <button
           type="button"
           onClick={exportarCSV}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-lg shadow-purple-600/20 transition-all cursor-pointer whitespace-nowrap"
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-md shadow-blue-600/20 transition-all cursor-pointer whitespace-nowrap active:scale-[0.98]"
         >
           <Download className="w-3.5 h-3.5"/>
           <span>Exportar Log (.CSV)</span>
@@ -330,96 +330,96 @@ export const SecurityAuditView: React.FC = () => {
       </div>
 
       {/* 4. TABLA DE AUDITORÍA DE ALTA DENSIDAD */}
-      <div className="bg-white dark:bg-[#070c18] border border-slate-200 dark:border-[#152342] rounded-3xl shadow-sm dark:shadow-xl overflow-hidden">
-        <div className="w-full overflow-x-auto custom-scrollbar">
-          <table className="w-full min-w-[720px] text-left border-collapse">
+      <div className="bg-white dark:bg-[#121215] border border-slate-200 dark:border-white/[0.07] rounded-2xl shadow-xs dark:shadow-[0_1px_0_0_rgba(255,255,255,0.03)_inset] overflow-hidden">
+        <div className="w-full overflow-x-auto">
+          <table className="w-full min-w-[760px] text-left border-collapse">
             <thead>
-              <tr className="border-b border-slate-200 dark:border-[#141e36] bg-slate-50 dark:bg-[#050811] text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400">
-                <th className="py-3.5 px-5">Marca Temporal</th>
-                <th className="py-3.5 px-5">Usuario y Rol</th>
-                <th className="py-3.5 px-5">Evento & Severidad</th>
-                <th className="py-3.5 px-5">Origen (IP & Dispositivo)</th>
-                <th className="py-3.5 px-5">Detalle Operativo</th>
-                <th className="py-3.5 px-5 text-right">Firma SHA-256</th>
+              <tr className="border-b border-slate-200 dark:border-white/[0.07] bg-slate-50 dark:bg-white/[0.02] text-[10px] uppercase font-mono tracking-wider text-slate-500 dark:text-zinc-400">
+                <th className="py-3 px-4">Marca Temporal</th>
+                <th className="py-3 px-4">Usuario y Rol</th>
+                <th className="py-3 px-4">Evento & Severidad</th>
+                <th className="py-3 px-4">Origen (IP & Dispositivo)</th>
+                <th className="py-3 px-4">Detalle Operativo</th>
+                <th className="py-3 px-4 text-right">Firma SHA-256</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-[#121c33] text-xs">
+            <tbody className="divide-y divide-slate-100 dark:divide-white/[0.07] text-xs text-slate-700 dark:text-zinc-300">
               {logsFiltrados.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-slate-500 text-xs italic">
+                  <td colSpan={6} className="py-12 text-center text-slate-400 dark:text-zinc-500 text-xs italic font-mono">
                     No se encontraron registros de auditoría coincidentes.
                   </td>
                 </tr>
               ) : (
                 logsFiltrados.map((log) => (
-                  <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-[#0b1428]/40 transition-colors">
+                  <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-white/[0.03] transition-colors">
                     
                     {/* Timestamp */}
-                    <td className="py-3.5 px-5 whitespace-nowrap">
-                      <span className="font-mono text-slate-800 dark:text-slate-200 block text-xs">
+                    <td className="py-3 px-4 whitespace-nowrap">
+                      <span className="font-mono tabular-nums text-slate-800 dark:text-zinc-200 block text-xs">
                         {new Date(log.created_at).toLocaleTimeString('es-CO')}
                       </span>
-                      <span className="text-[10px] text-slate-500">
+                      <span className="text-[10px] font-mono text-slate-400 dark:text-zinc-500">
                         {new Date(log.created_at).toLocaleDateString('es-CO')}
                       </span>
                     </td>
 
                     {/* Usuario */}
-                    <td className="py-3.5 px-5">
-                      <span className="font-bold text-slate-900 dark:text-slate-100 block truncate max-w-[160px]">
+                    <td className="py-3 px-4">
+                      <span className="font-semibold text-slate-900 dark:text-zinc-100 block truncate max-w-[160px]">
                         {log.user_name || 'Desconocido'}
                       </span>
-                      <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400 block truncate max-w-[160px]">
+                      <span className="text-[11px] font-mono text-slate-500 dark:text-zinc-400 block truncate max-w-[160px]">
                         {log.user_email}
                       </span>
                     </td>
 
                     {/* Evento y Severidad */}
-                    <td className="py-3.5 px-5">
+                    <td className="py-3 px-4">
                       <div className="flex items-center gap-2">
-                        <span className={`text-[9px] font-bold px-2 py-0.5 rounded-md border ${
+                        <span className={`text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-md border ${
                           log.severity === 'CRITICAL'
                             ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800/40'
                             : log.severity === 'WARNING'
                             ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/40'
-                            : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/40'
+                            : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40'
                         }`}>
                           {log.severity}
                         </span>
-                        <span className="font-mono text-[11px] text-slate-700 dark:text-slate-300">
+                        <span className="font-mono text-[11px] text-slate-700 dark:text-zinc-300">
                           {log.event_type}
                         </span>
                       </div>
                     </td>
 
                     {/* Origen */}
-                    <td className="py-3.5 px-5">
-                      <span className="font-mono text-xs text-sky-600 dark:text-sky-400 block">
+                    <td className="py-3 px-4">
+                      <span className="font-mono text-xs text-blue-600 dark:text-cyan-400 block tabular-nums">
                         {log.ip_address}
                       </span>
-                      <span className="text-[10px] text-slate-500 block truncate max-w-[180px]" title={log.device_info}>
+                      <span className="text-[10px] text-slate-500 dark:text-zinc-400 block truncate max-w-[180px]" title={log.device_info}>
                         {log.device_info}
                       </span>
                     </td>
 
                     {/* Detalle */}
-                    <td className="py-3.5 px-5">
-                      <p className="text-slate-700 dark:text-slate-300 text-xs max-w-xs truncate" title={log.action_detail}>
+                    <td className="py-3 px-4">
+                      <p className="text-slate-700 dark:text-zinc-300 text-xs max-w-xs truncate" title={log.action_detail}>
                         {log.action_detail}
                       </p>
                       {log.tenant_name && (
-                        <span className="text-[10px] text-purple-600 dark:text-purple-400 font-semibold">
+                        <span className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold font-mono">
                           {log.tenant_name}
                         </span>
                       )}
                     </td>
 
                     {/* Firma SHA-256 */}
-                    <td className="py-3.5 px-5 text-right whitespace-nowrap">
+                    <td className="py-3 px-4 text-right whitespace-nowrap">
                       <button
                         type="button"
                         onClick={() => copiarHash(log.sha256_hash)}
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-50 dark:bg-[#050914] border border-slate-200 dark:border-[#16223e] font-mono text-[10px] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:border-purple-500 transition-colors cursor-pointer"
+                        className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-50 dark:bg-[#18181b] border border-slate-200 dark:border-white/[0.08] font-mono text-[10px] text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:border-blue-500 transition-colors cursor-pointer active:scale-[0.96]"
                         title="Copiar hash de verificación"
                       >
                         <span>

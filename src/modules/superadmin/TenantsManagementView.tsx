@@ -23,6 +23,13 @@ import { ColombiaGeoSelector } from '../../components/ui/ColombiaGeoSelector';
 import { EditCampaignModal } from './EditCampaignModal';
 import type { Tenant } from '../../types';
 
+const springTransition = {
+  type: 'spring' as const,
+  stiffness: 380,
+  damping: 30,
+  mass: 0.8,
+};
+
 export const TenantsManagementView: React.FC = () => {
   const { tenants, toggleTenantStatus, createCampaignWithAdmin, deleteTenantPermanently, refetchTenants, updateTenant } = useTenant();
   const { recordAccessEvent } = useAccessAuditLogs();
@@ -83,9 +90,9 @@ export const TenantsManagementView: React.FC = () => {
       setTimeout(() => setToastMessage(null), 5000);
       setTenantToDelete(null);
       setDeleteConfirmationText('');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error al eliminar campaña:', err);
-      setDeleteError(err.message || 'Error de conexión al eliminar');
+      setDeleteError(err instanceof Error ? err.message : 'Error de conexión al eliminar');
     } finally {
       setIsDeleting(false);
     }
@@ -209,16 +216,16 @@ export const TenantsManagementView: React.FC = () => {
       setAdminPassword('');
       setShowPassword(false);
       refetchTenants();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error creando campaña:', err);
-      setFormError(err?.message || 'Error al aprovisionar la campaña.');
+      setFormError(err instanceof Error ? err.message : 'Error al aprovisionar la campaña.');
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 sm:space-y-8 p-4 sm:p-6 lg:p-8 xl:p-10 max-w-[1600px] mx-auto pb-24 md:pb-12 text-slate-800 dark:text-zinc-100">
       {/* Toast Notification */}
       <AnimatePresence>
         {toastMessage && (
@@ -226,29 +233,36 @@ export const TenantsManagementView: React.FC = () => {
             initial={{ opacity: 0, y: -20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
-            className="fixed top-5 right-5 z-50 p-4 rounded-2xl bg-[#0F172A] text-white border border-purple-500/40 shadow-2xl flex items-center gap-3 text-xs font-medium max-w-md"
+            transition={springTransition}
+            className="fixed top-5 right-5 z-50 p-4 rounded-2xl bg-white dark:bg-[#18181b] text-slate-900 dark:text-white border border-slate-200 dark:border-white/[0.1] shadow-2xl flex items-center gap-3 text-xs font-medium max-w-md"
           >
-            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+            <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
             <span>{toastMessage}</span>
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* Encabezado */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200 dark:border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200 dark:border-white/[0.07]">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-            Campañas Políticas y Clientes
+          <div className="flex items-center gap-2 mb-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+            <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500 dark:text-zinc-400 font-semibold">
+              Arquitectura Multitenant & Clientes
+            </span>
+          </div>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+            Campañas Electorales y Tenants
           </h1>
-          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1">
-            Control de cuentas, asignación de directores y suspensión instantánea de servicio
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-zinc-400 mt-1">
+            Control de cuentas aisladas, asignación de directores y suspensión perimetral de servicio.
           </p>
         </div>
 
         <button
           type="button"
           onClick={() => setIsModalOpen(true)}
-          className="w-full sm:w-auto justify-center px-4 py-2.5 bg-purple-600 hover:bg-purple-500 active:bg-purple-700 text-white text-xs font-semibold uppercase tracking-wider rounded-xl transition-all shadow-md shadow-purple-600/25 flex items-center gap-2 cursor-pointer self-start sm:self-auto"
+          className="w-full sm:w-auto justify-center px-4 py-2.5 bg-blue-600 hover:bg-blue-500 active:scale-[0.98] text-white text-xs font-semibold rounded-xl transition-all shadow-md shadow-blue-600/20 flex items-center gap-2 cursor-pointer self-start sm:self-auto"
         >
           <Plus className="w-4 h-4" />
           <span>Nueva Campaña</span>
@@ -258,13 +272,13 @@ export const TenantsManagementView: React.FC = () => {
       {/* Barra de Filtros y Búsqueda */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <div className="relative flex-1 max-w-md w-full">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-zinc-500 pointer-events-none" />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Buscar por campaña, slug o administrador..."
-            className="w-full h-10 pl-10 pr-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500/40"
+            className="w-full h-10 pl-10 pr-4 bg-white dark:bg-[#121215] border border-slate-200 dark:border-white/[0.08] rounded-xl text-xs text-slate-900 dark:text-zinc-100 placeholder:text-slate-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-blue-500 transition-colors"
           />
         </div>
 
@@ -274,10 +288,10 @@ export const TenantsManagementView: React.FC = () => {
               key={st}
               type="button"
               onClick={() => setStatusFilter(st)}
-              className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-medium font-mono uppercase text-center transition-all cursor-pointer ${
+              className={`px-3.5 py-2 sm:py-2 rounded-xl text-xs font-medium font-mono uppercase text-center transition-all cursor-pointer active:scale-[0.98] ${
                 statusFilter === st
-                  ? 'bg-purple-600 text-white shadow-xs'
-                  : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300'
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'bg-white hover:bg-slate-50 dark:bg-[#121215] dark:hover:bg-[#18181b] border border-slate-200 dark:border-white/[0.08] text-slate-700 dark:text-zinc-300'
               }`}
             >
               {st === 'all' ? 'Todas' : st === 'active' ? 'Activas' : 'Suspendidas'}
@@ -287,10 +301,10 @@ export const TenantsManagementView: React.FC = () => {
       </div>
 
       {/* Tabla de Campañas */}
-      <div className="rounded-2xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
+      <div className="rounded-2xl bg-white dark:bg-[#121215] border border-slate-200 dark:border-white/[0.07] overflow-hidden shadow-xs dark:shadow-[0_1px_0_0_rgba(255,255,255,0.03)_inset]">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[760px] text-left text-xs">
-            <thead className="bg-slate-50 dark:bg-slate-800/50 text-[10px] font-mono uppercase text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+            <thead className="bg-slate-50 dark:bg-white/[0.02] text-[10px] font-mono uppercase text-slate-500 dark:text-zinc-400 border-b border-slate-200 dark:border-white/[0.07]">
               <tr>
                 <th className="py-3 px-4 font-semibold">Campaña</th>
                 <th className="py-3 px-4 font-semibold">Director / Admin</th>
@@ -300,10 +314,10 @@ export const TenantsManagementView: React.FC = () => {
                 <th className="py-3 px-4 font-semibold text-right">Interruptor Servicio</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+            <tbody className="divide-y divide-slate-100 dark:divide-white/[0.07] text-slate-700 dark:text-zinc-300">
               {filteredTenants.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-slate-400">
+                  <td colSpan={6} className="py-12 text-center text-slate-400 dark:text-zinc-500 font-mono text-xs italic">
                     No se encontraron campañas coincidentes con los filtros.
                   </td>
                 </tr>
@@ -315,17 +329,17 @@ export const TenantsManagementView: React.FC = () => {
                   return (
                     <tr
                       key={t.id}
-                      className={`hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors ${
-                        isSuspended ? 'bg-rose-50/30 dark:bg-rose-950/10' : ''
+                      className={`hover:bg-slate-50/80 dark:hover:bg-white/[0.03] transition-colors ${
+                        isSuspended ? 'bg-rose-50/20 dark:bg-rose-950/10' : ''
                       }`}
                     >
                       {/* Campaña */}
                       <td className="py-3.5 px-4">
                         <div className="flex items-center gap-2.5">
-                          <div className={`h-8 w-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
+                          <div className={`h-8 w-8 rounded-lg flex items-center justify-center font-bold font-mono text-xs shrink-0 border ${
                             isSuspended
-                              ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400 border border-rose-300 dark:border-rose-800'
-                              : 'bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-800'
+                              ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-800/40'
+                              : 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/40'
                           }`}>
                             {t.name.slice(0, 1).toUpperCase()}
                           </div>
@@ -333,12 +347,12 @@ export const TenantsManagementView: React.FC = () => {
                             <p className="font-semibold text-slate-900 dark:text-white truncate">
                               {t.name}
                             </p>
-                            <div className="flex items-center gap-1.5 text-[10px] text-slate-400">
-                              <span className="font-mono truncate">id: {t.slug}</span>
+                            <div className="flex items-center gap-1.5 text-[10px] text-slate-400 dark:text-zinc-500 font-mono">
+                              <span className="truncate">id: {t.slug}</span>
                               {(t.departamento || t.municipio) && (
                                 <>
                                   <span>•</span>
-                                  <span className="inline-flex items-center gap-0.5 text-purple-600 dark:text-purple-400 truncate font-sans">
+                                  <span className="inline-flex items-center gap-0.5 text-blue-600 dark:text-blue-400 truncate font-sans">
                                     <MapPin className="w-2.5 h-2.5" />
                                     {[t.municipio, t.departamento].filter(Boolean).join(', ')}
                                   </span>
@@ -352,37 +366,37 @@ export const TenantsManagementView: React.FC = () => {
                       {/* Director / Admin */}
                       <td className="py-3.5 px-4">
                         <div>
-                          <p className="font-medium text-slate-800 dark:text-slate-200">
+                          <p className="font-medium text-slate-800 dark:text-zinc-200">
                             {t.admin_name || 'Sin asignar'}
                           </p>
-                          <p className="text-[10px] font-mono text-slate-400">
+                          <p className="text-[10px] font-mono text-slate-400 dark:text-zinc-500">
                             {t.admin_email || 'admin@' + t.slug + '.gov'}
                           </p>
                         </div>
                       </td>
 
                       {/* Electores Registrados */}
-                      <td className="py-3.5 px-4 font-mono">
+                      <td className="py-3.5 px-4 font-mono tabular-nums">
                         <span className="font-semibold text-slate-900 dark:text-white">
-                          {current.toLocaleString()}
+                          {current.toLocaleString('es-CO')}
                         </span>
-                        <span className="text-slate-400 text-[11px] ml-1">electores</span>
+                        <span className="text-slate-400 dark:text-zinc-500 text-[11px] ml-1">electores</span>
                       </td>
 
                       {/* Fecha de Contratación */}
-                      <td className="py-3.5 px-4 text-slate-500 dark:text-slate-400 font-mono text-[11px]">
-                        {new Date(t.created_at).toLocaleDateString()}
+                      <td className="py-3.5 px-4 text-slate-500 dark:text-zinc-400 font-mono tabular-nums text-[11px]">
+                        {new Date(t.created_at).toLocaleDateString('es-CO')}
                       </td>
 
                       {/* Estado */}
                       <td className="py-3.5 px-4">
                         {t.is_active ? (
-                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium font-mono bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium font-mono bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                             Activa
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium font-mono bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/40">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium font-mono bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/40">
                             <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
                             Suspendida
                           </span>
@@ -396,7 +410,7 @@ export const TenantsManagementView: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => setEditingCampaign(t)}
-                            className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-400 hover:text-sky-400 hover:bg-sky-950/40 hover:border-sky-800/50 transition-colors cursor-pointer"
+                            className="p-1.5 rounded-xl border border-slate-200 dark:border-white/[0.08] text-slate-400 hover:text-blue-500 hover:bg-slate-100 dark:text-zinc-400 dark:hover:text-blue-400 dark:hover:bg-white/[0.06] transition-colors cursor-pointer active:scale-[0.95]"
                             title="Editar configuración de campaña"
                           >
                             <Edit3 className="w-4 h-4" />
@@ -406,7 +420,7 @@ export const TenantsManagementView: React.FC = () => {
                             type="button"
                             onClick={() => handleToggleStatus(t)}
                             disabled={togglingId === t.id}
-                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-mono font-semibold transition-all cursor-pointer ${
+                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-mono font-semibold transition-all cursor-pointer active:scale-[0.98] ${
                               t.is_active
                                 ? 'bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/50'
                                 : 'bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50'
@@ -434,8 +448,8 @@ export const TenantsManagementView: React.FC = () => {
                             disabled={t.is_active}
                             className={`p-1.5 rounded-xl border transition-all ${
                               t.is_active
-                                ? 'opacity-30 border-transparent text-slate-400 dark:text-slate-600 cursor-not-allowed'
-                                : 'border-slate-200 dark:border-slate-800 text-slate-400 hover:text-red-500 hover:bg-red-500/10 hover:border-red-500/30 cursor-pointer'
+                                ? 'opacity-30 border-transparent text-slate-400 dark:text-zinc-600 cursor-not-allowed'
+                                : 'border-slate-200 dark:border-white/[0.08] text-slate-400 hover:text-red-500 hover:bg-red-500/10 dark:text-zinc-400 dark:hover:text-red-400 dark:hover:bg-red-950/30 cursor-pointer active:scale-[0.95]'
                             }`}
                             title={
                               t.is_active
@@ -459,23 +473,24 @@ export const TenantsManagementView: React.FC = () => {
       {/* MODAL: Crear Nueva Campaña */}
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-md overflow-y-auto">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="w-full max-w-lg rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl p-5 sm:p-7 relative overflow-hidden my-auto max-h-[90vh] overflow-y-auto"
+              transition={springTransition}
+              className="w-full max-w-lg rounded-2xl bg-white dark:bg-[#121215] border border-slate-200 dark:border-white/[0.08] shadow-2xl p-5 sm:p-7 relative overflow-hidden my-auto max-h-[90vh] overflow-y-auto text-slate-800 dark:text-zinc-100"
             >
-              <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-white/[0.07]">
                 <div className="flex items-center gap-2.5">
-                  <div className="h-9 w-9 rounded-xl bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800/50 flex items-center justify-center text-purple-600 dark:text-purple-400">
+                  <div className="h-9 w-9 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/50 flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-xs">
                     <Building2 className="w-5 h-5" />
                   </div>
                   <div>
-                    <h2 className="text-base font-semibold text-slate-900 dark:text-white">
+                    <h2 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">
                       Aprovisionar Nueva Campaña
                     </h2>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    <p className="text-[11px] font-mono text-slate-500 dark:text-zinc-400">
                       Crea el tenant aislado y su administrador directo
                     </p>
                   </div>
@@ -484,14 +499,14 @@ export const TenantsManagementView: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors cursor-pointer"
                 >
                   ✕
                 </button>
               </div>
 
               {formError && (
-                <div className="mt-4 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-xs text-rose-700 dark:text-rose-300 flex items-start gap-2">
+                <div className="mt-4 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/40 text-xs text-rose-700 dark:text-rose-300 flex items-start gap-2">
                   <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
                   <span>{formError}</span>
                 </div>
@@ -500,7 +515,7 @@ export const TenantsManagementView: React.FC = () => {
               <form onSubmit={handleCreateSubmit} className="mt-4 space-y-4">
                 {/* 1. Nombre Comercial */}
                 <div className="space-y-1">
-                  <label className="text-[11px] font-mono uppercase font-semibold text-slate-600 dark:text-slate-400">
+                  <label className="text-[11px] font-mono uppercase font-semibold text-slate-600 dark:text-zinc-400">
                     Nombre Comercial de la Campaña *
                   </label>
                   <input
@@ -509,13 +524,13 @@ export const TenantsManagementView: React.FC = () => {
                     value={name}
                     onChange={(e) => handleNameChange(e.target.value)}
                     placeholder="Ej. Campaña Montería 2026"
-                    className="w-full h-10 px-3.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-purple-500"
+                    className="w-full h-10 px-3.5 bg-slate-50 dark:bg-[#18181b] border border-slate-200 dark:border-white/[0.08] rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
                   />
                 </div>
 
                 {/* 2. Slug */}
                 <div className="space-y-1">
-                  <label className="text-[11px] font-mono uppercase font-semibold text-slate-600 dark:text-slate-400">
+                  <label className="text-[11px] font-mono uppercase font-semibold text-slate-600 dark:text-zinc-400">
                     Identificador Único (Slug) *
                   </label>
                   <input
@@ -524,11 +539,11 @@ export const TenantsManagementView: React.FC = () => {
                     value={slug}
                     onChange={(e) => setSlug(e.target.value)}
                     placeholder="monteria-2026"
-                    className="w-full h-10 px-3 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-purple-500"
+                    className="w-full h-10 px-3 bg-slate-50 dark:bg-[#18181b] border border-slate-200 dark:border-white/[0.08] rounded-xl text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
                   />
                 </div>
 
-                {/* 3. Jurisdicción Territorial (Opcional) con Selectores en Cascada y Búsqueda */}
+                {/* 3. Jurisdicción Territorial con Selectores en Cascada */}
                 <ColombiaGeoSelector
                   departamento={departamento}
                   municipio={municipio}
@@ -538,8 +553,8 @@ export const TenantsManagementView: React.FC = () => {
                 />
 
                 {/* Separador: Datos del Administrador Responsable */}
-                <div className="pt-2 pb-1 border-t border-slate-100 dark:border-slate-800">
-                  <p className="text-[11px] font-mono uppercase font-semibold text-purple-600 dark:text-purple-400 flex items-center gap-1.5">
+                <div className="pt-2 pb-1 border-t border-slate-200 dark:border-white/[0.07]">
+                  <p className="text-[11px] font-mono uppercase font-semibold text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
                     <User className="w-3.5 h-3.5" />
                     <span>Administrador Responsable de la Campaña</span>
                   </p>
@@ -547,7 +562,7 @@ export const TenantsManagementView: React.FC = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <label className="text-[11px] font-mono uppercase font-semibold text-slate-600 dark:text-slate-400">
+                    <label className="text-[11px] font-mono uppercase font-semibold text-slate-600 dark:text-zinc-400">
                       Nombre Completo *
                     </label>
                     <input
@@ -556,12 +571,12 @@ export const TenantsManagementView: React.FC = () => {
                       value={adminName}
                       onChange={(e) => setAdminName(e.target.value)}
                       placeholder="Dr. Carlos Gómez"
-                      className="w-full h-10 px-3 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-purple-500"
+                      className="w-full h-10 px-3 bg-slate-50 dark:bg-[#18181b] border border-slate-200 dark:border-white/[0.08] rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
                     />
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[11px] font-mono uppercase font-semibold text-slate-600 dark:text-slate-400">
+                    <label className="text-[11px] font-mono uppercase font-semibold text-slate-600 dark:text-zinc-400">
                       Correo Institucional *
                     </label>
                     <input
@@ -570,15 +585,15 @@ export const TenantsManagementView: React.FC = () => {
                       value={adminEmail}
                       onChange={(e) => setAdminEmail(e.target.value)}
                       placeholder="admin@monteria2026.gov"
-                      className="w-full h-10 px-3 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-purple-500"
+                      className="w-full h-10 px-3 bg-slate-50 dark:bg-[#18181b] border border-slate-200 dark:border-white/[0.08] rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[11px] font-mono uppercase font-semibold text-slate-600 dark:text-slate-400 flex items-center justify-between">
+                  <label className="text-[11px] font-mono uppercase font-semibold text-slate-600 dark:text-zinc-400 flex items-center justify-between">
                     <span>Contraseña *</span>
-                    <span className="text-[10px] font-normal lowercase text-slate-400">
+                    <span className="text-[10px] font-normal lowercase text-slate-400 dark:text-zinc-500">
                       Mínimo 6 caracteres
                     </span>
                   </label>
@@ -589,13 +604,13 @@ export const TenantsManagementView: React.FC = () => {
                       value={adminPassword}
                       onChange={(e) => setAdminPassword(e.target.value)}
                       placeholder="Ingrese la contraseña de acceso..."
-                      className="w-full h-10 pl-3.5 pr-10 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-purple-500"
+                      className="w-full h-10 pl-3.5 pr-10 bg-slate-50 dark:bg-[#18181b] border border-slate-200 dark:border-white/[0.08] rounded-xl text-xs text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-blue-500 transition-colors"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
                       tabIndex={-1}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 transition-colors cursor-pointer"
                       title={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
                     >
                       {showPassword ? (
@@ -608,12 +623,12 @@ export const TenantsManagementView: React.FC = () => {
                 </div>
 
                 {/* Acciones */}
-                <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2.5">
+                <div className="pt-4 border-t border-slate-200 dark:border-white/[0.07] flex justify-end gap-2.5">
                   <button
                     type="button"
                     onClick={() => setIsModalOpen(false)}
                     disabled={submitting}
-                    className="px-4 py-2 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                    className="px-4 py-2 rounded-xl text-xs font-medium text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] cursor-pointer active:scale-[0.98]"
                   >
                     Cancelar
                   </button>
@@ -621,7 +636,7 @@ export const TenantsManagementView: React.FC = () => {
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold uppercase tracking-wider transition-all shadow-md shadow-purple-600/20 flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                    className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold uppercase tracking-wider transition-all shadow-md shadow-blue-600/20 flex items-center gap-2 cursor-pointer disabled:opacity-50 active:scale-[0.98]"
                   >
                     {submitting ? (
                       <>
@@ -645,64 +660,62 @@ export const TenantsManagementView: React.FC = () => {
       {/* MODAL: Eliminación Definitiva de Campaña (Security-First Destructive Flow) */}
       <AnimatePresence>
         {tenantToDelete && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md overflow-y-auto">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-md overflow-y-auto">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="w-full max-w-lg rounded-2xl bg-slate-900 border border-red-500/30 shadow-2xl shadow-red-950/50 p-6 sm:p-7 relative overflow-hidden my-auto"
+              transition={springTransition}
+              className="w-full max-w-lg rounded-2xl bg-white dark:bg-[#121215] border border-rose-200 dark:border-rose-500/30 shadow-2xl p-6 sm:p-7 relative overflow-hidden my-auto text-slate-800 dark:text-zinc-100"
             >
-              {/* Resplandor decorativo carmesí */}
-              <div className="absolute top-0 right-0 -mt-12 -mr-12 w-48 h-48 bg-red-600/10 rounded-full blur-3xl pointer-events-none" />
-
-              {/* A. Cabecera del Modal (Alerta Crítica) */}
+              {/* Cabecera del Modal (Alerta Crítica) */}
               <div className="flex flex-col items-start gap-2 mb-4">
-                <div className="inline-flex items-center justify-center p-3.5 rounded-2xl bg-red-500/10 text-red-400 border border-red-500/20 shadow-lg shadow-red-500/10 mb-1">
-                  <AlertTriangle className="w-7 h-7 text-red-500 animate-pulse" />
+                <div className="inline-flex items-center justify-center p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800/40 shadow-xs mb-1">
+                  <AlertTriangle className="w-6 h-6" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-lg font-bold text-white tracking-tight">
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
                       Confirmación de Seguridad Definitiva
                     </h3>
-                    <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-semibold uppercase bg-red-500/20 text-red-400 border border-red-500/30">
-                      Acción Crítica Irreversible
+                    <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-semibold uppercase bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/50">
+                      Acción Crítica
                     </span>
                   </div>
                 </div>
               </div>
 
-              {/* B. Texto de Advertencia e Impacto */}
+              {/* Texto de Advertencia e Impacto */}
               <div className="space-y-3 mb-5 text-sm">
-                <p className="text-slate-300 leading-relaxed">
-                  <span className="font-bold text-red-400">¡ATENCIÓN!</span> Está a punto de{' '}
-                  <span className="font-semibold text-white">ELIMINAR COMPLETAMENTE</span> la campaña{' '}
-                  <span className="font-mono font-bold text-red-300 bg-red-950/40 px-1.5 py-0.5 rounded border border-red-900/50">
-                    "{tenantToDelete.name}"
+                <p className="text-slate-600 dark:text-zinc-300 leading-relaxed text-xs">
+                  <strong className="text-rose-600 dark:text-rose-400">Atención:</strong> Está a punto de{' '}
+                  <span className="font-semibold text-slate-900 dark:text-white">eliminar permanentemente</span> la campaña{' '}
+                  <span className="font-mono font-bold text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/40 px-1.5 py-0.5 rounded border border-rose-200 dark:border-rose-900/40">
+                    &quot;{tenantToDelete.name}&quot;
                   </span>{' '}
                   y todos sus datos asociados.
                 </p>
 
-                <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800/80 space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 font-mono">
+                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#18181b] border border-slate-200 dark:border-white/[0.07] space-y-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-zinc-400 font-mono">
                     Recursos que serán destruidos permanentemente:
                   </p>
-                  <ul className="text-xs text-slate-300 space-y-1.5 list-disc list-inside">
+                  <ul className="text-xs text-slate-600 dark:text-zinc-300 space-y-1.5 list-disc list-inside">
                     <li>Todos los electores registrados en el censo de esta campaña</li>
                     <li>Todos los usuarios y perfiles vinculados (excepto SuperAdmin)</li>
                     <li>Todos los registros de auditoría de acceso, logs de exportación y métricas</li>
                   </ul>
                 </div>
 
-                <div className="p-2.5 rounded-lg bg-red-950/30 border border-red-500/30 text-xs font-semibold text-red-300 flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-ping shrink-0" />
-                  <span>Esta acción NO se puede deshacer. Los datos se perderán para siempre.</span>
+                <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-500/30 text-xs font-semibold text-rose-800 dark:text-rose-300 flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
+                  <span>Esta acción no se puede deshacer. Los datos no podrán recuperarse.</span>
                 </div>
               </div>
 
-              {/* C. Validación de Seguridad por Texto */}
+              {/* Validación de Seguridad por Texto */}
               <div className="space-y-2 mb-6">
-                <label className="block text-xs font-medium text-slate-300">
+                <label className="block text-xs font-medium text-slate-700 dark:text-zinc-300">
                   Para confirmar, escriba o haga clic en{' '}
                   <button
                     type="button"
@@ -718,13 +731,13 @@ export const TenantsManagementView: React.FC = () => {
                       setTimeout(() => setCopiedConfirmation(false), 2500);
                     }}
                     title="Haga clic para copiar y pegar en el recuadro"
-                    className="inline-flex items-center gap-1.5 font-mono font-bold text-red-400 hover:text-white bg-red-950/70 hover:bg-red-900 px-2 py-0.5 rounded border border-red-800/80 transition-all cursor-pointer shadow-sm active:scale-95 group"
+                    className="inline-flex items-center gap-1.5 font-mono font-bold text-rose-700 dark:text-rose-300 hover:text-rose-900 dark:hover:text-white bg-rose-50 dark:bg-rose-950/60 hover:dark:bg-rose-900/60 px-2 py-0.5 rounded border border-rose-200 dark:border-rose-800/60 transition-all cursor-pointer shadow-xs active:scale-95 group"
                   >
                     <span>ELIMINAR MI CAMPAÑA</span>
                     {copiedConfirmation ? (
-                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                     ) : (
-                      <Copy className="w-3.5 h-3.5 text-red-400 group-hover:text-white transition-colors" />
+                      <Copy className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
                     )}
                   </button>{' '}
                   a continuación:
@@ -736,7 +749,7 @@ export const TenantsManagementView: React.FC = () => {
                     onChange={(e) => setDeleteConfirmationText(e.target.value)}
                     placeholder='Escriba o pegue "ELIMINAR MI CAMPAÑA"'
                     disabled={isDeleting}
-                    className="w-full bg-slate-950/80 border border-slate-700 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 rounded-xl pl-4 pr-24 py-3 text-sm text-white placeholder-slate-500 font-mono tracking-wide transition-all outline-none"
+                    className="w-full bg-slate-50 dark:bg-[#18181b] border border-slate-200 dark:border-white/[0.08] focus:border-rose-500 rounded-xl pl-4 pr-24 py-2.5 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-zinc-500 font-mono tracking-wide transition-all outline-none"
                     autoFocus
                   />
                   <button
@@ -754,16 +767,16 @@ export const TenantsManagementView: React.FC = () => {
                     }}
                     disabled={isDeleting}
                     title="Pegar automáticamente en el recuadro"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 px-2.5 py-1.5 rounded-lg bg-red-950/80 hover:bg-red-900 border border-red-800/70 text-red-300 hover:text-white text-xs font-mono flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 px-2.5 py-1.5 rounded-lg bg-white dark:bg-[#121215] border border-slate-200 dark:border-white/[0.08] text-slate-700 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-white text-xs font-mono flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 active:scale-[0.96]"
                   >
                     {copiedConfirmation ? (
                       <>
-                        <Check className="w-3.5 h-3.5 text-emerald-400" />
-                        <span className="text-emerald-400">Pegado</span>
+                        <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                        <span className="text-emerald-600 dark:text-emerald-400">Pegado</span>
                       </>
                     ) : (
                       <>
-                        <Copy className="w-3.5 h-3.5 text-red-400" />
+                        <Copy className="w-3.5 h-3.5 text-slate-400 dark:text-zinc-400" />
                         <span>Pegar</span>
                       </>
                     )}
@@ -771,21 +784,21 @@ export const TenantsManagementView: React.FC = () => {
                 </div>
 
                 {copiedConfirmation && (
-                  <p className="text-[11px] text-emerald-400 flex items-center gap-1 font-medium">
+                  <p className="text-[11px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-medium font-mono">
                     <Check className="w-3 h-3" />
                     <span>Texto copiado y pegado en el recuadro correctamente.</span>
                   </p>
                 )}
 
                 {deleteError && (
-                  <div className="p-3 rounded-lg bg-red-950/40 border border-red-500/50 text-red-400 text-xs">
+                  <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-500/40 text-rose-700 dark:text-rose-300 text-xs">
                     {deleteError}
                   </div>
                 )}
               </div>
 
-              {/* D. Botones de Acción (Footer) */}
-              <div className="pt-4 border-t border-slate-800 flex items-center justify-end gap-3">
+              {/* Botones de Acción (Footer) */}
+              <div className="pt-4 border-t border-slate-200 dark:border-white/[0.07] flex items-center justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => {
@@ -796,30 +809,30 @@ export const TenantsManagementView: React.FC = () => {
                     }
                   }}
                   disabled={isDeleting}
-                  className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-750 border border-slate-700/60 transition-all cursor-pointer disabled:opacity-50"
+                  className="px-4 py-2.5 rounded-xl text-xs font-medium text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-all cursor-pointer disabled:opacity-50 active:scale-[0.98]"
                 >
-                  CANCELAR OPERACIÓN
+                  Cancelar
                 </button>
 
                 <button
                   type="button"
                   onClick={handleDeleteTenant}
                   disabled={deleteConfirmationText.trim() !== 'ELIMINAR MI CAMPAÑA' || isDeleting}
-                  className={`px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer shadow-lg ${
+                  className={`px-5 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer shadow-md ${
                     deleteConfirmationText.trim() === 'ELIMINAR MI CAMPAÑA' && !isDeleting
-                      ? 'bg-red-600 hover:bg-red-500 text-white border border-red-500 shadow-red-600/40 animate-pulse'
-                      : 'bg-slate-800/80 text-slate-500 border border-slate-800 cursor-not-allowed opacity-50'
+                      ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-600/30 active:scale-[0.98]'
+                      : 'bg-slate-100 dark:bg-[#18181b] text-slate-400 dark:text-zinc-600 border border-slate-200 dark:border-white/[0.06] cursor-not-allowed opacity-50'
                   }`}
                 >
                   {isDeleting ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin text-white" />
-                      <span className="text-white">Eliminando datos...</span>
+                      <span>Eliminando datos...</span>
                     </>
                   ) : (
                     <>
                       <Trash2 className="w-4 h-4" />
-                      <span>ELIMINAR DEFINITIVAMENTE</span>
+                      <span>Eliminar Definitivamente</span>
                     </>
                   )}
                 </button>
