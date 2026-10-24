@@ -152,19 +152,19 @@ export const CreateMemberModal: React.FC<CreateMemberModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 dark:bg-black/85 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto">
-      <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 border-t-2 border-t-blue-500 rounded-3xl p-6 sm:p-7 shadow-2xl backdrop-blur-xl overflow-hidden transition-all my-auto max-h-[95vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto">
+      <div className="relative w-full max-w-lg bg-white dark:bg-[#121215] border border-slate-200 dark:border-white/[0.08] rounded-2xl p-6 sm:p-7 shadow-2xl overflow-hidden transition-all my-auto max-h-[95vh] flex flex-col text-slate-800 dark:text-zinc-100">
         {/* Cabecera (Header) */}
-        <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
+        <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-white/[0.07] shrink-0">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-2xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800/60 flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-sm">
+            <div className="h-10 w-10 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/40 flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-xs">
               <UserPlus className="w-5 h-5" />
             </div>
             <div>
               <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight">
                 Nuevo Miembro del Equipo
               </h3>
-              <p className="text-xs font-mono text-slate-500 dark:text-slate-400 mt-0.5">
+              <p className="text-xs font-mono text-slate-500 dark:text-zinc-400 mt-0.5">
                 Aprovisionamiento para Líder o Coordinador
               </p>
             </div>
@@ -174,7 +174,7 @@ export const CreateMemberModal: React.FC<CreateMemberModalProps> = ({
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="text-slate-400 hover:text-slate-700 dark:hover:text-white p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            className="text-slate-400 hover:text-slate-700 dark:hover:text-white p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors cursor-pointer"
             title="Cerrar ventana"
           >
             <X className="w-5 h-5" />
@@ -182,7 +182,7 @@ export const CreateMemberModal: React.FC<CreateMemberModalProps> = ({
         </div>
 
         {error && (
-          <div className="mt-4 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/50 text-xs text-rose-800 dark:text-rose-300">
+          <div className="mt-4 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/40 text-xs text-rose-800 dark:text-rose-300">
             {error}
           </div>
         )}
@@ -191,36 +191,36 @@ export const CreateMemberModal: React.FC<CreateMemberModalProps> = ({
         <form onSubmit={handleSubmit} className="mt-5 flex-1 overflow-y-auto pr-1 space-y-4">
           {/* Campo 1: Nombre Completo */}
           <div className="space-y-1.5">
-            <label className="block text-[11px] font-mono uppercase tracking-wider text-slate-600 dark:text-slate-400 font-semibold">
+            <label className="block text-[11px] font-mono uppercase tracking-wider text-slate-600 dark:text-zinc-400 font-semibold">
               Nombre Completo <span className="text-blue-600 dark:text-blue-400">*</span>
             </label>
             <div className="relative">
-              <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+              <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-zinc-500 pointer-events-none" />
               <input
                 type="text"
                 required
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="Ej. Roberto Gómez Bolaños"
-                className="w-full h-10.5 pl-10 pr-3.5 bg-slate-50/80 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-blue-500 focus:bg-white dark:focus:bg-slate-950 focus:ring-1 focus:ring-blue-500 transition-all"
+                className="w-full h-10.5 pl-10 pr-3.5 bg-slate-50 dark:bg-[#18181b] border border-slate-200 dark:border-white/[0.08] rounded-xl text-xs text-slate-900 dark:text-zinc-100 placeholder:text-slate-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-blue-500 transition-colors"
               />
             </div>
           </div>
 
           {/* Campo 2: Correo Registrado */}
           <div className="space-y-1.5">
-            <label className="block text-[11px] font-mono uppercase tracking-wider text-slate-600 dark:text-slate-400 font-semibold">
+            <label className="block text-[11px] font-mono uppercase tracking-wider text-slate-600 dark:text-zinc-400 font-semibold">
               Correo Electrónico <span className="text-blue-600 dark:text-blue-400">*</span>
             </label>
             <div className="relative">
-              <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+              <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-zinc-500 pointer-events-none" />
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="usuario@ejemplo.com"
-                className="w-full h-10.5 pl-10 pr-3.5 bg-slate-50/80 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-blue-500 focus:bg-white dark:focus:bg-slate-950 focus:ring-1 focus:ring-blue-500 transition-all"
+                className="w-full h-10.5 pl-10 pr-3.5 bg-slate-50 dark:bg-[#18181b] border border-slate-200 dark:border-white/[0.08] rounded-xl text-xs text-slate-900 dark:text-zinc-100 placeholder:text-slate-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-blue-500 transition-colors"
               />
             </div>
           </div>
@@ -228,13 +228,13 @@ export const CreateMemberModal: React.FC<CreateMemberModalProps> = ({
           {/* Campo 3: Contraseña Provisional */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <label className="block text-[11px] font-mono uppercase tracking-wider text-slate-600 dark:text-slate-400 font-semibold">
+              <label className="block text-[11px] font-mono uppercase tracking-wider text-slate-600 dark:text-zinc-400 font-semibold">
                 Contraseña Provisional <span className="text-blue-600 dark:text-blue-400">*</span>
               </label>
               <button
                 type="button"
                 onClick={generateRandomPassword}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-mono font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-800/60 transition-all cursor-pointer shadow-2xs"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-mono font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/40 border border-blue-200 dark:border-blue-800/40 transition-all cursor-pointer shadow-2xs active:scale-[0.98]"
                 title="Generar automáticamente una contraseña segura"
               >
                 <Sparkles className="w-3 h-3 text-blue-500 dark:text-blue-400" />
@@ -243,7 +243,7 @@ export const CreateMemberModal: React.FC<CreateMemberModalProps> = ({
             </div>
 
             <div className="relative">
-              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-zinc-500 pointer-events-none" />
               <input
                 type={showPassword ? 'text' : 'password'}
                 required
@@ -251,35 +251,35 @@ export const CreateMemberModal: React.FC<CreateMemberModalProps> = ({
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Mínimo 6 caracteres"
-                className="w-full h-10.5 pl-10 pr-10 bg-slate-50/80 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-mono text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-blue-500 focus:bg-white dark:focus:bg-slate-950 focus:ring-1 focus:ring-blue-500 transition-all tracking-wider"
+                className="w-full h-10.5 pl-10 pr-10 bg-slate-50 dark:bg-[#18181b] border border-slate-200 dark:border-white/[0.08] rounded-xl text-xs font-mono text-slate-900 dark:text-zinc-100 placeholder:text-slate-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-blue-500 transition-colors tracking-wider"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 cursor-pointer transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 p-1 cursor-pointer transition-colors"
                 title={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
-            <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">
+            <p className="text-[10px] text-slate-500 dark:text-zinc-500 leading-tight">
               El usuario podrá autenticarse inmediatamente tras la creación del acceso.
             </p>
           </div>
 
           {/* Campo 4: Rol Asignado */}
           <div className="space-y-1.5 pt-1">
-            <label className="block text-[11px] font-mono uppercase tracking-wider text-slate-600 dark:text-slate-400 font-semibold">
+            <label className="block text-[11px] font-mono uppercase tracking-wider text-slate-600 dark:text-zinc-400 font-semibold">
               Rol Asignado
             </label>
             <div className="grid grid-cols-2 gap-3">
               {/* Tarjeta Coordinador */}
               <div
                 onClick={() => setRole('coordinador')}
-                className={`relative p-3 rounded-2xl border text-left transition-all cursor-pointer select-none ${
+                className={`relative p-3 rounded-xl border text-left transition-all cursor-pointer select-none ${
                   role === 'coordinador'
-                    ? 'bg-blue-50/80 dark:bg-blue-950/30 border-blue-500 ring-1 ring-blue-500/50 shadow-xs'
-                    : 'bg-slate-50/50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 opacity-75 hover:opacity-100'
+                    ? 'bg-blue-50/70 dark:bg-blue-950/20 border-blue-400 dark:border-blue-500/40 ring-1 ring-blue-500/30 shadow-xs'
+                    : 'bg-slate-50/50 dark:bg-[#18181b] border-slate-200 dark:border-white/[0.07] hover:border-slate-300 dark:hover:border-white/[0.14]'
                 }`}
               >
                 <div className="flex items-center justify-between mb-1">
@@ -287,7 +287,7 @@ export const CreateMemberModal: React.FC<CreateMemberModalProps> = ({
                     <span className="text-xs font-bold text-blue-600 dark:text-blue-400">
                       Coordinador
                     </span>
-                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 font-medium">
+                    <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 font-medium">
                       Gestión
                     </span>
                   </div>
@@ -295,7 +295,7 @@ export const CreateMemberModal: React.FC<CreateMemberModalProps> = ({
                     <CheckCircle2 className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
                   )}
                 </div>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-snug">
+                <p className="text-[10px] text-slate-500 dark:text-zinc-400 leading-snug">
                   Supervisión de puesto, auditoría y reportes.
                 </p>
               </div>
@@ -303,10 +303,10 @@ export const CreateMemberModal: React.FC<CreateMemberModalProps> = ({
               {/* Tarjeta Líder */}
               <div
                 onClick={() => setRole('lider')}
-                className={`relative p-3 rounded-2xl border text-left transition-all cursor-pointer select-none ${
+                className={`relative p-3 rounded-xl border text-left transition-all cursor-pointer select-none ${
                   role === 'lider'
-                    ? 'bg-emerald-50/80 dark:bg-emerald-950/30 border-emerald-500 ring-1 ring-emerald-500/50 shadow-xs'
-                    : 'bg-slate-50/50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 opacity-75 hover:opacity-100'
+                    ? 'bg-emerald-50/70 dark:bg-emerald-950/20 border-emerald-400 dark:border-emerald-500/40 ring-1 ring-emerald-500/30 shadow-xs'
+                    : 'bg-slate-50/50 dark:bg-[#18181b] border-slate-200 dark:border-white/[0.07] hover:border-slate-300 dark:hover:border-white/[0.14]'
                 }`}
               >
                 <div className="flex items-center justify-between mb-1">
@@ -314,7 +314,7 @@ export const CreateMemberModal: React.FC<CreateMemberModalProps> = ({
                     <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
                       Líder
                     </span>
-                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-medium">
+                    <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-medium">
                       Terreno
                     </span>
                   </div>
@@ -322,7 +322,7 @@ export const CreateMemberModal: React.FC<CreateMemberModalProps> = ({
                     <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                   )}
                 </div>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-snug">
+                <p className="text-[10px] text-slate-500 dark:text-zinc-400 leading-snug">
                   Enrolamiento y captura directa de votantes.
                 </p>
               </div>
@@ -332,16 +332,16 @@ export const CreateMemberModal: React.FC<CreateMemberModalProps> = ({
           {/* Campo 5: Meta de Electores (Cuota Operativa) */}
           <div className="space-y-1.5 pt-1">
             <div className="flex items-center justify-between">
-              <label className="block text-[11px] font-mono uppercase tracking-wider text-slate-600 dark:text-slate-400 font-semibold">
+              <label className="block text-[11px] font-mono uppercase tracking-wider text-slate-600 dark:text-zinc-400 font-semibold">
                 Meta de Electores (Cuota) <span className="text-blue-600 dark:text-blue-400">*</span>
               </label>
-              <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500">
+              <span className="text-[10px] font-mono text-slate-400 dark:text-zinc-500">
                 No bloqueante
               </span>
             </div>
 
             <div className="relative">
-              <Target className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+              <Target className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-zinc-500 pointer-events-none" />
               <input
                 type="text"
                 inputMode="numeric"
@@ -350,40 +350,40 @@ export const CreateMemberModal: React.FC<CreateMemberModalProps> = ({
                 onChange={handleMetaChange}
                 onBlur={handleMetaBlur}
                 placeholder="100"
-                className="w-full h-10.5 pl-10 pr-3.5 bg-slate-50/80 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-mono font-bold text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-blue-500 focus:bg-white dark:focus:bg-slate-950 focus:ring-1 focus:ring-blue-500 transition-all"
+                className="w-full h-10.5 pl-10 pr-3.5 bg-slate-50 dark:bg-[#18181b] border border-slate-200 dark:border-white/[0.08] rounded-xl text-xs font-mono font-bold tabular-nums text-slate-900 dark:text-zinc-100 placeholder:text-slate-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-blue-500 transition-colors"
               />
             </div>
 
             {/* Botones Presets Rápidos */}
             <div className="flex items-center gap-1.5 pt-1">
-              <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 mr-1">Preajuste:</span>
+              <span className="text-[10px] font-mono text-slate-500 dark:text-zinc-400 mr-1">Preajuste:</span>
               {[50, 100, 200, 500].map((val) => (
                 <button
                   key={val}
                   type="button"
                   onClick={() => handlePresetClick(val)}
-                  className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-semibold transition-all cursor-pointer border ${
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-semibold tabular-nums transition-all cursor-pointer border active:scale-[0.96] ${
                     Number(metaElectoresInput) === val
-                      ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
-                      : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                      ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                      : 'bg-white dark:bg-[#18181b] text-slate-600 dark:text-zinc-300 border-slate-200 dark:border-white/[0.08] hover:border-slate-300 dark:hover:border-white/[0.14]'
                   }`}
                 >
                   {val}
                 </button>
               ))}
             </div>
-            <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">
+            <p className="text-[10px] text-slate-500 dark:text-zinc-500 leading-tight">
               Objetivo inicial acordado. El colaborador podrá superar esta cifra en terreno sin restricciones.
             </p>
           </div>
 
           {/* Botonera Inferior (Footer) */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800 shrink-0">
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-white/[0.07] shrink-0">
             <button
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="px-5 py-2.5 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+              className="px-5 py-2.5 rounded-xl text-xs font-medium text-slate-600 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-white bg-slate-100 hover:bg-slate-200/80 dark:bg-[#18181b] dark:hover:bg-white/[0.06] transition-colors cursor-pointer active:scale-[0.98]"
             >
               Cancelar
             </button>
@@ -391,14 +391,14 @@ export const CreateMemberModal: React.FC<CreateMemberModalProps> = ({
             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider text-white bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-900/40 flex items-center gap-2 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+              className="px-6 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider text-white bg-blue-600 hover:bg-blue-500 shadow-md shadow-blue-600/20 flex items-center gap-2 active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50"
             >
               {loading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <Shield className="w-4 h-4" />
               )}
-              <span>CREAR ACCESO</span>
+              <span>Crear Acceso</span>
             </button>
           </div>
         </form>

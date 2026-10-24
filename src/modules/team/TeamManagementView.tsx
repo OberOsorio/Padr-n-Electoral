@@ -21,11 +21,19 @@ import {
   Award,
   Pencil,
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface TeamManagementViewProps {
   isAdmin?: boolean;
   onNavigateToDashboard?: () => void;
 }
+
+const springTransition = {
+  type: 'spring' as const,
+  stiffness: 380,
+  damping: 30,
+  mass: 0.8,
+};
 
 export const TeamManagementView = ({
   isAdmin = true,
@@ -149,15 +157,21 @@ export const TeamManagementView = ({
   };
 
   return (
-    <div className="space-y-6 sm:space-y-8 p-4 sm:p-6 lg:p-8 xl:p-10 max-w-[1600px] mx-auto pb-24 md:pb-10 animate-in fade-in duration-300">
+    <div className="space-y-6 sm:space-y-8 p-4 sm:p-6 lg:p-8 xl:p-10 max-w-[1600px] mx-auto pb-24 md:pb-12 text-slate-800 dark:text-zinc-100">
       {/* 1. Header de Vista Ejecutivo */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200 dark:border-slate-800/80">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200 dark:border-white/[0.07]">
         <div>
-          <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 dark:text-white tracking-tight">
-            Equipo y Accesos
+          <div className="flex items-center gap-2 mb-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+            <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500 dark:text-zinc-400 font-semibold">
+              Control de Accesos & Estructura
+            </span>
+          </div>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+            Equipo y Credenciales
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Gestión de coordinadores, líderes y credenciales de acceso de la campaña.
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-zinc-400 mt-1">
+            Gestión de coordinadores territoriales, líderes barriales y asignación de cuotas electorales.
           </p>
         </div>
 
@@ -165,7 +179,7 @@ export const TeamManagementView = ({
           <button
             type="button"
             onClick={() => refetch()}
-            className="p-2.5 rounded-xl bg-white hover:bg-slate-100 dark:bg-slate-800/80 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700/60 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition-colors cursor-pointer shadow-xs dark:shadow-none shrink-0"
+            className="p-2.5 rounded-xl bg-white hover:bg-slate-50 dark:bg-[#121215] dark:hover:bg-[#18181b] border border-slate-200 dark:border-white/[0.08] text-slate-600 hover:text-slate-900 dark:text-zinc-300 dark:hover:text-white transition-colors cursor-pointer shadow-xs active:scale-[0.98] shrink-0"
             title="Refrescar lista"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -174,7 +188,7 @@ export const TeamManagementView = ({
           <button
             type="button"
             onClick={() => setIsCreateModalOpen(true)}
-            className="flex-1 sm:flex-initial justify-center px-4 py-2.5 bg-blue-600 hover:bg-blue-500 active:scale-[0.98] active:bg-blue-700 text-white text-xs font-semibold uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-blue-500/20 flex items-center gap-2 cursor-pointer"
+            className="flex-1 sm:flex-initial justify-center px-4 py-2.5 bg-blue-600 hover:bg-blue-500 active:scale-[0.98] text-white text-xs font-semibold rounded-xl transition-all shadow-md shadow-blue-600/20 flex items-center gap-2 cursor-pointer"
           >
             <UserPlus className="w-4 h-4" />
             <span>+ Nuevo Miembro</span>
@@ -183,110 +197,124 @@ export const TeamManagementView = ({
       </div>
 
       {/* Alerta de notificación de estado */}
-      {actionMessage && (
-        <div className="p-3.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/50 text-xs text-blue-900 dark:text-blue-200 flex items-center gap-2 animate-in fade-in">
-          <CheckCircle2 className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
-          <span>{actionMessage}</span>
-        </div>
-      )}
+      <AnimatePresence>
+        {actionMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={springTransition}
+            className="p-3.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-500/30 text-xs text-blue-900 dark:text-blue-200 flex items-center gap-2.5 shadow-xs"
+          >
+            <CheckCircle2 className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+            <span className="font-medium">{actionMessage}</span>
+          </motion.div>
+        )}
 
-      {error && (
-        <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/50 text-xs text-rose-800 dark:text-rose-300 flex items-center gap-2 animate-in fade-in">
-          <span>{error}</span>
-        </div>
-      )}
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={springTransition}
+            className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-500/30 text-xs text-rose-800 dark:text-rose-300 flex items-center gap-2 shadow-xs"
+          >
+            <span className="font-medium">{error}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* 2. Métricas del Equipo */}
+      {/* 2. Bento Grid de Métricas del Equipo */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-5">
-        <div className="rounded-2xl bg-white dark:bg-slate-800/80 backdrop-blur-md border border-slate-200 dark:border-slate-700/60 p-5 shadow-xs dark:shadow-lg">
+        <div className="rounded-2xl bg-white dark:bg-[#121215] border border-slate-200 dark:border-white/[0.07] p-5 shadow-xs dark:shadow-[0_1px_0_0_rgba(255,255,255,0.03)_inset] transition-colors">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            <span className="text-[11px] font-mono uppercase tracking-wider text-slate-500 dark:text-zinc-400 font-semibold">
               Total Equipo
             </span>
             <div className="h-8 w-8 rounded-lg bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/40 flex items-center justify-center text-blue-600 dark:text-blue-400">
               <Users className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-2.5">
-            <span className="text-3xl font-semibold text-slate-900 dark:text-white font-mono">
+          <div className="mt-3">
+            <span className="text-3xl font-bold text-slate-900 dark:text-white font-mono tabular-nums">
               {totalMiembros}
             </span>
           </div>
-          <p className="mt-2 text-xs font-mono text-slate-500 dark:text-slate-400">
+          <p className="mt-1.5 text-xs font-mono text-slate-500 dark:text-zinc-500">
             Cuentas registradas
           </p>
         </div>
 
-        <div className="rounded-2xl bg-white dark:bg-slate-800/80 backdrop-blur-md border border-slate-200 dark:border-slate-700/60 p-5 shadow-xs dark:shadow-lg">
+        <div className="rounded-2xl bg-white dark:bg-[#121215] border border-slate-200 dark:border-white/[0.07] p-5 shadow-xs dark:shadow-[0_1px_0_0_rgba(255,255,255,0.03)_inset] transition-colors">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            <span className="text-[11px] font-mono uppercase tracking-wider text-slate-500 dark:text-zinc-400 font-semibold">
               Coordinadores Activos
             </span>
             <div className="h-8 w-8 rounded-lg bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/40 flex items-center justify-center text-blue-600 dark:text-blue-400">
               <Shield className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-2.5">
-            <span className="text-3xl font-semibold text-blue-600 dark:text-blue-400 font-mono">
+          <div className="mt-3">
+            <span className="text-3xl font-bold text-blue-600 dark:text-blue-400 font-mono tabular-nums">
               {coordinadoresActivos}
             </span>
           </div>
-          <p className="mt-2 text-xs font-mono text-slate-500 dark:text-slate-400">
+          <p className="mt-1.5 text-xs font-mono text-slate-500 dark:text-zinc-500">
             Supervisión territorial
           </p>
         </div>
 
-        <div className="rounded-2xl bg-white dark:bg-slate-800/80 backdrop-blur-md border border-slate-200 dark:border-slate-700/60 p-5 shadow-xs dark:shadow-lg">
+        <div className="rounded-2xl bg-white dark:bg-[#121215] border border-slate-200 dark:border-white/[0.07] p-5 shadow-xs dark:shadow-[0_1px_0_0_rgba(255,255,255,0.03)_inset] transition-colors">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            <span className="text-[11px] font-mono uppercase tracking-wider text-slate-500 dark:text-zinc-400 font-semibold">
               Líderes Activos
             </span>
             <div className="h-8 w-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
               <UserCheck className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-2.5">
-            <span className="text-3xl font-semibold text-emerald-600 dark:text-emerald-400 font-mono">
+          <div className="mt-3">
+            <span className="text-3xl font-bold text-emerald-600 dark:text-emerald-400 font-mono tabular-nums">
               {lideresActivos}
             </span>
           </div>
-          <p className="mt-2 text-xs font-mono text-slate-500 dark:text-slate-400">
+          <p className="mt-1.5 text-xs font-mono text-slate-500 dark:text-zinc-500">
             Enrolamiento en terreno
           </p>
         </div>
 
-        <div className="rounded-2xl bg-white dark:bg-slate-800/80 backdrop-blur-md border border-slate-200 dark:border-slate-700/60 p-5 shadow-xs dark:shadow-lg">
+        <div className="rounded-2xl bg-white dark:bg-[#121215] border border-slate-200 dark:border-white/[0.07] p-5 shadow-xs dark:shadow-[0_1px_0_0_rgba(255,255,255,0.03)_inset] transition-colors">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            <span className="text-[11px] font-mono uppercase tracking-wider text-slate-500 dark:text-zinc-400 font-semibold">
               Votos Reportados
             </span>
-            <div className="h-8 w-8 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/40 flex items-center justify-center text-amber-600 dark:text-[#E5B869]">
+            <div className="h-8 w-8 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/40 flex items-center justify-center text-amber-600 dark:text-amber-400">
               <Award className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-2.5">
-            <span className="text-3xl font-semibold text-amber-600 dark:text-[#E5B869] font-mono">
-              {totalElectoresReportados}
+          <div className="mt-3">
+            <span className="text-3xl font-bold text-amber-600 dark:text-amber-400 font-mono tabular-nums">
+              {totalElectoresReportados.toLocaleString('es-CO')}
             </span>
           </div>
-          <p className="mt-2 text-xs font-mono text-slate-500 dark:text-slate-400">
+          <p className="mt-1.5 text-xs font-mono text-slate-500 dark:text-zinc-500">
             Por el equipo en campaña
           </p>
         </div>
       </div>
 
       {/* 3. Tabla Principal de Miembros de Equipo */}
-      <div className="rounded-2xl bg-white dark:bg-slate-800/80 backdrop-blur-md border border-slate-200 dark:border-slate-700/60 shadow-xs dark:shadow-xl overflow-hidden">
+      <div className="rounded-2xl bg-white dark:bg-[#121215] border border-slate-200 dark:border-white/[0.07] shadow-xs dark:shadow-[0_1px_0_0_rgba(255,255,255,0.03)_inset] overflow-hidden">
         {/* Barra de Filtros */}
-        <div className="p-4 border-b border-slate-200 dark:border-slate-700/60 bg-slate-50/80 dark:bg-slate-900/90 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="p-4 border-b border-slate-200 dark:border-white/[0.07] bg-slate-50/60 dark:bg-[#18181b] flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="relative w-full sm:w-80">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-400 pointer-events-none" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-zinc-500 pointer-events-none" />
             <input
               type="text"
               value={searchFilter}
               onChange={(e) => setSearchFilter(e.target.value)}
               placeholder="Buscar por nombre o correo..."
-              className="w-full h-9.5 pl-10 pr-3.5 bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/60 rounded-xl text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className="w-full h-9.5 pl-10 pr-3.5 bg-white dark:bg-[#121215] border border-slate-200 dark:border-white/[0.08] rounded-xl text-xs text-slate-900 dark:text-zinc-100 placeholder:text-slate-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-blue-500 transition-colors"
             />
           </div>
 
@@ -294,12 +322,12 @@ export const TeamManagementView = ({
             <select
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value as any)}
-              className="h-9.5 px-3 bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/60 rounded-xl text-xs font-mono text-slate-700 dark:text-slate-200 focus:outline-none focus:border-blue-500 cursor-pointer"
+              className="h-9.5 px-3 bg-white dark:bg-[#121215] border border-slate-200 dark:border-white/[0.08] rounded-xl text-xs font-mono text-slate-700 dark:text-zinc-200 focus:outline-none focus:border-blue-500 cursor-pointer"
             >
-              <option value="all" className="bg-white dark:bg-slate-900">Todos los Roles</option>
-              <option value="coordinador" className="bg-white dark:bg-slate-900">Solo Coordinadores</option>
-              <option value="lider" className="bg-white dark:bg-slate-900">Solo Líderes</option>
-              <option value="admin" className="bg-white dark:bg-slate-900">Solo Administradores</option>
+              <option value="all">Todos los Roles</option>
+              <option value="coordinador">Solo Coordinadores</option>
+              <option value="lider">Solo Líderes</option>
+              <option value="admin">Solo Administradores</option>
             </select>
           </div>
         </div>
@@ -308,7 +336,7 @@ export const TeamManagementView = ({
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-slate-200 dark:border-slate-700/60 bg-slate-100/70 dark:bg-slate-900/90 text-[11px] font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              <tr className="border-b border-slate-200 dark:border-white/[0.07] bg-slate-50 dark:bg-white/[0.02] text-[10px] font-mono uppercase tracking-wider text-slate-500 dark:text-zinc-400">
                 <th className="py-3 px-4">Miembro</th>
                 <th className="py-3 px-4">Correo Registrado</th>
                 <th className="py-3 px-4">Rol Asignado</th>
@@ -319,28 +347,28 @@ export const TeamManagementView = ({
               </tr>
             </thead>
 
-            <tbody className="divide-y divide-slate-200 dark:divide-slate-700/60 text-xs text-slate-700 dark:text-slate-300">
+            <tbody className="divide-y divide-slate-200 dark:divide-white/[0.07] text-xs text-slate-700 dark:text-zinc-300">
               {loading ? (
                 Array.from({ length: 4 }).map((_, idx) => (
                   <tr key={idx} className="animate-pulse">
-                    <td className="py-3.5 px-4"><div className="h-4 w-36 bg-slate-200 dark:bg-slate-700 rounded" /></td>
-                    <td className="py-3.5 px-4"><div className="h-4 w-40 bg-slate-200 dark:bg-slate-700 rounded" /></td>
-                    <td className="py-3.5 px-4"><div className="h-5 w-24 bg-slate-200 dark:bg-slate-700 rounded-full" /></td>
-                    <td className="py-3.5 px-4 text-center"><div className="h-5 w-16 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto" /></td>
-                    <td className="py-3.5 px-4 text-center"><div className="h-5 w-28 bg-slate-200 dark:bg-slate-700 rounded mx-auto" /></td>
-                    <td className="py-3.5 px-4"><div className="h-4 w-20 bg-slate-200 dark:bg-slate-700 rounded" /></td>
-                    <td className="py-3.5 px-4 text-right"><div className="h-6 w-16 bg-slate-200 dark:bg-slate-700 rounded-full ml-auto" /></td>
+                    <td className="py-3.5 px-4"><div className="h-4 w-36 bg-slate-200 dark:bg-white/[0.06] rounded" /></td>
+                    <td className="py-3.5 px-4"><div className="h-4 w-40 bg-slate-200 dark:bg-white/[0.06] rounded" /></td>
+                    <td className="py-3.5 px-4"><div className="h-5 w-24 bg-slate-200 dark:bg-white/[0.06] rounded-full" /></td>
+                    <td className="py-3.5 px-4 text-center"><div className="h-5 w-16 bg-slate-200 dark:bg-white/[0.06] rounded-full mx-auto" /></td>
+                    <td className="py-3.5 px-4 text-center"><div className="h-5 w-28 bg-slate-200 dark:bg-white/[0.06] rounded mx-auto" /></td>
+                    <td className="py-3.5 px-4"><div className="h-4 w-20 bg-slate-200 dark:bg-white/[0.06] rounded" /></td>
+                    <td className="py-3.5 px-4 text-right"><div className="h-6 w-16 bg-slate-200 dark:bg-white/[0.06] rounded-full ml-auto" /></td>
                   </tr>
                 ))
               ) : filteredTeam.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-12 text-center">
                     <div className="flex flex-col items-center justify-center">
-                      <UserX className="w-8 h-8 text-slate-400 dark:text-slate-500 mb-2" />
-                      <p className="text-xs font-semibold text-slate-700 dark:text-white">
+                      <UserX className="w-8 h-8 text-slate-400 dark:text-zinc-500 mb-2" />
+                      <p className="text-xs font-semibold text-slate-700 dark:text-zinc-200">
                         No se encontraron miembros de equipo
                       </p>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      <p className="text-[11px] text-slate-500 dark:text-zinc-400 mt-0.5">
                         Ajuste el criterio de búsqueda o cree un nuevo coordinador o líder.
                       </p>
                     </div>
@@ -359,7 +387,7 @@ export const TeamManagementView = ({
                   return (
                     <tr
                       key={member.id}
-                      className="hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors group"
+                      className="hover:bg-slate-50 dark:hover:bg-white/[0.03] transition-colors group"
                     >
                       {/* Miembro / Nombre */}
                       <td className="py-3 px-4">
@@ -367,7 +395,7 @@ export const TeamManagementView = ({
                           <div
                             className={`h-8 w-8 rounded-lg flex items-center justify-center text-xs font-mono font-bold shrink-0 border ${
                               isAdminMember
-                                ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/30'
+                                ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30'
                                 : member.role === 'lider'
                                 ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
                                 : 'bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800/40 text-blue-600 dark:text-blue-400'
@@ -376,7 +404,7 @@ export const TeamManagementView = ({
                             {initials}
                           </div>
                           <div>
-                            <p className="font-semibold text-slate-800 dark:text-white">
+                            <p className="font-semibold text-slate-800 dark:text-zinc-100">
                               {member.full_name}
                             </p>
                             {isAdminMember && (
@@ -389,9 +417,9 @@ export const TeamManagementView = ({
                       </td>
 
                       {/* Correo */}
-                      <td className="py-3 px-4 font-mono text-slate-500 dark:text-slate-400 text-[11px]">
+                      <td className="py-3 px-4 font-mono text-slate-500 dark:text-zinc-400 text-[11px]">
                         <span className="flex items-center gap-1.5">
-                          <Mail className="w-3 h-3 text-slate-400 dark:text-slate-500 shrink-0" />
+                          <Mail className="w-3 h-3 text-slate-400 dark:text-zinc-500 shrink-0" />
                           <span className="truncate">{member.email || 'Sin correo registrado'}</span>
                         </span>
                       </td>
@@ -401,7 +429,7 @@ export const TeamManagementView = ({
                         {isAdminMember ? (
                           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20 font-mono">
                             <ShieldAlert className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                            ADMIN / CANDIDATO
+                            ADMIN / TITULAR
                           </span>
                         ) : (
                           <select
@@ -415,14 +443,14 @@ export const TeamManagementView = ({
                             }
                             className={`h-7 px-2.5 rounded-lg text-[11px] font-mono font-semibold uppercase tracking-wider border cursor-pointer focus:outline-none transition-colors ${
                               member.role === 'lider'
-                                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
-                                : 'bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800/40 text-blue-600 dark:text-blue-300'
+                                ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/40 text-emerald-700 dark:text-emerald-300'
+                                : 'bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800/40 text-blue-700 dark:text-blue-300'
                             }`}
                           >
-                            <option value="coordinador" className="bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-300">
+                            <option value="coordinador" className="bg-white dark:bg-[#18181b] text-blue-600 dark:text-blue-300">
                               Coordinador
                             </option>
-                            <option value="lider" className="bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400">
+                            <option value="lider" className="bg-white dark:bg-[#18181b] text-emerald-600 dark:text-emerald-400">
                               Líder
                             </option>
                           </select>
@@ -434,8 +462,8 @@ export const TeamManagementView = ({
                         <span
                           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono font-semibold uppercase tracking-wide border ${
                             member.is_active
-                              ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50'
-                              : 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-800/40'
+                              ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/40'
+                              : 'bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-800/40'
                           }`}
                         >
                           <span
@@ -451,10 +479,10 @@ export const TeamManagementView = ({
                       <td className="py-3 px-4">
                         {isAdminMember ? (
                           <div className="flex flex-col items-center justify-center">
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-900 text-xs font-mono font-bold text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700/60 shadow-2xs">
-                              {member.totalElectores.toLocaleString()}
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-md bg-slate-100 dark:bg-white/[0.04] text-xs font-mono font-bold tabular-nums text-slate-800 dark:text-zinc-200 border border-slate-200 dark:border-white/[0.07]">
+                              {member.totalElectores.toLocaleString('es-CO')}
                             </span>
-                            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono mt-0.5">
+                            <span className="text-[10px] text-slate-400 dark:text-zinc-500 font-mono mt-0.5">
                               General (Sin cuota)
                             </span>
                           </div>
@@ -468,16 +496,16 @@ export const TeamManagementView = ({
 
                             return (
                               <div className="flex flex-col items-center justify-center min-w-[130px] max-w-[170px] mx-auto space-y-1.5">
-                                <div className="flex items-center justify-between w-full font-mono text-xs px-0.5">
-                                  <span className="font-bold text-slate-900 dark:text-white">
-                                    {count.toLocaleString()}
-                                    <span className="font-normal text-slate-400 dark:text-slate-500"> / {targetMeta.toLocaleString()}</span>
+                                <div className="flex items-center justify-between w-full font-mono tabular-nums text-xs px-0.5">
+                                  <span className="font-semibold text-slate-900 dark:text-white">
+                                    {count.toLocaleString('es-CO')}
+                                    <span className="font-normal text-slate-400 dark:text-zinc-500"> / {targetMeta.toLocaleString('es-CO')}</span>
                                   </span>
                                   <span
                                     className={`text-[10px] font-bold ${
                                       isReached
-                                        ? 'text-emerald-600 dark:text-emerald-400 font-mono'
-                                        : 'text-slate-500 dark:text-slate-400'
+                                        ? 'text-emerald-600 dark:text-emerald-400'
+                                        : 'text-slate-500 dark:text-zinc-400'
                                     }`}
                                   >
                                     {pct}%
@@ -485,13 +513,13 @@ export const TeamManagementView = ({
                                 </div>
 
                                 {/* Barra de progreso */}
-                                <div className="w-full h-1.5 bg-slate-200/90 dark:bg-slate-800 rounded-full overflow-hidden">
+                                <div className="w-full h-1.5 bg-slate-200/90 dark:bg-white/[0.08] rounded-full overflow-hidden">
                                   <div
-                                    className={`h-full rounded-full transition-all duration-500 ${
+                                    className={`h-full rounded-full transition-all duration-300 ${
                                       isReached
-                                        ? 'bg-emerald-500 shadow-xs shadow-emerald-500/50'
+                                        ? 'bg-emerald-500'
                                         : pct > 50
-                                        ? 'bg-blue-600'
+                                        ? 'bg-blue-600 dark:bg-blue-500'
                                         : 'bg-amber-500'
                                     }`}
                                     style={{ width: `${progressWidth}%` }}
@@ -512,7 +540,7 @@ export const TeamManagementView = ({
                       </td>
 
                       {/* Última Actividad */}
-                      <td className="py-3 px-4 font-mono text-[11px] text-slate-500 dark:text-slate-400">
+                      <td className="py-3 px-4 font-mono text-[11px] text-slate-500 dark:text-zinc-400">
                         {formatActivity(member.lastActivity)}
                       </td>
 
@@ -520,11 +548,11 @@ export const TeamManagementView = ({
                       <td className="py-3 px-4 text-right">
                         {isAdminMember ? (
                           <div
-                            className="flex items-center justify-end gap-2 text-slate-500 text-xs font-medium cursor-not-allowed select-none"
+                            className="flex items-center justify-end gap-2 text-slate-400 dark:text-zinc-500 text-xs font-medium cursor-not-allowed select-none"
                             title="Las credenciales del titular de campaña no pueden ser modificadas desde este panel"
                           >
-                            <Lock className="w-4 h-4 text-slate-500" />
-                            <span className="text-[11px] text-slate-500">Inmutable</span>
+                            <Lock className="w-4 h-4 text-slate-400 dark:text-zinc-500" />
+                            <span className="text-[11px] font-mono">Inmutable</span>
                           </div>
                         ) : (
                           <div className="flex items-center justify-end gap-2.5">
@@ -532,7 +560,7 @@ export const TeamManagementView = ({
                             <button
                               type="button"
                               onClick={() => setSelectedEditMember(member)}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-blue-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-blue-400 dark:hover:bg-slate-800/80 transition-colors cursor-pointer"
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-blue-500 hover:bg-slate-100 dark:text-zinc-400 dark:hover:text-blue-400 dark:hover:bg-white/[0.06] transition-colors cursor-pointer active:scale-[0.95]"
                               title="Editar colaborador y meta"
                             >
                               <Pencil className="w-4 h-4" />
@@ -542,7 +570,7 @@ export const TeamManagementView = ({
                             <button
                               type="button"
                               onClick={() => setSelectedResetMember(member)}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-amber-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-amber-400 dark:hover:bg-slate-800/80 transition-colors cursor-pointer"
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-amber-500 hover:bg-slate-100 dark:text-zinc-400 dark:hover:text-amber-400 dark:hover:bg-white/[0.06] transition-colors cursor-pointer active:scale-[0.95]"
                               title="Cambiar contraseña de acceso"
                             >
                               <Key className="w-4 h-4" />
@@ -561,7 +589,7 @@ export const TeamManagementView = ({
                                 }
                                 className="sr-only peer"
                               />
-                              <div className="w-10 h-5.5 bg-slate-300 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-emerald-600 transition-colors" />
+                              <div className="w-9 h-5 bg-slate-300 dark:bg-white/[0.12] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600 transition-colors" />
                             </label>
                           </div>
                         )}
@@ -619,4 +647,3 @@ export const TeamManagementView = ({
     </div>
   );
 };
-

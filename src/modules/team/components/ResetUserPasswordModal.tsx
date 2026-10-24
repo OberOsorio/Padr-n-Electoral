@@ -26,7 +26,7 @@ export const ResetUserPasswordModal: React.FC<ResetPasswordModalProps> = ({
   member,
   isOpen,
   onClose,
-  onResetPassword,
+  onResetPassword: _onResetPassword,
 }) => {
   const targetUser = user || member;
   const [claveProvisional, setClaveProvisional] = useState('Electoral2026*');
@@ -70,7 +70,7 @@ export const ResetUserPasswordModal: React.FC<ResetPasswordModalProps> = ({
         } else if (result.error) {
           lastErrorMessage = result.error;
         }
-      } catch (fetchErr: any) {
+      } catch (fetchErr: unknown) {
         console.warn('Endpoint /api/admin/reset-password no disponible o en red externa, aplicando fallback administrativo:', fetchErr);
       }
 
@@ -99,23 +99,13 @@ export const ResetUserPasswordModal: React.FC<ResetPasswordModalProps> = ({
               severity: 'WARNING',
               action_detail: `Contraseña provisional asignada por el administrador ID: ${adminRequesterId || 'admin'}`,
             });
-          } catch (auditErr) {
-            console.warn('[ResetPasswordModal] Auditoría no bloqueante:', auditErr);
+          } catch {
+            // No romper el flujo si el log falla
           }
 
           applied = true;
-        } catch (adminClientErr: any) {
-          lastErrorMessage = adminClientErr?.message || lastErrorMessage;
-        }
-      }
-
-      // 4. Si se proporcionó un callback onResetPassword por prop, notificarlo
-      if (!applied && onResetPassword) {
-        const callbackResult = await onResetPassword(targetUser.email, claveProvisional, targetUser.id);
-        if (callbackResult.success) {
-          applied = true;
-        } else {
-          lastErrorMessage = callbackResult.message || lastErrorMessage;
+        } catch (adminErr: unknown) {
+          lastErrorMessage = adminErr instanceof Error ? adminErr.message : 'Error en cliente administrativo';
         }
       }
 
@@ -124,9 +114,9 @@ export const ResetUserPasswordModal: React.FC<ResetPasswordModalProps> = ({
       }
 
       setExito(true);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error aplicando reset:', err);
-      setErrorMsg(err.message || 'Error al persistir la contraseña en el servidor.');
+      setErrorMsg(err instanceof Error ? err.message : 'Error al persistir la contraseña en el servidor.');
     } finally {
       setLoading(false);
     }
@@ -141,25 +131,25 @@ export const ResetUserPasswordModal: React.FC<ResetPasswordModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-150">
-      <div className="bg-[#090f1d] border border-[#1d2c4d] rounded-[28px] w-full max-w-md shadow-2xl p-6 sm:p-7 relative text-slate-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-150">
+      <div className="bg-white dark:bg-[#121215] border border-slate-200 dark:border-white/[0.08] rounded-2xl w-full max-w-md shadow-2xl p-6 sm:p-7 relative text-slate-800 dark:text-zinc-200">
         
         {/* Cabecera */}
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-amber-400 flex items-center justify-center shrink-0">
-              <Key className="w-6 h-6"/>
+            <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-500/30 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 shadow-xs">
+              <Key className="w-5 h-5"/>
             </div>
             <div>
-              <h3 className="text-base font-bold text-white">Resetear Contraseña de Acceso</h3>
-              <p className="text-xs text-slate-400">Credencial de campaña para {targetUser.full_name}</p>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">Resetear Contraseña</h3>
+              <p className="text-xs text-slate-500 dark:text-zinc-400">Credencial de acceso para {targetUser.full_name}</p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-1.5 rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors cursor-pointer"
           >
             <X className="w-4 h-4"/>
           </button>
@@ -167,33 +157,33 @@ export const ResetUserPasswordModal: React.FC<ResetPasswordModalProps> = ({
 
         {/* Mensaje de Éxito al Aplicar */}
         {exito && (
-          <div className="mb-4 p-3.5 rounded-2xl bg-emerald-950/40 border border-emerald-500/40 text-emerald-300 text-xs flex items-center gap-2.5 animate-in fade-in">
-            <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400"/>
+          <div className="mb-4 p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-300 text-xs flex items-center gap-2.5 animate-in fade-in">
+            <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400"/>
             <span>Acceso reseteado exitosamente para {targetUser.email}. Ya puede iniciar sesión con la clave asignada.</span>
           </div>
         )}
 
         {/* Mensaje de Error */}
         {errorMsg && (
-          <div className="mb-4 p-3 rounded-xl bg-rose-950/50 border border-rose-800 text-rose-300 text-xs animate-in fade-in">
+          <div className="mb-4 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/40 text-rose-800 dark:text-rose-300 text-xs animate-in fade-in">
             {errorMsg}
           </div>
         )}
 
         {/* Datos del usuario */}
-        <div className="p-3.5 rounded-2xl bg-[#060a14] border border-[#16223e] mb-4 flex items-center justify-between">
+        <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#18181b] border border-slate-200 dark:border-white/[0.07] mb-4 flex items-center justify-between">
           <div>
-            <span className="text-xs font-bold text-white block">{targetUser.full_name}</span>
-            <span className="text-[11px] font-mono text-sky-400 block">{targetUser.email}</span>
+            <span className="text-xs font-semibold text-slate-900 dark:text-white block">{targetUser.full_name}</span>
+            <span className="text-[11px] font-mono text-blue-600 dark:text-cyan-400 block">{targetUser.email}</span>
           </div>
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-800 uppercase font-mono">
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/40 uppercase font-mono">
             {targetUser.role.toUpperCase()}
           </span>
         </div>
 
         {/* Input Clave Provisional */}
         <div className="space-y-1.5 mb-4">
-          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block font-mono">
+          <label className="text-[10px] font-bold text-slate-600 dark:text-zinc-400 uppercase tracking-wider block font-mono">
             Contraseña Provisional Asignada
           </label>
           <input
@@ -201,9 +191,9 @@ export const ResetUserPasswordModal: React.FC<ResetPasswordModalProps> = ({
             value={claveProvisional}
             onChange={(e) => setClaveProvisional(e.target.value)}
             disabled={loading}
-            className="w-full bg-[#060a14] border border-[#16223e] rounded-xl px-4 py-2.5 text-sm font-mono text-white focus:outline-none focus:border-blue-500 transition-colors"
+            className="w-full bg-slate-50 dark:bg-[#18181b] border border-slate-200 dark:border-white/[0.08] rounded-xl px-3.5 py-2.5 text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
           />
-          <p className="text-[11px] text-slate-400 mt-1">
+          <p className="text-[11px] text-slate-500 dark:text-zinc-500 mt-1">
             Esta contraseña queda inmediatamente habilitada en el sistema para que el usuario pueda autenticarse.
           </p>
         </div>
@@ -212,16 +202,16 @@ export const ResetUserPasswordModal: React.FC<ResetPasswordModalProps> = ({
         <button
           type="button"
           onClick={copiarWhatsApp}
-          className="w-full mb-6 py-2.5 px-4 rounded-xl border border-slate-700 bg-[#0e1628] hover:bg-[#14203a] text-slate-300 text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-98"
+          className="w-full mb-5 py-2.5 px-4 rounded-xl border border-slate-200 dark:border-white/[0.08] bg-slate-50 hover:bg-slate-100 dark:bg-[#18181b] hover:dark:bg-white/[0.06] text-slate-700 dark:text-zinc-300 text-xs font-medium flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-[0.98]"
         >
           {copiado ? (
             <>
-              <Check className="w-3.5 h-3.5 text-emerald-400"/>
-              <span className="text-emerald-400 font-bold">¡Copiado al portapapeles!</span>
+              <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400"/>
+              <span className="text-emerald-600 dark:text-emerald-400 font-semibold">¡Copiado al portapapeles!</span>
             </>
           ) : (
             <>
-              <Copy className="w-3.5 h-3.5 text-sky-400"/>
+              <Copy className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400"/>
               <span>Copiar credenciales para enviar por WhatsApp</span>
             </>
           )}
@@ -233,7 +223,7 @@ export const ResetUserPasswordModal: React.FC<ResetPasswordModalProps> = ({
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="flex-1 py-3 px-4 rounded-xl border border-slate-700 bg-[#0e1628] hover:bg-[#14203a] text-slate-300 text-xs font-bold transition-all cursor-pointer"
+            className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 dark:border-white/[0.08] bg-white hover:bg-slate-50 dark:bg-[#18181b] hover:dark:bg-white/[0.06] text-slate-700 dark:text-zinc-300 text-xs font-semibold transition-all cursor-pointer active:scale-[0.98]"
           >
             Cerrar
           </button>
@@ -242,10 +232,10 @@ export const ResetUserPasswordModal: React.FC<ResetPasswordModalProps> = ({
             type="button"
             onClick={handleConfirmarReseteo}
             disabled={loading}
-            className="flex-1 py-3 px-4 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold shadow-lg shadow-amber-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-98"
+            className="flex-1 py-2.5 px-4 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold shadow-md shadow-amber-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-[0.98]"
           >
             {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin"/> : <Shield className="w-3.5 h-3.5"/>}
-            <span>{loading ? 'Aplicando...' : 'CONFIRMAR RESETEO'}</span>
+            <span>{loading ? 'Aplicando...' : 'Confirmar Reseteo'}</span>
           </button>
         </div>
 
